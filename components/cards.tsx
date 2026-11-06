@@ -232,8 +232,8 @@ export function UpdateRow({ item }: { item: MangaCard }) {
           <img src={item.thumbnail} alt="" loading="lazy" decoding="async" fetchPriority="low" onLoad={(e) => e.currentTarget.classList.add("blur-done")} className="blur-up h-full w-full object-cover" />
         ) : null}
         {item.type && (
-          <div className="absolute right-1 top-1">
-            <TypeBadge type={item.type} className="px-1 text-[9px]" />
+          <div className="absolute left-0 top-0">
+            <TypeBadge type={item.type} flush />
           </div>
         )}
       </Link>
