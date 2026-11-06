@@ -207,7 +207,7 @@ div {
   }
   *::-webkit-scrollbar-thumb {
     background-color: var(--sb-thumb);
-    border: 3px solid transparent; /* thumb tampak ±4px, "melayang" di track 10px */
+    border: 3px solid transparent;
     background-clip: padding-box;
     border-radius: 999px;
     min-height: 48px;
@@ -215,7 +215,7 @@ div {
   }
   *::-webkit-scrollbar-thumb:hover {
     background-color: var(--sb-thumb-hover);
-    border-width: 2px; /* menebal ke ±6px saat hover */
+    border-width: 2px;
   }
   *::-webkit-scrollbar-thumb:active {
     background-color: var(--sb-thumb-active);
@@ -678,7 +678,7 @@ article.cv-auto:not(.group):active {
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.22) 50%, transparent 65%);
+    background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
     transform: translateX(-120%);
     transition: transform 650ms var(--ease-out);
     pointer-events: none;
@@ -754,8 +754,6 @@ article.cv-auto:not(.group):active {
   opacity: 0.45;
   transform: translateX(3px);
 }
-@media (prefers-reduced-motion: reduce) {
-}
 
 /* ---------------------------------------------------------------------- */
 /* Dropdown saran pencarian                                                */
@@ -769,12 +767,12 @@ article.cv-auto:not(.group):active {
   animation: suggest-in 0.22s var(--ease-out);
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--color-accent) 12%, transparent) inset,
-    0 18px 40px -12px rgb(0 0 0 / 0.22),
-    0 4px 12px -4px rgb(0 0 0 / 0.08);
+    0 18px 40px -12px rgba(0, 0, 0, 0.22),
+    0 4px 12px -4px rgba(0, 0, 0, 0.08);
 }
 .dark .suggest-panel {
   box-shadow:
-    0 18px 44px -12px rgb(0 0 0 / 0.7),
+    0 18px 44px -12px rgba(0, 0, 0, 0.7),
     0 0 0 1px color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 .suggest-item { position: relative; }
@@ -828,4 +826,57 @@ article.cv-auto:not(.group):active {
 @media (prefers-reduced-motion: reduce) {
   .suggest-panel { animation: none; }
   .suggest-item[data-active] .suggest-thumb { transform: none; }
+}
+
+/* ====================================================================== */
+/* Premium Enhancements: Depth, Glassmorphism, and Refined Interactions   */
+/* ====================================================================== */
+
+/* Subtle background depth for dark mode */
+.dark body {
+  background-image: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 4%, transparent) 0%, transparent 50%);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: color-mix(in srgb, var(--color-paper) 85%, transparent);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+.dark .glass {
+  background: color-mix(in srgb, var(--color-ink) 85%, transparent);
+}
+
+/* Premium shadow for elevated elements */
+.shadow-premium {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+.dark .shadow-premium {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Refined card hover: lift + glow */
+.card-hover {
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+}
+@media (hover: hover) {
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12);
+    border-color: var(--color-accent);
+  }
+  .dark .card-hover:hover {
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-accent);
+  }
+}
+.card-hover:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Brand gradient text */
+.text-gradient-brand {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
