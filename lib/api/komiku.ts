@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { updatedAtMinutes } from "./aggregator";
 import type {
   ApiError,
   ChapterData,
@@ -163,13 +164,24 @@ function parseBgeCards($: cheerio.CheerioAPI): MangaCard[] {
     let updatedAt: string | undefined;
     let synopsis: string | undefined;
     if (judul2) {
-      const m = judul2.match(/(\d+\s+\w+\s+lalu)/);
-      updatedAt = m ? m[1] : undefined;
+      // "Fantasi | 4 menit lalu" (varian lain: "… yang lalu", "Baru saja").
+      // Tanpa pola "baru saja" kartu terbaru kehilangan waktu update lalu
+      // tergeser ke belakang daftar versi ini.
+      const m = judul2.match(/(\d+\s+\w+(?:\s+\w+)?\s+lalu|baru saja)/i);
+      updatedAt = m ? m[1].replace(/\s+/g, " ") : undefined;
       if (descP && !/^update\s/i.test(descP)) synopsis = descP;
     } else if (descP) {
       const m = descP.match(/update\s+(.+?)\s*\./i);
       updatedAt = m ? m[1] : descP;
     }
+
+    // Komiku hanya memberi teks relatif → titik waktu absolutnya diturunkan
+    // saat scrape. Klien memakai ini untuk menghitung ulang label tiap menit
+    // (label teks di atas membeku pada waktu scrape).
+    const agoMinutes = updatedAtMinutes(updatedAt);
+    const updatedAtTs = Number.isFinite(agoMinutes)
+      ? Date.now() - agoMinutes * 60_000
+      : undefined;
 
     // Tentukan Awal vs Terbaru dari PREFIKS LABEL, bukan urutan/posisi link.
     // Kartu dengan hanya 1 link (komik baru rilis 1 chapter, atau markup
@@ -206,6 +218,7 @@ function parseBgeCards($: cheerio.CheerioAPI): MangaCard[] {
       ...(type ? { type } : {}),
       ...(genre ? { genre } : {}),
       ...(updatedAt ? { updatedAt } : {}),
+      ...(updatedAtTs !== undefined ? { updatedAtTs } : {}),
       ...(synopsis ? { synopsis } : {}),
       ...(firstChapter ? { firstChapter } : {}),
       ...(latestChapter ? { latestChapter } : {}),

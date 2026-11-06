@@ -8,13 +8,16 @@
  * - Navigasi: network-first, jatuh ke /offline.html bila jaringan mati.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `kf-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
+// Manifest sengaja TIDAK di-precache dan TIDAK di-cache-first: isinya
+// bisa berubah antar-deploy (ikon, shortcut), dan cache-first akan
+// menyembunyikan perubahan itu selamanya. Biarkan browser HTTP cache
+// yang menanganinya (header revalidate diatur next.config.ts).
 const PRECACHE = [
   OFFLINE_URL,
-  "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-512.png",
@@ -58,7 +61,6 @@ const isStaticAsset = (pathname) =>
   pathname.startsWith("/_next/static/") ||
   pathname.startsWith("/icons/") ||
   pathname === "/apple-touch-icon.png" ||
-  pathname === "/manifest.webmanifest" ||
   pathname === "/offline.html";
 
 self.addEventListener("fetch", (event) => {
@@ -101,7 +103,10 @@ self.addEventListener("fetch", (event) => {
         const hit = await cache.match(req);
         if (hit) return hit;
         const res = await fetch(req);
-        if (res && res.ok && res.type === "basic") {
+        // Hanya 200 penuh yang boleh masuk Cache Storage — `cache.put`
+        // melempar untuk respons 206 (partial). `res.ok` (200–299)
+        // terlalu longgar untuk cek ini.
+        if (res && res.status === 200 && res.type === "basic") {
           cache.put(req, res.clone()).catch(() => {});
         }
         return res;

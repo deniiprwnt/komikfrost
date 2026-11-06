@@ -128,9 +128,11 @@ export function useHistory(): {
   return { entries, remove, clear, refresh };
 }
 
-/** Label waktu relatif singkat: "baru saja", "5 mnt lalu", "3 jam lalu", "2 hri lalu". */
-export function timeAgo(ts: number): string {
-  const s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+/** Label waktu relatif singkat: "baru saja", "5 mnt lalu", "3 jam lalu", "2 hri lalu".
+ *  `now` opsional agar pemanggil bisa memakai detak menit bersama
+ *  (`useNowTick`) — label tidak membeku sampai ada render lain. */
+export function timeAgo(ts: number, now = Date.now()): string {
+  const s = Math.max(1, Math.floor((now - ts) / 1000));
   if (s < 60) return "baru saja";
   const m = Math.floor(s / 60);
   if (m < 60) return `${m} mnt lalu`;

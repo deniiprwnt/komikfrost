@@ -25,6 +25,13 @@ export interface MangaCard {
   genre?: string;
   /** Info waktu update, mis. "2 jam lalu" */
   updatedAt?: string;
+  /**
+   * Waktu update ABSOLUT (epoch ms). `updatedAt` adalah label relatif yang
+   * dibekukan saat scrape; klien menghitung ulang labelnya dari field ini
+   * setiap menit supaya "3 menit lalu" tidak berhenti di angka 3.
+   * Opsional agar respons lama tetap valid.
+   */
+  updatedAtTs?: number;
   /** Sinopsis singkat (hanya di fragment api.komiku.org/manga/) */
   synopsis?: string;
   /** Chapter pertama: { label, url } — url = path Komiku mis. /one-piece-chapter-1/ */

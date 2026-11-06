@@ -210,16 +210,22 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         firstCh = { label: "Chapter 1", url: `/${fullSlug}-chapter-1/` };
       }
     }
-    // updatedAt kartu gabungan = waktu TERBARU antar source.
-    let mergedUpdatedAt = getCard("updatedAt");
+    // updatedAt kartu gabungan = waktu TERBARU antar source, sekaligus ikut
+    // membawa timestamp absolutnya agar label relatif bisa dihitung ulang
+    // di klien (label teks membeku pada waktu scrape).
+    let mergedUpdatedAt: string | undefined;
+    let mergedUpdatedAtTs: number | undefined;
     {
-      let best = updatedAtMinutes(mergedUpdatedAt);
+      let best = Infinity;
       for (const s of SOURCE_PRIORITY) {
         const cand = g.cards[s]?.updatedAt;
+        if (!cand) continue;
         const n = updatedAtMinutes(cand);
-        if (cand && n < best) {
+        // `<` bukan `<=` → waktu sama tetap dipegang source prioritas.
+        if (n < best) {
           best = n;
           mergedUpdatedAt = cand;
+          mergedUpdatedAtTs = g.cards[s]?.updatedAtTs;
         }
       }
     }
@@ -258,6 +264,7 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       ...(getCard("type") ? { type: getCard("type") as NonNullable<MangaCard["type"]> } : {}),
       ...(getCard("genre") ? { genre: getCard("genre") as string } : {}),
       ...(mergedUpdatedAt ? { updatedAt: mergedUpdatedAt } : {}),
+      ...(typeof mergedUpdatedAtTs === "number" ? { updatedAtTs: mergedUpdatedAtTs } : {}),
       ...(getCard("synopsis") ? { synopsis: getCard("synopsis") as string } : {}),
       ...(firstCh ? { firstChapter: rewriteShiniUrl(firstCh, displaySlug) } : {}),
       ...(latestCh ? { latestChapter: rewriteShiniUrl(latestCh, displaySlug) } : {}),
@@ -294,7 +301,9 @@ function rewriteShiniUrl<T extends ChapterRef>(ref: T, displaySlug: string): T {
 export function updatedAtMinutes(raw?: string): number {
   if (!raw) return Infinity;
   const t = raw.toLowerCase().trim();
-  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(detik|second|menit|minute|jam|hour|hari|day|minggu|week|bulan|month|tahun|year)/);
+  // "baru saja" / "just now" = paling baru (tanpa angka).
+  if (/^(baru saja|just now)$/.test(t)) return 0;
+  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(?:yang\s+)?(detik|second|menit|minute|jam|hour|hari|day|minggu|week|bulan|month|tahun|year)/);
   if (!m) return Infinity;
   const n = parseFloat(m[1].replace(",", "."));
   if (!Number.isFinite(n)) return Infinity;
@@ -314,10 +323,19 @@ export function updatedAtMinutes(raw?: string): number {
  * Urutkan kartu gabungan PALING BARU dulu lintas source — BUKAN urutan
  * source. Stabil: waktu sama → urutan asal dipertahankan.
  */
-export function sortByFresh<T extends Pick<MangaCard, "updatedAt">>(cards: T[]): T[] {
+export function sortByFresh<T extends Pick<MangaCard, "updatedAt" | "updatedAtTs">>(cards: T[]): T[] {
+  const now = Date.now();
+  // Timestamp absolut menang (presisi detik — beberapa kartu sering berbagi
+  // label menit yang sama, dan urutan mentah source bisa menaruh komik baru
+  // di luar 15 kartu yang tampil). Label relatif jadi cadangan.
+  const ageMinutes = (c: T): number => {
+    const ts = c.updatedAtTs;
+    if (typeof ts === "number" && Number.isFinite(ts)) return Math.max(0, (now - ts) / 60_000);
+    return updatedAtMinutes(c.updatedAt);
+  };
   return cards
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => updatedAtMinutes(a.c.updatedAt) - updatedAtMinutes(b.c.updatedAt) || a.i - b.i)
+    .map((c, i) => ({ c, i, age: ageMinutes(c) }))
+    .sort((a, b) => a.age - b.age || a.i - b.i)
     .map(({ c }) => c);
 }
 

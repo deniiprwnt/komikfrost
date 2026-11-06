@@ -182,6 +182,7 @@ function toCard(s: KcSeries): MangaCard {
       })()
     : undefined;
   const genreOne = (s.genres ?? []).find((g) => g?.name || g?.slug);
+  const ts = s.updated_at ? Date.parse(s.updated_at) : NaN;
   return {
     slug: s.slug,
     title: s.title,
@@ -191,6 +192,7 @@ function toCard(s: KcSeries): MangaCard {
     ...(genreOne ? { genre: genreOne.name || genreOne.slug } : {}),
     ...(s.synopsis ? { synopsis: s.synopsis } : {}),
     ...(timeAgoId(s.updated_at) ? { updatedAt: timeAgoId(s.updated_at)! } : {}),
+    ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(first ? { firstChapter: first } : {}),
     ...(latest ? { latestChapter: latest } : {}),
   };

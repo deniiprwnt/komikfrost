@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiGet, peekApiCache } from "@/lib/client";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
+import { useUpdatedLabel } from "@/lib/relative-time";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
 
 /** Saat cover diklik: rekam posisi + gambar untuk animasi terbang ke detail. */
@@ -97,6 +98,8 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   // tujuan terbuka dari cache (terasa instan). Sentuhan yang berubah jadi
   // scroll dibatalkan, lihat useIntentPrefetch.
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
+  // Label waktu dihitung ulang tiap menit (bukan teks beku dari server).
+  const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   return (
     <article
       {...warm}
@@ -147,10 +150,10 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         >
           {item.title}
         </Link>
-        {(item.genre || item.updatedAt) && (
+        {(item.genre || updated) && (
           <p className="mt-auto truncate border-t border-line pt-2 text-[11px] leading-tight tabular-nums text-muted dark:border-line-dark dark:text-muted-dark">
-            <span className="sm:hidden">{item.updatedAt || item.genre}</span>
-            <span className="max-sm:hidden">{[item.genre, item.updatedAt].filter(Boolean).join(" · ")}</span>
+            <span className="sm:hidden">{updated || item.genre}</span>
+            <span className="max-sm:hidden">{[item.genre, updated].filter(Boolean).join(" · ")}</span>
           </p>
         )}
       </div>
@@ -164,6 +167,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
  */
 export function UpdateTile({ item, featured = false }: { item: MangaCard; featured?: boolean }) {
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
+  const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   if (!featured) return <MangaGridCard item={item} />;
   return (
     <article
@@ -190,7 +194,7 @@ export function UpdateTile({ item, featured = false }: { item: MangaCard; featur
         <div className="absolute inset-x-0 bottom-0 bg-ink p-3 text-fg-dark sm:p-4">
           <div className="flex items-center gap-2">
             <TypeBadge type={item.type} />
-            {item.updatedAt && <span className="text-[11px] tabular-nums text-muted-dark">{item.updatedAt}</span>}
+            {updated && <span className="text-[11px] tabular-nums text-muted-dark">{updated}</span>}
           </div>
           <p className="display-cond mt-1.5 line-clamp-2 text-2xl sm:text-3xl">{item.title}</p>
           {item.latestChapter && (
@@ -206,6 +210,7 @@ export function UpdateTile({ item, featured = false }: { item: MangaCard; featur
 export function UpdateRow({ item }: { item: MangaCard }) {
   const detailPath = `/api/manga/${encodeURIComponent(item.slug)}`;
   const warm = useIntentPrefetch(detailPath);
+  const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   return (
     <article
       {...warm}
@@ -243,9 +248,9 @@ export function UpdateRow({ item }: { item: MangaCard }) {
               {item.genre}
             </p>
           )}
-          {item.updatedAt && (
+          {updated && (
             <span className="shrink-0 text-[10px] tabular-nums leading-tight text-muted sm:text-[11px] dark:text-muted-dark">
-              {item.updatedAt}
+              {updated}
             </span>
           )}
         </div>

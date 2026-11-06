@@ -258,6 +258,8 @@ function coverUrl(m: ShiniManga): string {
 /** Kartu daftar dari satu item manga/list. Slug = manga_id (UUID). */
 function toCard(m: ShiniManga): MangaCard {
   const n = m.latest_chapter_number;
+  // Waktu absolut untuk label relatif yang menua sendiri di klien.
+  const ts = m.latest_chapter_time ? Date.parse(m.latest_chapter_time) : NaN;
   return {
     slug: m.manga_id,
     title: m.title,
@@ -266,6 +268,7 @@ function toCard(m: ShiniManga): MangaCard {
     ...(mapType(m) ? { type: mapType(m) as KomikType } : {}),
     ...(m.taxonomy?.Genre?.[0]?.name ? { genre: m.taxonomy.Genre[0].name } : {}),
     ...(timeAgoId(m.latest_chapter_time) ? { updatedAt: timeAgoId(m.latest_chapter_time) as string } : {}),
+    ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(m.description ? { synopsis: m.description } : {}),
     ...(typeof n === "number"
       ? {

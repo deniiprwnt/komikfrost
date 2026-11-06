@@ -28,6 +28,8 @@ export function Pwa() {
       const worker = reg.installing;
       if (!worker) return;
       worker.addEventListener("statechange", () => {
+        // Komponen sudah dibongkar — jangan set state pada node mati.
+        if (disposed) return;
         // `controller` ada = sebelumnya sudah ada SW aktif → ini pembaruan,
         // bukan instalasi pertama (instalasi pertama tidak perlu notifikasi).
         if (worker.state === "installed" && navigator.serviceWorker.controller) {

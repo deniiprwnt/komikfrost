@@ -36,26 +36,32 @@ function canWarm(): boolean {
 }
 
 /**
- * Panaskan data menu utama di latar belakang saat browser idle — sekali
- * per load. Ini yang membuat tap menu di ponsel (tanpa hover) tetap
- * instan: datanya sudah siap sebelum menu dipilih.
+ * Panaskan data menu utama di latar belakang — sekali per load. Ini yang
+ * membuat tap menu di ponsel (tanpa hover) tetap instan: datanya sudah siap
+ * sebelum menu dipilih.
+ *
+ * Ditunda + berurutan: warm pertama langsung setelah mount akan berebut
+ * upstream dengan data halaman yang sedang dibuka (scrape 3 source bisa
+ * naik dari ~1,5 dtk ke 6 dtk). Jeda 6 dtk membuat permintaan halaman
+ * menang dulu; jarak antar-menu mencegah tiga scrape berat berjalan
+ * bersamaan.
  */
+const WARM_DELAY_MS = 6000;
+const WARM_GAP_MS = 1200;
+
 export function warmPrimaryNav(currentPath: string): void {
   if (!canWarm()) return;
   warmed = true;
 
-  const run = () => {
-    for (const href of Object.keys(NAV_API)) {
-      const isCurrent = href === "/" ? currentPath === "/" : currentPath.startsWith(href);
-      if (!isCurrent) warmRoute(href);
-    }
-  };
+  const targets = Object.keys(NAV_API).filter((href) =>
+    href === "/" ? currentPath !== "/" : !currentPath.startsWith(href),
+  );
+  if (targets.length === 0) return;
 
-  const ric = (
-    window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    }
-  ).requestIdleCallback;
-  if (typeof ric === "function") ric(run, { timeout: 2500 });
-  else window.setTimeout(run, 1500);
+  const next = (i: number) => {
+    if (i >= targets.length) return;
+    warmRoute(targets[i]);
+    window.setTimeout(() => next(i + 1), WARM_GAP_MS);
+  };
+  window.setTimeout(() => next(0), WARM_DELAY_MS);
 }

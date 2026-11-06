@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, apiGetSWR, peekApiCacheStale, titleKey } from "@/lib/client";
+import { apiGet, apiGetSWR, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import type { GenreRef, MangaCard } from "@/lib/api/types";
@@ -179,10 +179,10 @@ function TerbaruContent() {
   );
 
   // Auto-refresh PWA: cek diam-diam tiap interval, ganti daftar HANYA
-  // bila ada komik baru (3 teratas berubah). Tanpa skeleton, tanpa
-  // menyentuh error/loading — gagal = abaikan. Hanya halaman 1 &
-  // urutan non-acak (komik baru muncul di halaman 1; mode acak jangan
-  // diusik urutannya saat dibaca).
+  // bila isi daftar berubah (komik/chapter baru di posisi mana pun).
+  // Tanpa skeleton, tanpa menyentuh error/loading — gagal = abaikan.
+  // Hanya halaman 1 & urutan non-acak (komik baru muncul di halaman 1;
+  // mode acak jangan diusik urutannya saat dibaca).
   const silentCheck = useCallback(async () => {
     if (orderby === "rand") return;
     if (pageRef.current !== 1 || loadingRef.current) return;
@@ -190,10 +190,16 @@ function TerbaruContent() {
     if (cur.length === 0) return;
     try {
       const res = await apiGet<LatestPayload>(`/api/latest?${buildQs(1)}`, { noStore: true });
+      // Selama await (scrape 2–6 dtk) user bisa sudah pindah halaman.
+      // applyItems(..., 1) memanggil setPage(1) — jangan sampai itu
+      // menendang user kembali ke halaman 1 dari halaman yang sedang
+      // dibuka.
+      if (pageRef.current !== 1) return;
       if (!res.items || res.items.length === 0) return;
+      // Bandingkan ISI daftar, bukan 3 teratas saja: komik baru yang masuk
+      // di posisi 4+ dulu tidak pernah tampil sampai halaman dimuat ulang.
       const sig = (l: MangaCard[]) =>
         l
-          .slice(0, 3)
           .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
           .join("|");
       if (sig(res.items) === sig(cur)) return;
@@ -220,8 +226,16 @@ function TerbaruContent() {
       // Cache prefetch masih segar → tampilkan isi yang sudah ada tanpa
       // mengganti layar dengan skeleton.
       const cached = !fresh ? peekApiCacheStale<LatestPayload>(path) : null;
-      setLoading(!cached);
+      // Refresh halaman menghapus cache memori — snapshot localStorage
+      // membuat daftar langsung tampil, lalu disegarkan diam-diam.
+      const fromDisk =
+        !fresh && !cached?.items?.length ? readApiSnapshot<LatestPayload>(path) : null;
+      const shown = cached?.items?.length ? cached : fromDisk?.items?.length ? fromDisk : null;
+      setLoading(!shown);
       setError(null);
+      if (fromDisk?.items?.length && !cached?.items?.length) {
+        applyItems(fromDisk.items, fromDisk.hasNextPage, p);
+      }
       try {
         if (fresh) {
           const res = await apiGet<LatestPayload>(path);
@@ -242,7 +256,9 @@ function TerbaruContent() {
         }
         // data null = mustahil (apiGet throw bila gagal).
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Gagal memuat data.");
+        // Sudah ada isi (cache/snapshot) → jangan ganti layar dengan error;
+        // daftar lama tetap terbaca, refresh bisa dicoba lagi nanti.
+        if (!shown) setError(e instanceof Error ? e.message : "Gagal memuat data.");
         setLoading(false);
       }
     },
@@ -274,6 +290,12 @@ function TerbaruContent() {
     (p: number) => {
       const target = Math.min(Math.max(1, p), 50);
       if (target === page || loading) return;
+      // Sinkron: `pageRef` dipakai silentCheck untuk memutuskan apakah
+      // hasil fetch yang sedang in-flight masih relevan. Efek mirror
+      // (useEffect di bawah) baru jalan SETELAH render — jendela kecil
+      // yang cukup untuk auto-refresh menimpa halaman baru dengan data
+      // halaman 1.
+      pageRef.current = target;
       scrollToList();
       void loadPage(target);
     },
@@ -298,10 +320,23 @@ function TerbaruContent() {
   }, [filtersKey, page]);
 
   // Opsi genre untuk dropdown (sekali muat, 1 jam cache server).
+  // Ditunda sebentar: scrape genre ikut berebut upstream dengan daftar
+  // utama saat halaman baru dibuka — daftar komik yang harus menang.
   useEffect(() => {
-    apiGet<GenreRef[]>("/api/genres")
-      .then(setGenreOpts)
-      .catch(() => setGenreOpts([]));
+    let off = false;
+    const timer = window.setTimeout(() => {
+      apiGet<GenreRef[]>("/api/genres")
+        .then((opts) => {
+          if (!off) setGenreOpts(opts);
+        })
+        .catch(() => {
+          if (!off) setGenreOpts([]);
+        });
+    }, 1500);
+    return () => {
+      off = true;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   return (

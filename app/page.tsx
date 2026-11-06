@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi } from "@/lib/client";
+import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { timeAgo, useHistory } from "@/lib/history";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
 import { MangaGridCard, RankRow } from "@/components/cards";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { useNowTick } from "@/lib/relative-time";
 
 /** Acak array (Fisher-Yates) — rekomendasi tampil beda tiap kunjungan. */
 function shuffle<T>(arr: T[]): T[] {
@@ -19,10 +20,11 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** Tanda daftar (3 teratas) — pembanding ringan untuk deteksi komik baru. */
+/** Tanda daftar (SEMUA kartu tampil) — pembanding ringan untuk deteksi
+ *  perubahan isi. Dulu hanya 3 teratas: komik baru yang masuk di posisi 4+
+ *  tidak pernah tampil sampai halaman dimuat ulang. */
 function listSig(list: MangaCard[] | null): string {
   return (list || [])
-    .slice(0, 3)
     .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
     .join("|");
 }
@@ -37,7 +39,16 @@ interface HomePayload {
  * Section beranda: tampil instan dari cache (basi < 5 mnt) lalu segarkan
  * diam-diam — layar tidak pernah kosong menunggu jaringan.
  */
-function useHomeSection<K extends keyof HomePayload>(key: K, shuffleData = false) {
+function useHomeSection<K extends keyof HomePayload>(
+  key: K,
+  shuffleData = false,
+  /**
+   * Endpoint ringan untuk cek "ada komik baru?". Default /api/home (ikut
+   * men-scrape populer + rekomendasi). Daftar terbaru memakai /api/latest
+   * agar polling 60 dtk tidak mengulang seluruh kerja beranda.
+   */
+  probePath?: string,
+) {
   const [data, setData] = useState<MangaCard[] | null>(() => {
     // Cache prefetch dari menu/hover = konten langsung tampil. Rekomendasi
     // dikecualikan: urutannya diacak saat load sehingga memakai cache akan
@@ -61,6 +72,17 @@ function useHomeSection<K extends keyof HomePayload>(key: K, shuffleData = false
     async (fresh = false) => {
       setError(null);
       if (hasDataRef.current) setRefreshing(true);
+      // Refresh halaman menghapus cache memori: tampilkan snapshot disk
+      // dulu supaya beranda tidak kosong menunggu scrape.
+      if (!hasDataRef.current && !shuffleData) {
+        const snap = readApiSnapshot<HomePayload>("/api/home");
+        const list = snap ? snap[key] : null;
+        if (list && list.length > 0) {
+          hasDataRef.current = true;
+          dataRef.current = list;
+          setData(list);
+        }
+      }
       const pick = (home: HomePayload | null | undefined, allowShuffle = true) => {
         const list = home ? home[key] : null;
         if (list) hasDataRef.current = true;
@@ -83,32 +105,41 @@ function useHomeSection<K extends keyof HomePayload>(key: K, shuffleData = false
         // Kalau data basi, onFresh di atas yang mematikan spinner.
         if (!res.stale) setRefreshing(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Gagal memuat data.");
+        // Ada isi dari cache/snapshot → biarkan daftar tampil, jangan
+        // timpa dengan layar error hanya karena refresh gagal.
+        if (!hasDataRef.current) setError(e instanceof Error ? e.message : "Gagal memuat data.");
         setRefreshing(false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key, shuffleData],
   );
-  // Cek diam-diam (auto-refresh PWA): fetch baru, ganti daftar HANYA
-  // bila 3 teratas berubah (ada komik baru). Tanpa spinner, tanpa
-  // menyentuh error — gagal = abaikan. Rekomendasi (acak) dikecualikan:
+  // Cek diam-diam (auto-refresh PWA): fetch baru, ganti daftar bila ISI
+  // daftar berubah (komik/chapter baru di posisi mana pun). Tanpa spinner,
+  // tanpa menyentuh error — gagal = abaikan. Rekomendasi (acak) dikecualikan:
   // urutannya memang beda tiap fetch.
   const checkNew = useCallback(async () => {
     if (shuffleData) return;
     if (!dataRef.current || dataRef.current.length === 0) return;
     try {
-      const home = await apiGet<HomePayload>("/api/home", { noStore: true });
-      const list = home ? home[key] : null;
+      const path = probePath ?? "/api/home";
+      const payload = await apiGet<HomePayload | { items?: MangaCard[] }>(path, { noStore: true });
+      const list = probePath
+        ? ((payload as { items?: MangaCard[] }).items ?? null)
+        : ((payload as HomePayload | null)?.[key] ?? null);
       if (!list || list.length === 0) return;
-      if (listSig(list) === listSig(dataRef.current)) return;
+      // Probe /api/latest hanya membawa 15 kartu, sedangkan /api/home bisa
+      // membawa 40. Bandingkan potongan yang setara agar daftar tidak
+      // dianggap berubah hanya karena panjangnya beda.
+      const current = probePath ? dataRef.current.slice(0, list.length) : dataRef.current;
+      if (listSig(list) === listSig(current)) return;
       hasDataRef.current = true;
       dataRef.current = list;
       setData(list);
     } catch {
       // Abaikan — daftar lama tetap tampil.
     }
-  }, [key, shuffleData]);
+  }, [key, shuffleData, probePath]);
   useEffect(() => {
     load();
   }, [load]);
@@ -126,18 +157,24 @@ function useRecommended() {
 
 export default function HomePage() {
   const { entries: history } = useHistory();
+  // Detak menit untuk label "x lalu" riwayat (tanpa render ulang tiap detik).
+  const now = useNowTick();
   // 1 request gabungan untuk 3 section (hemat handshake, ramah rate limit).
   const popular = useHomeSection("popular");
-  const latest = useHomeSection("latest");
+  // Daftar terbaru punya endpoint sendiri yang jauh lebih ringan dari
+  // /api/home (tanpa scrape populer + rekomendasi).
+  const latest = useHomeSection("latest", false, "/api/latest?page=1&orderby=modified");
   const recommended = useRecommended();
 
   // Daftar update sendiri tiap interval + tiap PWA dibuka lagi — tanpa
   // reload manual. Hanya section terurut (rekomendasi acak dikecualikan
   // di dalam checkNew agar tidak lompat saat dibaca).
+  // Peringkat sengaja TIDAK ikut di-poll: perubahannya lambat dan
+  // /api/home men-scrape 3 sumber sekaligus (≈5 dtk) — cukup disegarkan
+  // saat halaman dibuka atau tombol muat ulang ditekan.
   const checkNewAll = useCallback(() => {
-    void popular.checkNew();
     void latest.checkNew();
-  }, [popular.checkNew, latest.checkNew]);
+  }, [latest.checkNew]);
   useAutoRefresh(checkNewAll);
 
   // Prefetch hemat: hanya daftar genre + hanya saat browser idle, agar
@@ -265,7 +302,7 @@ export default function HomePage() {
                       {h.title}
                     </p>
                     <p className="mt-auto truncate border-t border-line pt-2 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">
-                      {h.chapterLabel} · {timeAgo(h.updatedAt)}
+                      {h.chapterLabel} · {timeAgo(h.updatedAt, now ?? Date.now())}
                     </p>
                   </div>
                 </Link>

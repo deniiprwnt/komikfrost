@@ -21,6 +21,53 @@ const STALE_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; data: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
+/**
+ * Snapshot daftar ke localStorage — supaya REFRESH halaman (yang menghapus
+ * cache memori) tetap langsung terisi, bukan skeleton 2-6 detik menunggu
+ * scrape tiga sumber. Data tetap divalidasi ulang di background; label
+ * "x menit lalu" dihitung dari `updatedAtTs`, jadi tidak ikut membeku.
+ */
+const SNAP_PREFIX = "kf.snap:";
+const SNAP_TTL_MS = 6 * 60 * 60_000; // 6 jam — lebih tua dari itu, buang.
+const SNAP_MAX_CHARS = 250_000; // jaga kuota localStorage (~5 MB)
+
+function snapshotAllowed(path: string): boolean {
+  return (
+    path.startsWith("/api/latest") ||
+    path === "/api/home" ||
+    path.startsWith("/api/popular") ||
+    path.startsWith("/api/genre/")
+  );
+}
+
+export function readApiSnapshot<T>(path: string): T | null {
+  if (typeof window === "undefined" || !snapshotAllowed(path)) return null;
+  try {
+    const raw = window.localStorage.getItem(SNAP_PREFIX + path);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { at?: number; data?: T };
+    if (!parsed || typeof parsed.at !== "number") return null;
+    if (Date.now() - parsed.at > SNAP_TTL_MS) {
+      window.localStorage.removeItem(SNAP_PREFIX + path);
+      return null;
+    }
+    return parsed.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeApiSnapshot(path: string, data: unknown): void {
+  if (typeof window === "undefined" || !snapshotAllowed(path)) return;
+  try {
+    const raw = JSON.stringify({ at: Date.now(), data });
+    if (raw.length > SNAP_MAX_CHARS) return;
+    window.localStorage.setItem(SNAP_PREFIX + path, raw);
+  } catch {
+    // Kuota penuh / mode privat — cache memori tetap bekerja.
+  }
+}
+
 async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false): Promise<T> {
   const res = await fetch(path, {
     headers: { Accept: "application/json" },
@@ -47,9 +94,14 @@ export async function apiGet<T>(
   if (opts?.noStore && !opts?.signal) {
     const pending = inflight.get(path);
     if (pending) return pending as Promise<T>;
-    const p = fetchJson<T>(path, undefined, true).finally(() => {
-      if (inflight.get(path) === p) inflight.delete(path);
-    });
+    const p = fetchJson<T>(path, undefined, true)
+      .then((data) => {
+        writeApiSnapshot(path, data);
+        return data;
+      })
+      .finally(() => {
+        if (inflight.get(path) === p) inflight.delete(path);
+      });
     inflight.set(path, p);
     return p;
   }
@@ -65,6 +117,7 @@ export async function apiGet<T>(
   const p = fetchJson<T>(path, opts?.signal)
     .then((data) => {
       cache.set(path, { at: Date.now(), data });
+      writeApiSnapshot(path, data);
       return data;
     })
     .finally(() => {

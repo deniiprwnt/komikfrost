@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import type { MangaCard } from "@/lib/api/types";
+import { useUpdatedLabel } from "@/lib/relative-time";
 import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 
 /**
@@ -13,7 +14,8 @@ import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
  */
 export function KomikListCard({ item }: { item: MangaCard }) {
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
-  const meta = [item.genre, item.updatedAt].filter(Boolean).join(" | ");
+  const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
+  const meta = [item.genre, updated].filter(Boolean).join(" | ");
   return (
     <article
       {...warm}

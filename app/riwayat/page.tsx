@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { timeAgo, useHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
+import { useNowTick } from "@/lib/relative-time";
 import { SectionHead, EmptyState } from "@/components/states";
 
 function IconTrash({ className }: { className?: string }) {
@@ -23,6 +24,7 @@ function IconTrash({ className }: { className?: string }) {
 export default function RiwayatPage() {
   usePageTitle("Riwayat Baca");
   const { entries, remove, clear } = useHistory();
+  const now = useNowTick();
   const [confirmClear, setConfirmClear] = useState(false);
 
   return (
@@ -113,7 +115,7 @@ export default function RiwayatPage() {
                   {h.chapterLabel}
                   {h.progress > 0 ? ` · ${Math.round(h.progress * 100)}%` : ""}
                   {" · "}
-                  {timeAgo(h.updatedAt)}
+                  {timeAgo(h.updatedAt, now ?? Date.now())}
                 </p>
                 {/* Progress bar posisi baca */}
                 <div className="mt-1.5 h-1 w-full max-w-40 overflow-hidden rounded-full bg-paper-3 dark:bg-ink-3">

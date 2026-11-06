@@ -63,7 +63,7 @@ export function Header() {
   };
 
   return (
-    <header data-app-header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-md pt-[calc(env(safe-area-inset-top,0px)+16px)] md:pt-[env(safe-area-inset-top,0px)] dark:border-line-dark dark:bg-ink/90">
+    <header data-app-header className="sticky top-0 z-40 border-b border-line/50 glass pt-[calc(env(safe-area-inset-top,0px)+16px)] md:pt-[env(safe-area-inset-top,0px)] shadow-premium dark:border-line-dark/50">
       <div className="mx-auto flex h-14 max-w-app items-stretch gap-2 md:h-16 px-3 sm:gap-4 sm:px-4 lg:px-6">
         <NavLink href="/" className="group/logo flex min-w-0 shrink-0 items-center gap-2.5" aria-label="KomikFrost, ke beranda">
           <Mark />
@@ -203,7 +203,7 @@ export function MobileTabBar() {
       aria-label="Navigasi utama"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:hidden"
     >
-      <div className="pointer-events-auto mx-auto flex h-14 max-w-[21rem] items-center gap-1 rounded-2xl border border-line bg-paper-2/90 p-1.5 backdrop-blur-md dark:border-line-dark dark:bg-ink-2/90">
+      <div className="pointer-events-auto mx-auto flex h-14 max-w-[21rem] items-center gap-1 rounded-2xl border border-line glass p-1.5 glass dark:border-line-dark dark:bg-ink-2/90">
         {items.map((n) => {
           const active = n.match.some((m) => (m === "/" ? pathname === "/" : pathname.startsWith(m)));
           const Icon = n.icon;

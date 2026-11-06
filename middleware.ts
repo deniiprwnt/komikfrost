@@ -19,10 +19,12 @@ export async function middleware(req: NextRequest) {
     pathname === "/robots.txt" ||
     // Berkas PWA wajib bisa diambil browser TANPA sesi: service worker
     // mendaftar sebelum login, dan manifest dibaca saat instalasi.
+    // Dicek EKSPLISIT (bukan via regex ekstensi) supaya file publik
+    // ber-ekstensi .html/.webmanifest lain tidak ikut lolos gerbang.
+    // /sw.js sudah tercakup regex .js di bawah.
     pathname === "/manifest.webmanifest" ||
-    pathname === "/sw.js" ||
     pathname === "/offline.html" ||
-    /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|webmanifest|html|woff2?)$/.test(pathname)
+    /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|woff2?)$/.test(pathname)
   ) {
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
