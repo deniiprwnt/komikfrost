@@ -103,6 +103,9 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   // tujuan terbuka dari cache (terasa instan). Sentuhan yang berubah jadi
   // scroll dibatalkan, lihat useIntentPrefetch.
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
+  // Status gambar sudah termuat: dipakai untuk menampilkan skeleton
+  // (shimmer) sebelum gambar siap, bukan kotak kosong gelap.
+  const [imgLoaded, setImgLoaded] = useState(false);
   // Label waktu dihitung ulang tiap menit (bukan teks beku dari server).
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   return (
@@ -117,16 +120,22 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         className="relative block aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3"
       >
         {item.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.thumbnail}
-            alt={item.title}
-            loading="lazy"
-            decoding="async"
-            fetchPriority="low"
-            onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-            className="blur-up h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-          />
+          <>
+            {!imgLoaded && <div className="absolute inset-0 shimmer" />}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              onLoad={(e) => {
+                setImgLoaded(true);
+                e.currentTarget.classList.add("blur-done");
+              }}
+              className={`h-full w-full object-cover transition-[transform,opacity] duration-300 group-hover:scale-[1.04] ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
             Tanpa cover
@@ -147,7 +156,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           </span>
         )}
       </Link>
-      <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 pt-2.5">
+      <div className="flex min-w-0 flex-col px-2.5 pb-2 pt-2.5">
         <Link
           href={`/komik/${item.slug}`}
           title={item.title}
@@ -156,7 +165,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           {item.title}
         </Link>
         {(item.genre || updated) && (
-          <p className="mt-auto truncate border-t border-line pt-2 text-[11px] leading-tight tabular-nums text-muted dark:border-line-dark dark:text-muted-dark">
+          <p className="mt-1 truncate border-t border-line pt-1.5 text-[11px] leading-tight tabular-nums text-muted dark:border-line-dark dark:text-muted-dark">
             <span className="sm:hidden">{updated || item.genre}</span>
             <span className="max-sm:hidden">{[item.genre, updated].filter(Boolean).join(" · ")}</span>
           </p>

@@ -663,10 +663,10 @@ export default function ReaderPage({
         <button
           onClick={scrollTop}
           aria-label="Kembali ke atas"
-          className={`fixed right-3 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-line-dark bg-ink-2/95 text-fg-dark shadow-xl backdrop-blur transition-all active:scale-95 sm:right-6 dark:border-line-dark ${
+          className={`fixed right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-line-dark bg-ink-2/95 text-fg-dark shadow-xl backdrop-blur transition-all active:scale-95 sm:right-8 dark:border-line-dark ${
             (mode === "scroll" && showTapNav) || showNextFloat
               ? "bottom-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-36"
-              : "bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-24"
+              : "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-24"
           }`}
         >
           <IconUp className="h-5 w-5" />
