@@ -156,7 +156,7 @@ export interface LatestOpts {
  * menambah beberapa detik latensi. Inflight dedupe ikut menahan request
  * bersamaan. Gate + rate limit tetap jalan di setiap request.
  */
-const latestCache = createKeyedCache<PagedResult<MangaCard>>(30_000, 50);
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(10_000, 50);
 
 /**
  * Daftar terbaru berhalaman + filter (untuk /api/latest & /terbaru).

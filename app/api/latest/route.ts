@@ -40,8 +40,9 @@ export async function GET(req: NextRequest) {
         ...(genre2 ? { genre2 } : {}),
         ...(status ? { status } : {}),
       }),
-    // Cache browser 30 dtk (private, bukan CDN) — klik pagination
-    // bolak-balik tidak bakar scrape 3 source berulang.
-    { revalidate: 30, scope: "private" },
+    // Cache browser 10 dtk (private, bukan CDN) — klik pagination
+    // bolak-balik tidak bakar scrape 3 source berulang, tapi daftar
+    // terbaru tetap segar.
+    { revalidate: 10, scope: "private" },
   );
 }

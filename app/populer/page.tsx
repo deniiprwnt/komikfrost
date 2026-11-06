@@ -82,7 +82,8 @@ function PopulerContent() {
       // Abaikan — daftar lama tetap tampil.
     }
   }, [period]);
-  useAutoRefresh(silentCheck);
+  // Peringkat populer tidak berubah cepat — polling jarang saja.
+  useAutoRefresh(silentCheck, 60_000);
 
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
