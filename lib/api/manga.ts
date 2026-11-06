@@ -147,16 +147,30 @@ export interface LatestOpts {
   genre?: string | null;
   genre2?: string | null;
   status?: "ongoing" | "end" | null;
+  /** Jumlah kartu yang dikembalikan (default 15 untuk /terbaru; beranda minta 16). */
+  limit?: number | null;
+  /**
+   * Probe live: bypass SEMUA cache (memori latestCache + cache HTTP Next di
+   * tiap source) sehingga hasil = kondisi sumber data saat ini. Dipakai
+   * auto-refresh klien 5 dtk. Enrich Komikcast dilewati (tak perlu untuk
+   * sekadar mendeteksi judul/chapter baru).
+   */
+  live?: boolean;
 }
 
 /**
- * Cache memori 30 dtk per kombinasi halaman + filter. Satu halaman =
+ * Cache memori 5 dtk per kombinasi halaman + filter. Satu halaman =
  * 3 scrape upstream + enrich Komikcast; mengulang kerja itu untuk halaman
  * yang sama (pagination bolak-balik, prefetch menu, dua tab) hanya
  * menambah beberapa detik latensi. Inflight dedupe ikut menahan request
  * bersamaan. Gate + rate limit tetap jalan di setiap request.
+ * TTL sengaja pendek (5 dtk, ≤ interval auto-refresh 5 dtk) agar tiap
+ * probe mendapat hasil merge terbaru dari cache upstream 30 dtk.
  */
-const latestCache = createKeyedCache<PagedResult<MangaCard>>(10_000, 50);
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(5_000, 50);
+
+/** Dedupe probe live: beberapa tab / tick bersamaan = satu kali scrape. */
+const liveInflight = new Map<string, Promise<PagedResult<MangaCard>>>();
 
 /**
  * Daftar terbaru berhalaman + filter (untuk /api/latest & /terbaru).
@@ -168,7 +182,18 @@ export async function getLatestPaged(
 ): Promise<PagedResult<MangaCard>> {
   const p = Math.max(1, page);
   const orderby = opts.orderby ?? "modified";
-  const key = [p, orderby, opts.tipe ?? "", opts.genre ?? "", opts.genre2 ?? "", opts.status ?? ""].join("|");
+  const limit = Math.max(1, opts.limit ?? 15);
+  const key = [p, orderby, opts.tipe ?? "", opts.genre ?? "", opts.genre2 ?? "", opts.status ?? "", limit].join("|");
+  // `live` = probe: jangan baca/tulis cache memori, langsung rakit ulang.
+  // Inflight dedupe mencegah tick 4 dtk menumpuk scrape saat upstream lambat.
+  if (opts.live) {
+    let pending = liveInflight.get(key);
+    if (!pending) {
+      pending = buildLatestPaged(p, orderby, opts).finally(() => liveInflight.delete(key));
+      liveInflight.set(key, pending);
+    }
+    return pending;
+  }
   return latestCache.load(key, () => buildLatestPaged(p, orderby, opts));
 }
 
@@ -177,12 +202,14 @@ async function buildLatestPaged(
   orderby: "modified" | "date" | "popular" | "rand",
   opts: LatestOpts,
 ): Promise<PagedResult<MangaCard>> {
+  const limit = Math.max(1, opts.limit ?? 15);
   const { data } = await fetchAllSettled(
     {
       komiku: () =>
         fetchMangaList({
           page: p,
           orderby,
+          ...(opts.live ? { fresh: true } : {}),
           ...(opts.tipe ? { tipe: opts.tipe } : {}),
           ...(opts.genre ? { genre: opts.genre } : {}),
           ...(opts.genre2 ? { genre2: opts.genre2 } : {}),
@@ -190,7 +217,8 @@ async function buildLatestPaged(
         }),
       shinigami: () =>
         fetchShiniLatest(p, {
-          pageSize: 15,
+          pageSize: limit,
+          ...(opts.live ? { fresh: true } : {}),
           ...(opts.tipe ? { format: opts.tipe } : {}),
           ...(opts.genre ? { genre: opts.genre } : {}),
         }),
@@ -198,7 +226,7 @@ async function buildLatestPaged(
       komikcast: () =>
         p > 1 || opts.tipe || opts.genre || opts.genre2 || opts.status
           ? Promise.resolve({ items: [], hasNextPage: false })
-          : fetchKomikcastLatest().then((items) => ({ items, hasNextPage: false })),
+          : fetchKomikcastLatest({ fresh: opts.live === true }).then((items) => ({ items, hasNextPage: false })),
     },
     "latest-paged",
   );
@@ -209,15 +237,17 @@ async function buildLatestPaged(
       komikcast: data.komikcast?.items ?? [],
     }),
   );
-  // 15 kartu per halaman UI — potong dulu baru perkaya agar enrich detail
-  // hanya mengejar kartu yang benar-benar tampil (lebih hemat upstream).
-  const items = merged.slice(0, 15);
-  // Sama seperti getLatest: perkaya kartu komikcast-only yang miskin.
-  await enrichKomikcastOnly(items);
+  // Potong dulu baru perkaya agar enrich detail hanya mengejar kartu yang
+  // benar-benar tampil (lebih hemat upstream). Default 15 (/terbaru);
+  // beranda meminta 16 agar grid 8-kolom terisi penuh dua baris.
+  const items = merged.slice(0, limit);
+  // Probe live: lewati enrich (2-3 request berantai) — auto-refresh hanya
+  // perlu tahu judul/chapter baru, dan probe harus tetap cepat.
+  if (!opts.live) await enrichKomikcastOnly(items);
   return {
     items,
     hasNextPage:
-      merged.length > 15 ||
+      merged.length > limit ||
       Boolean(data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage),
   };
 }

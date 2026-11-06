@@ -96,6 +96,9 @@ export async function apiGet<T>(
     if (pending) return pending as Promise<T>;
     const p = fetchJson<T>(path, undefined, true)
       .then((data) => {
+        // Hasil probe = data paling baru → ikut jadi cache memori supaya
+        // pindah halaman lalu kembali tidak menampilkan daftar yang lebih tua.
+        cache.set(path, { at: Date.now(), data });
         writeApiSnapshot(path, data);
         return data;
       })

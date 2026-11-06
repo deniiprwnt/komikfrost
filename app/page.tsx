@@ -8,7 +8,7 @@ import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
 import { MangaGridCard, RankRow } from "@/components/cards";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
-import { useNowTick } from "@/lib/relative-time";
+import { cardSig, useNowTick } from "@/lib/relative-time";
 
 /** Acak array (Fisher-Yates) — rekomendasi tampil beda tiap kunjungan. */
 function shuffle<T>(arr: T[]): T[] {
@@ -25,7 +25,7 @@ function shuffle<T>(arr: T[]): T[] {
  *  tidak pernah tampil sampai halaman dimuat ulang. */
 function listSig(list: MangaCard[] | null): string {
   return (list || [])
-    .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
+    .map(cardSig)
     .join("|");
 }
 
@@ -155,15 +155,22 @@ function useRecommended() {
   return useHomeSection("recommended", true);
 }
 
+/** Label waktu riwayat yang menua sendiri — komponen terpisah agar detak
+ *  1 dtk tidak memicu render ulang seluruh beranda. */
+function HistoryTime({ ts }: { ts: number }) {
+  const now = useNowTick();
+  return <>{timeAgo(ts, now ?? Date.now())}</>;
+}
+
 export default function HomePage() {
   const { entries: history } = useHistory();
-  // Detak menit untuk label "x lalu" riwayat (tanpa render ulang tiap detik).
-  const now = useNowTick();
   // 1 request gabungan untuk 3 section (hemat handshake, ramah rate limit).
   const popular = useHomeSection("popular");
   // Daftar terbaru punya endpoint sendiri yang jauh lebih ringan dari
   // /api/home (tanpa scrape populer + rekomendasi).
-  const latest = useHomeSection("latest", false, "/api/latest?page=1&orderby=modified");
+  // live=1: probe auto-refresh 5 dtk melewati semua cache → komik baru dari
+  // Komiku/Komikcast/Shinigami tampil begitu sumbernya terbit.
+  const latest = useHomeSection("latest", false, "/api/latest?page=1&orderby=modified&limit=16&live=1");
   const recommended = useRecommended();
 
   // Daftar update sendiri tiap interval + tiap PWA dibuka lagi — tanpa
@@ -175,7 +182,7 @@ export default function HomePage() {
   const checkNewAll = useCallback(() => {
     void latest.checkNew();
   }, [latest.checkNew]);
-  useAutoRefresh(checkNewAll);
+  useAutoRefresh(checkNewAll, 5_000);
 
   // Prefetch hemat: hanya daftar genre + hanya saat browser idle, agar
   // tidak berebut bandwidth/CPU dengan gambar + section beranda.
@@ -302,7 +309,7 @@ export default function HomePage() {
                       {h.title}
                     </p>
                     <p className="mt-auto truncate border-t border-line pt-2 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">
-                      {h.chapterLabel} · {timeAgo(h.updatedAt, now ?? Date.now())}
+                      {h.chapterLabel} · <HistoryTime ts={h.updatedAt} />
                     </p>
                   </div>
                 </Link>

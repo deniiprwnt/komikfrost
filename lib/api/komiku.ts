@@ -46,7 +46,7 @@ export class KomikuError extends Error {
   }
 }
 
-async function fetchHtml(url: string): Promise<string> {
+async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<string> {
   const ctrl = new AbortController();
   // Komiku kadang lambat merespons; gagal cepat (8 dtk) agar UI bisa
   // menampilkan error/retry daripada menggantung tanpa batas.
@@ -56,13 +56,17 @@ async function fetchHtml(url: string): Promise<string> {
   const timer = setTimeout(() => ctrl.abort(), 8_000);
   let res: Response;
   try {
-    res = await fetch(url, {
+    const init: RequestInit & { next?: { revalidate: number } } = {
       headers: { "User-Agent": UA, Referer: KOMIKU_BASE + "/", Accept: "text/html" },
       signal: ctrl.signal,
-      // Data chapter berubah cepat. Cache 30 detik agar /terbaru dan beranda
-      // segera mengikuti update yang sudah terlihat di pencarian/detail.
-      next: { revalidate: 30 },
-    });
+    };
+    // `fresh` = probe live beranda/terbaru: lewati cache HTTP Next agar
+    // polling 5 dtk benar-benar menembak sumber data, bukan snapshot lama.
+    if (fresh) init.cache = "no-store";
+    // Default 10 dtk agar /terbaru dan beranda segera mengikuti update
+    // (auto-refresh klien 5 dtk; cache lebih lama = komik baru terlambat).
+    else init.next = { revalidate };
+    res = await fetch(url, init);
   } catch (e) {
     throw new KomikuError(
       e instanceof DOMException && e.name === "AbortError"
@@ -248,6 +252,8 @@ export interface MangaListParams {
   genre?: string;
   genre2?: string;
   status?: "ongoing" | "end";
+  /** Lewati cache HTTP upstream (probe live /api/latest?live=1). */
+  fresh?: boolean;
 }
 
 export async function fetchMangaList(
@@ -263,9 +269,10 @@ export async function fetchMangaList(
   if (params.genre2) url.searchParams.set("genre2", params.genre2);
   if (params.status) url.searchParams.set("status", params.status);
 
-  // Daftar memakai cache singkat (revalidate 30 di fetchHtml) agar tidak
-  // membebani sumber; key stabil per page/filter/orderby.
-  const html = await fetchHtml(url.toString());
+  // Daftar memakai cache sangat singkat (10 dtk) agar komik baru cepat
+  // tampil; key stabil per page/filter/orderby. Probe live (`fresh`) bypass
+  // total supaya polling klien melihat kondisi sumber data saat ini.
+  const html = await fetchHtml(url.toString(), 10, params.fresh === true);
   const $ = cheerio.load(html);
   return { items: parseBgeCards($), hasNextPage: detectNextPage($) };
 }
@@ -388,6 +395,12 @@ function parseLs2Cards($: cheerio.CheerioAPI, scope: cheerio.Cheerio<any>): Mang
     // "Fantasi · 2 jam lalu" → genre + updatedAt
     const meta = root.find("span.ls2t").first().text().trim();
     const [genrePart, timePart] = meta.split("·").map((s) => s.trim());
+    // Titik waktu absolut — tanpa ini label kartu homepage membeku
+    // (dulu satu-satunya parser yang lupa mengisinya).
+    const agoMinutes = updatedAtMinutes(timePart);
+    const updatedAtTs = Number.isFinite(agoMinutes)
+      ? Date.now() - agoMinutes * 60_000
+      : undefined;
 
     const chA = root.find("a.ls2l[href]").first();
     const chUrl = toPath(chA.attr("href"));
@@ -400,6 +413,7 @@ function parseLs2Cards($: cheerio.CheerioAPI, scope: cheerio.Cheerio<any>): Mang
       ...(type ? { type } : {}),
       ...(genrePart ? { genre: genrePart } : {}),
       ...(timePart ? { updatedAt: timePart } : {}),
+      ...(updatedAtTs !== undefined ? { updatedAtTs } : {}),
       ...(chUrl && chLabel ? { latestChapter: { label: chLabel, url: chUrl } } : {}),
     });
   });

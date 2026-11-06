@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiGetSWR, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { cardSig } from "@/lib/relative-time";
 import type { GenreRef, MangaCard } from "@/lib/api/types";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
 import { Pagination } from "@/components/pagination";
@@ -189,18 +190,24 @@ function TerbaruContent() {
     const cur = itemsRef.current;
     if (cur.length === 0) return;
     try {
-      const res = await apiGet<LatestPayload>(`/api/latest?${buildQs(1)}`, { noStore: true });
+      // live=1: bypass cache memori server + cache HTTP upstream agar daftar
+      // benar-benar mengikuti sumber data (Komiku/Komikcast/Shinigami).
+      const qs = buildQs(1);
+      qs.set("live", "1");
+      const res = await apiGet<LatestPayload>(`/api/latest?${qs}`, { noStore: true });
       // Selama await (scrape 2–6 dtk) user bisa sudah pindah halaman.
       // applyItems(..., 1) memanggil setPage(1) — jangan sampai itu
       // menendang user kembali ke halaman 1 dari halaman yang sedang
       // dibuka.
       if (pageRef.current !== 1) return;
       if (!res.items || res.items.length === 0) return;
+      // Waktu update ikut dibandingkan (cardSig): chapter sama tapi waktunya
+      // dari sumber lain lebih baru harus tetap mengganti daftar.
       // Bandingkan ISI daftar, bukan 3 teratas saja: komik baru yang masuk
       // di posisi 4+ dulu tidak pernah tampil sampai halaman dimuat ulang.
       const sig = (l: MangaCard[]) =>
         l
-          .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
+          .map(cardSig)
           .join("|");
       if (sig(res.items) === sig(cur)) return;
       applyItems(res.items, res.hasNextPage, 1);
@@ -208,7 +215,7 @@ function TerbaruContent() {
       // Abaikan — daftar lama tetap tampil.
     }
   }, [orderby, buildQs, applyItems]);
-  useAutoRefresh(silentCheck);
+  useAutoRefresh(silentCheck, 5_000);
 
   const scrollToList = useCallback(() => {
     requestAnimationFrame(() => {

@@ -46,17 +46,20 @@ export class KomikcastError extends Error {
   }
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(url: string, revalidate = 30, fresh = false): Promise<T> {
   const ctrl = new AbortController();
   // Gagal cepat (8 dtk, dulu 12): merge menunggu source terlambat.
   const timer = setTimeout(() => ctrl.abort(), 8_000);
   let res: Response;
   try {
-    res = await fetch(url, {
+    const init: RequestInit & { next?: { revalidate: number } } = {
       headers: { "User-Agent": UA, Accept: "application/json", Referer: KC_BASE + "/" },
       signal: ctrl.signal,
-      next: { revalidate: 30 },
-    });
+    };
+    // `fresh` = probe live: lewati cache HTTP Next.
+    if (fresh) init.cache = "no-store";
+    else init.next = { revalidate };
+    res = await fetch(url, init);
   } catch (e) {
     throw new KomikcastError(
       e instanceof DOMException && e.name === "AbortError"
@@ -305,8 +308,14 @@ export async function fetchKomikcastChapterList(slug: string): Promise<ChapterIt
  * Dipakai getLatest/getRecommended — tanpa updatedAt valid item dibuang
  * agar tidak mengotori sortByFresh (Infinity = paling belakang).
  */
-export async function fetchKomikcastLatest(): Promise<MangaCard[]> {
-  const json = await fetchJson<{ latest_comic?: KcSeries[] }>(`${KC_API}/home`);
+export async function fetchKomikcastLatest(opts: { fresh?: boolean } = {}): Promise<MangaCard[]> {
+  // Revalidate 10 dtk (dulu 30) agar auto-refresh 5 dtk tidak tertahan cache.
+  // `fresh` bypass total.
+  const json = await fetchJson<{ latest_comic?: KcSeries[] }>(
+    `${KC_API}/home`,
+    10,
+    opts.fresh === true,
+  );
   return (json.latest_comic ?? []).slice(0, 24).map(toCard);
 }
 

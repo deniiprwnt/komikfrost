@@ -210,25 +210,6 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         firstCh = { label: "Chapter 1", url: `/${fullSlug}-chapter-1/` };
       }
     }
-    // updatedAt kartu gabungan = waktu TERBARU antar source, sekaligus ikut
-    // membawa timestamp absolutnya agar label relatif bisa dihitung ulang
-    // di klien (label teks membeku pada waktu scrape).
-    let mergedUpdatedAt: string | undefined;
-    let mergedUpdatedAtTs: number | undefined;
-    {
-      let best = Infinity;
-      for (const s of SOURCE_PRIORITY) {
-        const cand = g.cards[s]?.updatedAt;
-        if (!cand) continue;
-        const n = updatedAtMinutes(cand);
-        // `<` bukan `<=` → waktu sama tetap dipegang source prioritas.
-        if (n < best) {
-          best = n;
-          mergedUpdatedAt = cand;
-          mergedUpdatedAtTs = g.cards[s]?.updatedAtTs;
-        }
-      }
-    }
     // latestChapter lintas source: nomor TERTINGGI menang; nomor sama →
     // Shinigami menang via urutan SOURCE_PRIORITY. URL chapter Shinigami
     // ditulis ulang memakai displaySlug agar route /baca tetap valid.
@@ -254,6 +235,42 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
             latestSrc = s;
           }
         }
+      }
+    }
+    // Waktu kartu = sumber PRIORITAS TERTINGGI yang SUDAH punya chapter
+    // terbaru (nomor tertinggi lintas source):
+    //  - Komiku muncul duluan, Shinigami/Komikcast belum → waktu Komiku.
+    //  - Begitu Shinigami ikut punya chapter itu → ganti ke waktu Shinigami.
+    //  - Komikcast hanya dipakai bila Shinigami & Komiku belum punya.
+    // Urutan prioritas: shinigami → komiku → komikcast. Berlaku untuk semua
+    // komik. Badge `latestSource` tetap mengikuti source chapter.
+    let mergedUpdatedAt: string | undefined;
+    let mergedUpdatedAtTs: number | undefined;
+    {
+      const now = Date.now();
+      let topNum = NaN;
+      for (const s of SOURCE_PRIORITY) {
+        const n = chapterNum(g.cards[s]?.latestChapter?.label);
+        if (Number.isFinite(n) && !(n <= topNum)) topNum = n;
+      }
+      // "Sudah punya" = nomor chapter terbarunya >= nomor tertinggi. Bila
+      // nomor tak terparse di mana pun, semua source dianggap sudah punya.
+      const hasTop = (s: ComicSourceId): boolean => {
+        if (!Number.isFinite(topNum)) return true;
+        const n = chapterNum(g.cards[s]?.latestChapter?.label);
+        return Number.isFinite(n) && n >= topNum;
+      };
+      const pick =
+        SOURCE_PRIORITY.find((s) => g.cards[s]?.updatedAt && hasTop(s)) ??
+        SOURCE_PRIORITY.find((s) => g.cards[s]?.updatedAt);
+      if (pick) {
+        mergedUpdatedAt = g.cards[pick]!.updatedAt;
+        mergedUpdatedAtTs = g.cards[pick]!.updatedAtTs;
+      }
+      // Jaminan timestamp absolut — label tidak boleh membeku di teks scrape.
+      if (mergedUpdatedAt && typeof mergedUpdatedAtTs !== "number") {
+        const m = updatedAtMinutes(mergedUpdatedAt);
+        if (Number.isFinite(m)) mergedUpdatedAtTs = now - m * 60_000;
       }
     }
     out.push({

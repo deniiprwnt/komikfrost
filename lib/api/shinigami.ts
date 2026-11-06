@@ -109,22 +109,27 @@ interface ShiniChapterDetail {
   release_date?: string;
 }
 
-async function fetchShini<T>(path: string, revalidate = 30): Promise<{ data: T; meta?: ShiniMeta }> {
+async function fetchShini<T>(
+  path: string,
+  revalidate = 30,
+  fresh = false,
+): Promise<{ data: T; meta?: ShiniMeta }> {
   const url = `${SHINI_API}${path}`;
   const ctrl = new AbortController();
   // Gagal cepat (8 dtk, dulu 12): merge menunggu source terlambat.
   const timer = setTimeout(() => ctrl.abort(), 8_000);
   let res: Response;
   try {
-    res = await fetch(url, {
+    const init: RequestInit & { next?: { revalidate: number } } = {
       headers: { "User-Agent": UA, Accept: "application/json" },
       signal: ctrl.signal,
-      // Tanpa `cache: no-store`: `next.revalidate` di bawah yang mengatur
-      // umur cache (30 dtk list, 1 jam chapter detail). `no-store` membuat
-      // revalidate diabaikan sehingga SEMUA request Shinigami selalu hit
-      // network — sumber utama jadi paling lambat.
-      next: { revalidate },
-    });
+    };
+    // `fresh` = probe live: lewati cache HTTP Next, langsung ke upstream.
+    // Non-fresh memakai cache (30 dtk list, 1 jam chapter detail) agar
+    // sumber utama tidak jadi yang paling lambat.
+    if (fresh) init.cache = "no-store";
+    else init.next = { revalidate };
+    res = await fetch(url, init);
   } catch (e) {
     throw new KomikuError(
       e instanceof DOMException && e.name === "AbortError"
@@ -296,7 +301,7 @@ export type ShiniFormat = "manga" | "manhwa" | "manhua";
 
 export async function fetchShiniLatest(
   page = 1,
-  opts: { format?: ShiniFormat; genre?: string; pageSize?: number } = {},
+  opts: { format?: ShiniFormat; genre?: string; pageSize?: number; fresh?: boolean } = {},
 ): Promise<PagedResult<MangaCard>> {
   const p = Math.max(1, page);
   const q = new URLSearchParams({
@@ -308,7 +313,14 @@ export async function fetchShiniLatest(
   });
   if (opts.format) q.set("format", opts.format);
   if (opts.genre) q.set("genre_include", opts.genre);
-  const { data, meta } = await fetchShini<ShiniManga[]>(`/manga/list?${q}`);
+  // Revalidate 10 dtk (bukan default 30) — auto-refresh klien 5 dtk, cache
+  // lebih lama dari itu membuat komik baru selalu ketinggalan. `fresh`
+  // (probe live) bypass cache ini sepenuhnya.
+  const { data, meta } = await fetchShini<ShiniManga[]>(
+    `/manga/list?${q}`,
+    10,
+    opts.fresh === true,
+  );
   const items = Array.isArray(data) ? data.map(toCard) : [];
   const total = meta?.total_page ?? p;
   return { items, hasNextPage: p < total };
