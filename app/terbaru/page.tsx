@@ -246,13 +246,22 @@ function TerbaruContent() {
         applyItems(fromDisk.items, fromDisk.hasNextPage, p);
       }
       try {
-        if (fresh) {
-          const res = await apiGet<LatestPayload>(path);
+        // Halaman 1 harus selalu fresh (live=1) agar data terbaru (misal
+        // dari Shinigami) langsung muncul saat di-refresh, tanpa menunggu
+        // auto-refresh 30 detik. Ini melewati semua cache server & CDN.
+        const qs = buildQs(p);
+        const isLive = p === 1;
+        if (isLive) qs.set("live", "1");
+        const fetchPath = `/api/latest?${qs}`;
+
+        if (fresh || isLive) {
+          const res = await apiGet<LatestPayload>(fetchPath, { noStore: isLive });
           applyItems(res.items, res.hasNextPage, p);
           setLoading(false);
           return;
         }
-        const { data } = await apiGetSWR<LatestPayload>(path, (d) => {
+
+        const { data } = await apiGetSWR<LatestPayload>(fetchPath, (d) => {
           applyItems(d.items, d.hasNextPage, p);
           setLoading(false);
         });
