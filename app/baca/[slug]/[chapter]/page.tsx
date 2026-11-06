@@ -448,7 +448,7 @@ export default function ReaderPage({
       },
       { threshold: 0 },
     );
-    el.querySelectorAll<HTMLElement>("img[data-pg]").forEach((n) => io.observe(n));
+    pagesRef.current?.querySelectorAll<HTMLElement>("img[data-pg]").forEach((n) => io.observe(n));
 
     return () => {
       window.removeEventListener("scroll", onScroll);
