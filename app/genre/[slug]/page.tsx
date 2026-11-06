@@ -156,10 +156,10 @@ function GenreDetailContent({ slug }: { slug: string }) {
     if (bootedRef.current) return;
     bootedRef.current = true;
     appliedFiltersRef.current = filtersKey;
-    // Cukup buang memori dedupe halaman. Dulu di sini dipanggil
-    // invalidateApi() TANPA argumen = cache.clear(): seluruh cache klien
-    // (/api/home, detail komik, genre, hasil prefetch menu) ikut terhapus.
-    seenRef.current.clear();
+    // Cukup buang memori dedupe halaman untuk filter ini. Dulu di sini
+    // dipanggil invalidateApi() TANPA argumen = cache.clear(): seluruh
+    // cache klien (/api/home, detail komik, genre) ikut terhapus.
+    seenRef.current.delete(filtersKey);
     void loadPage(parsePage(sp.get("page")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -168,8 +168,14 @@ function GenreDetailContent({ slug }: { slug: string }) {
   useEffect(() => {
     if (appliedFiltersRef.current === filtersKey) return;
     appliedFiltersRef.current = filtersKey;
-    // Batasi memori dedupe lintas-halaman: buang riwayat filter lama.
-    seenRef.current.clear();
+    // Buang riwayat dedupe HANYA untuk filter baru ini agar mulai bersih.
+    seenRef.current.delete(filtersKey);
+    // Batasi jumlah kombinasi filter yang disimpan (maks 20) agar Map
+    // tidak tumbuh tanpa batas bila user berganti-ganti filter terus.
+    if (seenRef.current.size > 20) {
+      const oldest = seenRef.current.keys().next().value;
+      if (oldest !== undefined && oldest !== filtersKey) seenRef.current.delete(oldest);
+    }
     scrollToList();
     void loadPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
