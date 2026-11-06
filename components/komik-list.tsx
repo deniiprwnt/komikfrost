@@ -57,13 +57,11 @@ export function KomikListCard({ item }: { item: MangaCard }) {
         </div>
         {(item.genre || updated) && (
           <div className="mt-1 flex min-w-0 items-center gap-1.5">
-            {/* Genre (boleh terpotong) + waktu RATA KANAN: waktu tidak
-                lagi bergeser mengikuti panjang genre. */}
-            <p className="flex min-w-0 flex-1 items-baseline gap-1.5 text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
-              <span className="min-w-0 flex-1 truncate">{item.genre}</span>
-              {updated && (
-                <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums">{updated}</span>
-              )}
+            {/* Daftar baris: genre dan waktu BERDAMPINGAN ("Isekai · 4 menit
+                lalu"). Lebar baris di sini panjang, jadi waktu yang didorong
+                ke ujung kanan menjauh dari genrenya dan sulit dibaca. */}
+            <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
+              {[item.genre, updated].filter(Boolean).join(" · ")}
             </p>
             <SourceBadge sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
           </div>
