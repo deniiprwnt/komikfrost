@@ -17,6 +17,7 @@ import {
   type RankPeriod,
 } from "./komiku";
 import {
+  fetchKomikcastBrief,
   fetchKomikcastDetail,
   fetchKomikcastLatest,
   fetchKomikcastTrending,
@@ -63,14 +64,29 @@ async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
       (c) =>
         c.sources.length === 1 &&
         c.sources[0] === "komikcast" &&
-        !c.genre &&
-        !c.synopsis &&
+        // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
+        // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
+        // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
+        (!c.genre || !c.synopsis) &&
         c.sourceSlug?.komikcast,
     )
-    .slice(0, 5);
+    .slice(0, 6);
   if (needy.length === 0) return;
   await Promise.all(
     needy.map(async (c) => {
+      // 1) Sumber termurah & paling tepat: endpoint series Komikcast sendiri
+      //    (1 request, tanpa daftar chapter). Genre diambil dari sini.
+      if (!c.genre) {
+        try {
+          const brief = await fetchKomikcastBrief(c.sourceSlug!.komikcast!);
+          if (brief.genre) c.genre = brief.genre;
+          if (!c.type && brief.type) c.type = brief.type;
+          if (!c.synopsis && brief.synopsis) c.synopsis = brief.synopsis;
+        } catch {
+          // biarin — lanjut ke jembatan Komiku di bawah
+        }
+      }
+      if (c.genre && c.synopsis) return;
       const norm = normalizeTitle(c.title);
       if (!norm) return;
       try {
@@ -473,6 +489,8 @@ export interface MangaSummary {
   slug: string;
   title: string;
   type?: string;
+  /** Genre pertama — dipakai kartu sebagai cadangan bila kartu daftar kosong. */
+  genre?: string;
   cover: string;
   latestChapter?: MangaDetail["latestChapter"];
 }
@@ -482,14 +500,34 @@ const summaryCache = createKeyedCache<MangaSummary>(60 * 60_000, 200);
 export async function getMangaSummary(slug: string): Promise<MangaSummary> {
   const clean = slug.replace(/^\/+|\/+$/g, "");
   return summaryCache.load(clean, async () => {
-    const d = await fetchMangaDetail(clean);
-    return {
-      slug: d.slug,
-      title: d.title,
-      cover: d.cover,
-      ...(d.type ? { type: d.type } : {}),
-      ...(d.latestChapter ? { latestChapter: d.latestChapter } : {}),
-    };
+    try {
+      const d = await fetchMangaDetail(clean);
+      return {
+        slug: d.slug,
+        title: d.title,
+        cover: d.cover,
+        ...(d.type ? { type: d.type } : {}),
+        ...(d.genres?.[0]?.name ? { genre: d.genres[0].name } : {}),
+        ...(d.latestChapter ? { latestChapter: d.latestChapter } : {}),
+      };
+    } catch (e) {
+      // Judul khusus Komikcast tidak ada di Komiku → ringkasan dari endpoint
+      // series Komikcast (1 request, tercache 6 jam di adapter). Dulu jalur
+      // ini gagal total sehingga badge tipe & genre Komikcast tak pernah ada.
+      let brief;
+      try {
+        brief = await fetchKomikcastBrief(clean);
+      } catch {
+        throw e;
+      }
+      return {
+        slug: clean,
+        title: brief.title ?? clean,
+        cover: brief.cover ?? "",
+        ...(brief.type ? { type: brief.type } : {}),
+        ...(brief.genre ? { genre: brief.genre } : {}),
+      };
+    }
   });
 }
 

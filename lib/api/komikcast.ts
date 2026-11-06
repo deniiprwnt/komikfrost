@@ -297,6 +297,96 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
   };
 }
 
+/**
+ * Ringkasan ringan satu series Komikcast (HANYA `/api/v1/series/<slug>`,
+ * tanpa daftar chapter). Dipakai untuk melengkapi kartu yang datang dari
+ * `/api/v1/home`: endpoint itu mengirim `latest_comic` TANPA `genres`,
+ * sehingga kartu komikcast-only tampil tanpa genre walau series-nya punya.
+ */
+export interface KcBrief {
+  title?: string;
+  cover?: string;
+  genre?: string;
+  type?: KomikType;
+  synopsis?: string;
+}
+
+/** Genre/tipe/sinopsis satu series — praktis tidak berubah, jadi disimpan
+ *  6 jam. Tanpa cache, melengkapi 24 kartu /home = 24 request tiap scrape. */
+const KC_BRIEF_TTL = 6 * 60 * 60_000;
+const kcBriefCache = new Map<string, { at: number; brief: KcBrief }>();
+
+export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
+  const clean = slug.replace(/^\/+|\/+$/g, "");
+  const hit = kcBriefCache.get(clean);
+  if (hit && Date.now() - hit.at < KC_BRIEF_TTL) return hit.brief;
+  const json = await fetchJson<{ data: KcSeries }>(`${KC_API}/series/${encodeURIComponent(clean)}`);
+  const s = json.data;
+  if (!s?.slug) throw new KomikcastError("Ringkasan Komikcast tidak ditemukan.", `${KC_API}/series/${clean}`);
+  const g = (s.genres ?? []).find((x) => x?.name || x?.slug);
+  const type = normalizeType(s.type);
+  const brief: KcBrief = {
+    ...(s.title ? { title: s.title } : {}),
+    ...(s.poster_url ? { cover: s.poster_url } : {}),
+    ...(g ? { genre: g.name || g.slug } : {}),
+    ...(type ? { type } : {}),
+    ...(s.synopsis ? { synopsis: s.synopsis } : {}),
+  };
+  kcBriefCache.set(clean, { at: Date.now(), brief });
+  if (kcBriefCache.size > 1000) {
+    const oldest = kcBriefCache.keys().next().value;
+    if (oldest !== undefined) kcBriefCache.delete(oldest);
+  }
+  return brief;
+}
+
+/**
+ * Lengkapi genre/tipe kartu yang lahir dari endpoint ringkas `/api/v1/home`
+ * (`latest_comic` & `trending` TIDAK membawa `genres`). Dulu pengisian hanya
+ * dilakukan agregator untuk maks 6 kartu dengan batas waktu 2,5 dtk — kartu
+ * Komikcast di luar jatah itu tetap tanpa genre.
+ * Paralel berbatas (6 worker) + cache 6 jam per slug, jadi scrape berikutnya
+ * praktis tanpa request tambahan.
+ */
+function kcBriefFromCache(slug: string): KcBrief | undefined {
+  const hit = kcBriefCache.get(slug);
+  return hit && Date.now() - hit.at < KC_BRIEF_TTL ? hit.brief : undefined;
+}
+
+async function fillKcMeta(
+  cards: MangaCard[],
+  opts: { budgetMs?: number; cacheOnly?: boolean } = {},
+): Promise<void> {
+  const needy = cards.filter((c) => !c.genre && c.slug);
+  if (needy.length === 0) return;
+  const apply = (c: MangaCard, b: KcBrief): void => {
+    if (b.genre) c.genre = b.genre;
+    if (!c.type && b.type) c.type = b.type;
+    if (!c.synopsis && b.synopsis) c.synopsis = b.synopsis;
+  };
+  const deadline = Date.now() + (opts.budgetMs ?? 4_000);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < needy.length && Date.now() < deadline) {
+      const c = needy[next++];
+      // Mode cache-saja (probe live): pakai yang sudah diketahui, tanpa
+      // request baru — supaya daftar hasil probe tidak kehilangan genre
+      // yang sudah tampil di layar.
+      if (opts.cacheOnly) {
+        const b = kcBriefFromCache(c.slug);
+        if (b) apply(c, b);
+        continue;
+      }
+      try {
+        apply(c, await fetchKomikcastBrief(c.slug));
+      } catch {
+        // satu gagal = kartu tampil tanpa genre, bukan error
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, needy.length) }, worker));
+}
+
 /** Daftar chapter satu komik (via detail, memakai cache yang sama). */
 export async function fetchKomikcastChapterList(slug: string): Promise<ChapterItem[]> {
   const d = await fetchKomikcastDetail(slug);
@@ -316,13 +406,21 @@ export async function fetchKomikcastLatest(opts: { fresh?: boolean } = {}): Prom
     10,
     opts.fresh === true,
   );
-  return (json.latest_comic ?? []).slice(0, 24).map(toCard);
+  const items = (json.latest_comic ?? []).slice(0, 24).map(toCard);
+  // SELALU diisi, termasuk probe `fresh`. Dulu probe memakai mode cache-saja,
+  // padahal justru probe inilah jalur utama beranda & /terbaru (live=1) —
+  // akibatnya cache tidak pernah terisi dan kartu Komikcast tampil tanpa
+  // genre. Cache 6 jam per slug membuat probe berikutnya nyaris tanpa request.
+  await fillKcMeta(items);
+  return items;
 }
 
 /** Trending Komikcast (`/api/v1/home` → trending, max 20 kartu). */
 export async function fetchKomikcastTrending(): Promise<MangaCard[]> {
   const json = await fetchJson<{ trending?: KcSeries[] }>(`${KC_API}/home`);
-  return (json.trending ?? []).slice(0, 20).map(toCard);
+  const items = (json.trending ?? []).slice(0, 20).map(toCard);
+  await fillKcMeta(items);
+  return items;
 }
 
 /* ------------------------------------------------------------------ */

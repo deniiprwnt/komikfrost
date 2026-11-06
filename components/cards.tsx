@@ -97,6 +97,38 @@ export function SourceBadge({
   );
 }
 
+/**
+ * Cadangan genre di sisi klien. Sebagian kartu (terutama yang hanya ada di
+ * Komikcast) lahir tanpa genre dari daftar; server sudah mengisinya, tapi
+ * bila gagal/terlambat, kartu menanyakannya sendiri lewat endpoint ringkas
+ * (1 request, cache server 1 jam + cache klien). Tanpa ini kartu hanya
+ * menampilkan "X menit lalu" tanpa genre sama sekali.
+ */
+function useResolvedGenre(item: MangaCard): string | undefined {
+  const path = `/api/manga/${encodeURIComponent(item.slug)}?ringkas=1`;
+  const [genre, setGenre] = useState<string | undefined>(
+    () => item.genre || peekApiCache<TypeSummary>(path)?.genre,
+  );
+  useEffect(() => {
+    if (item.genre) {
+      setGenre(item.genre);
+      return;
+    }
+    if (genre) return;
+    let off = false;
+    apiGet<TypeSummary>(path)
+      .then((d) => {
+        if (!off && d?.genre) setGenre(d.genre);
+      })
+      .catch(() => {});
+    return () => {
+      off = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.slug, item.genre]);
+  return genre;
+}
+
 /** Kartu grid vertikal: cover bersudut miring + judul + chapter terbaru. Tanpa bingkai. */
 export function MangaGridCard({ item }: { item: MangaCard }) {
   // Hover/sentuh = niat membuka — panaskan data detail agar halaman
@@ -108,6 +140,8 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   // Label waktu dihitung ulang tiap menit (bukan teks beku dari server).
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
+  // Genre dari daftar, atau diambil sendiri bila kosong (Komikcast).
+  const genre = useResolvedGenre(item);
   return (
     <article
       {...warm}
@@ -156,7 +190,11 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           </span>
         )}
       </Link>
-      <div className="flex min-w-0 flex-col px-2.5 pb-2 pt-2.5">
+      {/* flex-1 + meta `mt-auto`: judul 1 baris dan 2 baris menghasilkan
+          tinggi blok teks berbeda, sehingga baris genre/waktu tiap kartu
+          tampil di ketinggian berbeda. Dengan meta didorong ke dasar,
+          semua baris genre/waktu sejajar mendatar antar kartu. */}
+      <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 pt-2.5">
         <Link
           href={`/komik/${item.slug}`}
           title={item.title}
@@ -164,10 +202,16 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         >
           {item.title}
         </Link>
-        {(item.genre || updated) && (
-          <p className="mt-1 truncate border-t border-line pt-1.5 text-[11px] leading-tight tabular-nums text-muted dark:border-line-dark dark:text-muted-dark">
-            <span className="sm:hidden">{updated || item.genre}</span>
-            <span className="max-sm:hidden">{[item.genre, updated].filter(Boolean).join(" · ")}</span>
+        {(genre || updated) && (
+          // Dua kolom: genre (boleh terpotong) + waktu RATA KANAN.
+          // Dulu keduanya satu teks "genre · waktu" sehingga posisi
+          // "X menit lalu" bergeser mengikuti panjang genre dan kolom
+          // waktu antar kartu tidak pernah sejajar.
+          <p className="mt-auto flex min-w-0 items-baseline gap-1.5 border-t border-line pt-1.5 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">
+            <span className="min-w-0 flex-1 truncate">{genre}</span>
+            {updated && (
+              <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums">{updated}</span>
+            )}
           </p>
         )}
       </div>
@@ -289,7 +333,7 @@ const typeCache = new Map<string, string>();
 /** Ranking dari sumber data kerap tak membawa tipe. Bila kosong, ambil dari
  *  detail komik (cache dulu, lalu fetch) supaya badge MANGA/MANHWA/MANHUA selalu ada. */
 /** Bentuk minimal respons /api/manga/<slug>?ringkas=1 (hanya field ini). */
-type TypeSummary = { type?: string };
+type TypeSummary = { type?: string; genre?: string };
 
 function useResolvedType(item: MangaCard): string | undefined {
   // ringkas=1: endpoint 1-request (Komiku saja). Detail merge penuh untuk

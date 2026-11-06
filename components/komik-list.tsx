@@ -15,7 +15,6 @@ import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 export function KomikListCard({ item }: { item: MangaCard }) {
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
-  const meta = [item.genre, updated].filter(Boolean).join(" | ");
   return (
     <article
       {...warm}
@@ -56,10 +55,15 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.title}
           </Link>
         </div>
-        {meta && (
+        {(item.genre || updated) && (
           <div className="mt-1 flex min-w-0 items-center gap-1.5">
-            <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
-              {meta}
+            {/* Genre (boleh terpotong) + waktu RATA KANAN: waktu tidak
+                lagi bergeser mengikuti panjang genre. */}
+            <p className="flex min-w-0 flex-1 items-baseline gap-1.5 text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
+              <span className="min-w-0 flex-1 truncate">{item.genre}</span>
+              {updated && (
+                <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums">{updated}</span>
+              )}
             </p>
             <SourceBadge sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
           </div>
