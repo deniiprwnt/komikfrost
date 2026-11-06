@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, apiGetSWR, peekApiCache, titleKey } from "@/lib/client";
+import { apiGet, apiGetSWR, peekApiCacheStale, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import type { GenreRef, MangaCard } from "@/lib/api/types";
@@ -100,7 +100,7 @@ function TerbaruContent() {
   // Cache prefetch menu (hover/idle) dipakai sebagai isi awal — halaman
   // tujuan langsung tampil, bukan skeleton yang terasa seperti reload.
   const [boot] = useState(() =>
-    peekApiCache<LatestPayload>(latestApiPath(sp, parsePage(sp.get("page")))),
+    peekApiCacheStale<LatestPayload>(latestApiPath(sp, parsePage(sp.get("page")))),
   );
   const [items, setItems] = useState<MangaCard[]>(() => boot?.items ?? []);
   const [hasNext, setHasNext] = useState(() => boot?.hasNextPage ?? false);
@@ -115,11 +115,12 @@ function TerbaruContent() {
   // double-effect StrictMode.
   const appliedFiltersRef = useRef(filtersKey);
   const listTopRef = useRef<HTMLDivElement>(null);
-  // Judul yang sudah tampil per kombinasi filter — untuk membuang duplikat
-  // lintas-halaman (merge server hanya per-page; judul yang sama bisa muncul
-  // di p1 dari satu source dan p2 dari source lain karena beda timing).
-  // Reset tiap filter berubah. Murni client-side, tanpa request tambahan.
-  const seenRef = useRef(new Map<string, Set<string>>());
+  // Hasil mentah per halaman, per kombinasi filter — sumber dedupe.
+  // Dedupe dihitung ulang dari halaman < p setiap kali diterapkan, jadi
+  // menerapkan ulang halaman yang SAMA (data basi lalu data segar dari
+  // stale-while-revalidate) tidak pernah mengosongkan daftar. Murni
+  // client-side, tanpa request tambahan.
+  const pagesRef = useRef(new Map<string, Map<number, MangaCard[]>>());
   // Cermin state untuk pengecekan background (hindari stale closure).
   const itemsRef = useRef<MangaCard[]>([]);
   const pageRef = useRef(page);
@@ -132,35 +133,37 @@ function TerbaruContent() {
     filtersKeyRef.current = filtersKey;
   });
 
-  // Saring item yang judulnya sudah tampil di halaman sebelumnya
-  // (filter aktif), lalu catat sisanya. Urutan + prioritas server utuh.
-  const dedupePage = useCallback(
-    (list: MangaCard[]): MangaCard[] => {
-      let seen = seenRef.current.get(filtersKey);
-      if (!seen) {
-        seen = new Set<string>();
-        seenRef.current.set(filtersKey, seen);
+  // Terapkan hasil satu halaman: simpan mentahnya, buang judul yang sudah
+  // tampil di halaman SEBELUMNYA (merge server hanya per-page; judul sama
+  // bisa muncul di p1 dari satu source dan p2 dari source lain karena beda
+  // timing), lalu set state sekaligus. Urutan + prioritas server utuh.
+  const applyItems = useCallback(
+    (list: MangaCard[], next: boolean, p: number) => {
+      let pages = pagesRef.current.get(filtersKey);
+      if (!pages) {
+        pages = new Map();
+        pagesRef.current.set(filtersKey, pages);
+      }
+      pages.set(p, list);
+      const seen = new Set<string>();
+      for (const [n, raw] of pages) {
+        if (n >= p) continue;
+        for (const it of raw) {
+          const k = titleKey(it.title);
+          if (k) seen.add(k);
+        }
       }
       const out: MangaCard[] = [];
       for (const item of list) {
         const k = titleKey(item.title);
         if (k && seen.has(k)) continue;
-        if (k) seen.add(k);
         out.push(item);
       }
-      return out;
-    },
-    [filtersKey],
-  );
-
-  // Terapkan hasil halaman: dedupe lintas-halaman + set state sekaligus.
-  const applyItems = useCallback(
-    (list: MangaCard[], next: boolean, p: number) => {
-      setItems(dedupePage(list));
+      setItems(out);
       setHasNext(next);
       setPage(p);
     },
-    [dedupePage],
+    [filtersKey],
   );
 
   const buildQs = useCallback(
@@ -194,7 +197,6 @@ function TerbaruContent() {
           .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
           .join("|");
       if (sig(res.items) === sig(cur)) return;
-      seenRef.current.delete(filtersKeyRef.current);
       applyItems(res.items, res.hasNextPage, 1);
     } catch {
       // Abaikan — daftar lama tetap tampil.
@@ -217,7 +219,7 @@ function TerbaruContent() {
       const path = `/api/latest?${buildQs(p)}`;
       // Cache prefetch masih segar → tampilkan isi yang sudah ada tanpa
       // mengganti layar dengan skeleton.
-      const cached = !fresh ? peekApiCache<LatestPayload>(path) : null;
+      const cached = !fresh ? peekApiCacheStale<LatestPayload>(path) : null;
       setLoading(!cached);
       setError(null);
       try {
@@ -227,16 +229,18 @@ function TerbaruContent() {
           setLoading(false);
           return;
         }
-        const { data, stale } = await apiGetSWR<LatestPayload>(path, (d) => {
+        const { data } = await apiGetSWR<LatestPayload>(path, (d) => {
           applyItems(d.items, d.hasNextPage, p);
           setLoading(false);
         });
         if (data) {
+          // Data basi pun langsung tampil — jangan tahan di skeleton
+          // menunggu refresh background selesai (itu yang membuat
+          // halaman terasa lambat padahal datanya sudah ada).
           applyItems(data.items, data.hasNextPage, p);
+          setLoading(false);
         }
-        // stale: data basi tampil, onFresh mematikan loading saat segar tiba.
-        // !stale tapi data null = mustahil (apiGet throw bila gagal).
-        if (!stale) setLoading(false);
+        // data null = mustahil (apiGet throw bila gagal).
       } catch (e) {
         setError(e instanceof Error ? e.message : "Gagal memuat data.");
         setLoading(false);
@@ -259,7 +263,7 @@ function TerbaruContent() {
     if (appliedFiltersRef.current === filtersKey) return;
     appliedFiltersRef.current = filtersKey;
     // Batasi memori dedupe lintas-halaman: buang riwayat filter lama.
-    if (seenRef.current.size > 20) seenRef.current.clear();
+    if (pagesRef.current.size > 20) pagesRef.current.clear();
     scrollToList();
     void loadPage(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

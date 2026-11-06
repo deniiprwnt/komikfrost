@@ -140,22 +140,43 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   return sortByFresh(merged);
 }
 
+/** Opsi filter daftar terbaru (dipakai /api/latest). */
+export interface LatestOpts {
+  orderby?: "modified" | "date" | "popular" | "rand" | null;
+  tipe?: ShiniFormat | null;
+  genre?: string | null;
+  genre2?: string | null;
+  status?: "ongoing" | "end" | null;
+}
+
+/**
+ * Cache memori 30 dtk per kombinasi halaman + filter. Satu halaman =
+ * 3 scrape upstream + enrich Komikcast; mengulang kerja itu untuk halaman
+ * yang sama (pagination bolak-balik, prefetch menu, dua tab) hanya
+ * menambah beberapa detik latensi. Inflight dedupe ikut menahan request
+ * bersamaan. Gate + rate limit tetap jalan di setiap request.
+ */
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(30_000, 50);
+
 /**
  * Daftar terbaru berhalaman + filter (untuk /api/latest & /terbaru).
  * Filter tipe/genre diteruskan ke Shinigami; genre2/status hanya Komiku.
  */
 export async function getLatestPaged(
   page = 1,
-  opts: {
-    orderby?: "modified" | "date" | "popular" | "rand" | null;
-    tipe?: ShiniFormat | null;
-    genre?: string | null;
-    genre2?: string | null;
-    status?: "ongoing" | "end" | null;
-  } = {},
+  opts: LatestOpts = {},
 ): Promise<PagedResult<MangaCard>> {
   const p = Math.max(1, page);
   const orderby = opts.orderby ?? "modified";
+  const key = [p, orderby, opts.tipe ?? "", opts.genre ?? "", opts.genre2 ?? "", opts.status ?? ""].join("|");
+  return latestCache.load(key, () => buildLatestPaged(p, orderby, opts));
+}
+
+async function buildLatestPaged(
+  p: number,
+  orderby: "modified" | "date" | "popular" | "rand",
+  opts: LatestOpts,
+): Promise<PagedResult<MangaCard>> {
   const { data } = await fetchAllSettled(
     {
       komiku: () =>

@@ -118,6 +118,16 @@ export function peekApiCache<T>(path: string): T | null {
   return null;
 }
 
+/**
+ * Intip cache termasuk yang BASI (< 5 menit) — tampilkan dulu, segarkan
+ * di background. Menghindari skeleton padahal datanya sudah ada di memori.
+ */
+export function peekApiCacheStale<T>(path: string): T | null {
+  const hit = cache.get(path);
+  if (hit && Date.now() - hit.at < STALE_MS) return hit.data as T;
+  return null;
+}
+
 /** Panaskan cache sebelum user membuka halaman — dipanggil saat hover/touch. */
 export function prefetchApi(path: string): void {
   if (typeof window === "undefined") return;
