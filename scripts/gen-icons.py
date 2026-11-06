@@ -32,7 +32,7 @@ MARK_B = [(156, 64), (192, 64), (192, 192), (156, 192), (128, 128)]
 
 SS = 4  # supersample
 BASE = 512  # ukuran logis master
-MARK_SIZE = 288  # 56% tile — glyph icon standar, tidak menyentuh tepi
+MARK_SIZE = 384  # kotak viewBox; glyph-nya sendiri 80% -> ~60% tile
 
 
 def draw_mark(d: ImageDraw.ImageDraw, x: float, y: float, size: float) -> None:
@@ -63,7 +63,7 @@ def write_png(img: Image.Image, size: int, path: Path) -> None:
 
 def main() -> None:
     normal = render_master(content_scale=1.0)
-    maskable = render_master(content_scale=0.72)
+    maskable = render_master(content_scale=0.75)
 
     write_png(normal, 512, ICONS / "icon-512.png")
     write_png(normal, 192, ICONS / "icon-192.png")
