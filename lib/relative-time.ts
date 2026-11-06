@@ -79,8 +79,15 @@ export function ageTier(ts?: number, now: number = Date.now()): string {
 }
 
 /** Kunci perbandingan satu kartu untuk deteksi perubahan daftar. */
-export function cardSig(i: { slug: string; latestChapter?: { url?: string }; updatedAtTs?: number }): string {
-  return `${i.slug}#${i.latestChapter?.url ?? ""}#${ageTier(i.updatedAtTs)}`;
+export function cardSig(i: {
+  slug: string;
+  latestChapter?: { url?: string };
+  updatedAtTs?: number;
+  latestSource?: string;
+}): string {
+  // latestSource ikut: sumber berganti (Komiku → Shinigami) harus mengganti
+  // badge & waktu walau chapter dan tingkat umurnya sama.
+  return `${i.slug}#${i.latestChapter?.url ?? ""}#${ageTier(i.updatedAtTs)}#${i.latestSource ?? ""}`;
 }
 
 /**

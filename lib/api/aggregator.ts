@@ -266,6 +266,10 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       if (pick) {
         mergedUpdatedAt = g.cards[pick]!.updatedAt;
         mergedUpdatedAtTs = g.cards[pick]!.updatedAtTs;
+        // Badge sumber ikut sumber waktu: sumber prioritas tertinggi yang
+        // sudah punya chapter terbaru. Komiku muncul dulu → badge KOMIKU;
+        // Shinigami menyusul → otomatis jadi SHINIGAMI.
+        if (hasTop(pick)) latestSrc = pick;
       }
       // Jaminan timestamp absolut — label tidak boleh membeku di teks scrape.
       if (mergedUpdatedAt && typeof mergedUpdatedAtTs !== "number") {
@@ -310,6 +314,33 @@ function rewriteShiniUrl<T extends ChapterRef>(ref: T, displaySlug: string): T {
 /* ------------------------------------------------------------------ */
 /* Urut terbaru lintas source                                             */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Titik waktu absolut yang STABIL antar-scrape.
+ *
+ * Sumber hanya memberi teks relatif ("9 menit lalu"). Menghitung
+ * `Date.now() - menit` di TIAP scrape membuat waktu "dijangkar ulang" ke
+ * sekarang: kalau teks sumber basi (cache HTTP/CDN) atau daftar diganti
+ * ulang oleh auto-refresh, label tertahan di "9 menit lalu" selamanya.
+ *
+ * Di sini perkiraan pertama disimpan per kunci (slug + chapter terbaru) dan
+ * perkiraan berikutnya hanya boleh MEMUNDURKAN waktu (lebih tua) — tidak
+ * pernah memajukannya. Kunci berganti (chapter baru) → mulai dari awal.
+ */
+const tsAnchors = new Map<string, number>();
+export function anchorTs(key: string, agoMinutes: number, extraAgeMs = 0): number | undefined {
+  if (!Number.isFinite(agoMinutes)) return undefined;
+  const est = Date.now() - extraAgeMs - agoMinutes * 60_000;
+  const prev = tsAnchors.get(key);
+  const next = prev === undefined ? est : Math.min(prev, est);
+  tsAnchors.delete(key);
+  tsAnchors.set(key, next);
+  if (tsAnchors.size > 2000) {
+    const oldest = tsAnchors.keys().next().value;
+    if (oldest !== undefined) tsAnchors.delete(oldest);
+  }
+  return next;
+}
 
 /**
  * "3 menit lalu" / "2 jam lalu" / "1 hari lalu" (ID & EN) → menit.

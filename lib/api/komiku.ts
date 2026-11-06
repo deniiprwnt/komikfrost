@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { updatedAtMinutes } from "./aggregator";
+import { anchorTs, updatedAtMinutes } from "./aggregator";
 import type {
   ApiError,
   ChapterData,
@@ -46,6 +46,20 @@ export class KomikuError extends Error {
   }
 }
 
+/**
+ * Umur respons di cache CDN/proxy upstream (header `Age`, detik → ms), per URL.
+ * Teks relatif Komiku ("9 menit lalu") dibuat saat HTML DIBANGKITKAN, bukan
+ * saat kita mengambilnya; kalau HTML itu sudah mengendap di cache, waktu
+ * update sebenarnya lebih tua sebesar umur cache tersebut.
+ */
+const upstreamAgeMs = new Map<string, number>();
+
+function takeUpstreamAge(url: string): number {
+  const v = upstreamAgeMs.get(url) ?? 0;
+  upstreamAgeMs.delete(url);
+  return v;
+}
+
 async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<string> {
   const ctrl = new AbortController();
   // Komiku kadang lambat merespons; gagal cepat (8 dtk) agar UI bisa
@@ -84,6 +98,8 @@ async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<s
       res.status,
     );
   }
+  const ageSec = parseInt(res.headers.get("age") ?? "", 10);
+  upstreamAgeMs.set(url, Number.isFinite(ageSec) && ageSec > 0 ? ageSec * 1000 : 0);
   return res.text();
 }
 
@@ -142,7 +158,7 @@ function dedupeCards(cards: MangaCard[]): MangaCard[] {
   });
 }
 
-function parseBgeCards($: cheerio.CheerioAPI): MangaCard[] {
+function parseBgeCards($: cheerio.CheerioAPI, ageMs = 0): MangaCard[] {
   const cards: MangaCard[] = [];
   $("div.bge").each((_, el) => {
     const root = $(el);
@@ -183,9 +199,6 @@ function parseBgeCards($: cheerio.CheerioAPI): MangaCard[] {
     // saat scrape. Klien memakai ini untuk menghitung ulang label tiap menit
     // (label teks di atas membeku pada waktu scrape).
     const agoMinutes = updatedAtMinutes(updatedAt);
-    const updatedAtTs = Number.isFinite(agoMinutes)
-      ? Date.now() - agoMinutes * 60_000
-      : undefined;
 
     // Tentukan Awal vs Terbaru dari PREFIKS LABEL, bukan urutan/posisi link.
     // Kartu dengan hanya 1 link (komik baru rilis 1 chapter, atau markup
@@ -214,6 +227,10 @@ function parseBgeCards($: cheerio.CheerioAPI): MangaCard[] {
       else if (!firstChapter) firstChapter = { label, url };
       else if (!latestChapter) latestChapter = { label, url };
     });
+
+    // Dijangkar per slug+chapter terbaru agar tidak ikut "membeku" di teks
+    // sumber yang basi (lihat anchorTs).
+    const updatedAtTs = anchorTs(`komiku:${slug}#${(latestChapter as ChapterRef | undefined)?.url ?? ""}`, agoMinutes, ageMs);
 
     cards.push({
       slug,
@@ -272,9 +289,15 @@ export async function fetchMangaList(
   // Daftar memakai cache sangat singkat (10 dtk) agar komik baru cepat
   // tampil; key stabil per page/filter/orderby. Probe live (`fresh`) bypass
   // total supaya polling klien melihat kondisi sumber data saat ini.
+  // Probe live: parameter acak membuat CDN upstream memperlakukannya sebagai
+  // URL baru, sehingga HTML basi di cache tidak ikut terbawa.
+  if (params.fresh === true) url.searchParams.set("_t", String(Date.now()));
   const html = await fetchHtml(url.toString(), 10, params.fresh === true);
   const $ = cheerio.load(html);
-  return { items: parseBgeCards($), hasNextPage: detectNextPage($) };
+  return {
+    items: parseBgeCards($, takeUpstreamAge(url.toString())),
+    hasNextPage: detectNextPage($),
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -398,13 +421,11 @@ function parseLs2Cards($: cheerio.CheerioAPI, scope: cheerio.Cheerio<any>): Mang
     // Titik waktu absolut — tanpa ini label kartu homepage membeku
     // (dulu satu-satunya parser yang lupa mengisinya).
     const agoMinutes = updatedAtMinutes(timePart);
-    const updatedAtTs = Number.isFinite(agoMinutes)
-      ? Date.now() - agoMinutes * 60_000
-      : undefined;
 
     const chA = root.find("a.ls2l[href]").first();
     const chUrl = toPath(chA.attr("href"));
     const chLabel = chA.text().trim();
+    const updatedAtTs = anchorTs(`komiku:${slug}#${chUrl ?? ""}`, agoMinutes);
 
     cards.push({
       slug,
