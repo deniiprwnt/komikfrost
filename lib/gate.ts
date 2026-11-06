@@ -66,6 +66,12 @@ export function rateLimited(req: Request, limit = LIMIT, bucket = "api"): boolea
     "unknown";
   const key = `${bucket}:${ip}`;
   const now = Date.now();
+  // Sapu entri kedaluwarsa: Map ini dulu hanya di-reset saat IP yang SAMA
+  // datang lagi, sehingga entri IP sekali-pakai menumpuk selamanya
+  // (kebocoran memori di proses yang hidup lama).
+  if (hits.size > 5_000) {
+    for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
+  }
   const rec = hits.get(key);
   if (!rec || now > rec.reset) {
     hits.set(key, { n: 1, reset: now + WINDOW_MS });

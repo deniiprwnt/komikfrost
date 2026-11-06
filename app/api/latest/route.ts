@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
   // live=1 → probe auto-refresh: bypass cache memori + cache HTTP upstream,
   // dan jangan biarkan respons ini di-cache browser/CDN.
   const live = searchParams.get("live") === "1";
+  // acak=1 → tampilan dikocok per kelompok sumber (Shinigami tetap di depan).
+  // Pengambilan data tetap terurut agar pagination upstream koheren.
+  const random = searchParams.get("acak") === "1";
   // Allowlist nilai enum — string arbitrer tidak diteruskan ke upstream.
   // Nilai tak dikenal diabaikan (fallback default), seperti /api/popular.
   const rawOrderby = searchParams.get("orderby");
@@ -50,6 +53,7 @@ export async function GET(req: NextRequest) {
         ...(status ? { status } : {}),
         ...(limit !== 15 ? { limit } : {}),
         ...(live ? { live: true } : {}),
+        ...(random ? { random: true } : {}),
       }),
     // Cache browser 10 dtk (private, bukan CDN) — klik pagination
     // bolak-balik tidak bakar scrape 3 source berulang, tapi daftar

@@ -44,13 +44,12 @@ export async function getMangaByGenre(
   const sh = data.shinigami;
   // 15 kartu per halaman UI — gabungan dua source dipotong di sini.
   const merged = mergeCards({ komiku: ku?.items ?? [], shinigami: sh?.items ?? [] });
-  const items = merged.slice(0, 15);
-  // hasNextPage true bila ada sisa potongan atau salah satu source masih
-  // punya halaman berikut.
-  return {
-    items,
-    hasNextPage: merged.length > 15 || Boolean(ku?.hasNextPage || sh?.hasNextPage),
-  };
+  // hasNextPage HANYA dari paginator sumber. Panjang gabungan dua sumber
+  // hampir selalu > 15 walau ini halaman terakhir, sehingga tombol halaman
+  // berikut muncul lalu menampilkan halaman kosong. Bila tidak ada sumber
+  // yang punya halaman berikut, semua kartu dikembalikan (tanpa potong).
+  const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
+  return { items: more ? merged.slice(0, 15) : merged, hasNextPage: more };
 }
 
 /** Samakan slug genre → entri daftar (nama sama, case-insensitive). */

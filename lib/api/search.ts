@@ -12,6 +12,14 @@ import type { MergedMangaCard } from "./aggregator";
 /** Ukuran halaman per halaman UI: 15 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
 const SHINI_PAGE_SIZE = 15;
 
+/** Batasi waktu kerja tambahan (enrich) agar respons tidak tertahan upstream. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 /**
  * Skor relevansi judul terhadap kata kunci (0..1).
  * - 1 = judul memuat SEMUA token kata kunci (AND) → paling relevan.
@@ -89,30 +97,35 @@ export async function searchManga(
   // Relevansi: judul yang memuat SEMUA token kata kunci naik ke atas;
   // yang cuma cocok sebagian tenggelam. Tanpa membuang hasil.
   const ranked = rankByRelevance(merged, kw);
+  // hasNextPage hanya boleh dari paginator sumber: panjang gabungan tiga
+  // sumber hampir selalu > 15 walau ini halaman terakhir, sehingga tombol
+  // halaman berikut muncul lalu menampilkan halaman kosong. Bila tidak ada
+  // sumber yang punya halaman berikut, semua hasil relevan dikembalikan.
+  const more = Boolean(
+    data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage,
+  );
   // 15 kartu per halaman UI — potong dulu baru perkaya agar enrich detail
   // hanya mengejar kartu yang benar-benar tampil (lebih hemat upstream).
-  const items = ranked.slice(0, 15);
+  const items = more ? ranked.slice(0, 15) : ranked;
   // Cap 5 seperti enrichKomikcastOnly di manga.ts — tiap kartu 1 request
   // detail berantai, tanpa cap jadi hambatan ekor respons search.
   const needy = items.filter((c) => !c.synopsis && c.sourceSlug?.komiku).slice(0, 5);
   if (needy.length > 0) {
-    await Promise.all(
-      needy.map(async (c) => {
-        try {
-          const d = await fetchMangaDetail(c.sourceSlug!.komiku!);
-          if (d.synopsis) c.synopsis = d.synopsis;
-        } catch {
-          // biarin kosong — kartu tetap tampil tanpa narasi
-        }
-      }),
+    // Enrich dibatasi waktunya: satu detail yang lambat tidak boleh menahan
+    // seluruh respons pencarian (kartu tanpa sinopsis tetap tampil).
+    await withTimeout(
+      Promise.all(
+        needy.map(async (c) => {
+          try {
+            const d = await fetchMangaDetail(c.sourceSlug!.komiku!);
+            if (d.synopsis) c.synopsis = d.synopsis;
+          } catch {
+            // biarin kosong — kartu tetap tampil tanpa narasi
+          }
+        }),
+      ),
+      2500,
     );
   }
-  return {
-    items,
-    // Satu judul = akhir hasil (tanpa pagination): tidak ada halaman lanjutan
-    // yang bisa dijanjikan. Halaman strict yang nihil exact juga berhenti.
-    hasNextPage:
-      ranked.length > 15 ||
-      (items.length > 1 && Boolean(data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage)),
-  };
+  return { items, hasNextPage: more };
 }

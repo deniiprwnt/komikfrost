@@ -52,6 +52,11 @@ import type { MangaCard, MangaDetail, PagedResult } from "./types";
  * agar beban tetap ringan), paralel max 5, gagal = biarin kosong.
  * Hasil enrich ditempel + source badge dilengkapi (komiku ikut).
  */
+/** Batas waktu kerja tambahan agar respons tidak tertahan upstream. */
+function withTimeout(p: Promise<unknown>, ms: number): Promise<unknown> {
+  return Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+}
+
 async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
   const needy = cards
     .filter(
@@ -135,8 +140,11 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   });
   // Kartu komikcast-only yang miskin (timing lolos dari halaman-1 source
   // lain) diperkaya via search exact-match — pola sama seperti search.
-  await enrichKomikcastOnly(merged);
-  // Urut PALING BARU lintas source — bukan urutan source.
+  await withTimeout(enrichKomikcastOnly(merged), 2500);
+  // Urutkan berdasarkan waktu terbaru secara global (lintas sumber).
+  // Prioritas sumber (Shinigami > Komiku > Komikcast) sudah ditangani
+  // saat mergeCards: jika komik ada di beberapa sumber, datanya diambil
+  // dari sumber prioritas tertinggi. Yang diurutkan di sini murni waktu.
   return sortByFresh(merged);
 }
 
@@ -152,11 +160,18 @@ export interface LatestOpts {
   /**
    * Probe live: bypass SEMUA cache (memori latestCache + cache HTTP Next di
    * tiap source) sehingga hasil = kondisi sumber data saat ini. Dipakai
-   * auto-refresh klien 5 dtk. Enrich Komikcast dilewati (tak perlu untuk
+   * auto-refresh klien. Enrich Komikcast dilewati (tak perlu untuk
    * sekadar mendeteksi judul/chapter baru).
    */
   live?: boolean;
+  /**
+   * Tampilkan acak (dikocok per grup sumber) — dipakai halaman /terbaru.
+   * Pengambilan data tetap terurut (pagination upstream tetap koheren),
+   * hanya penyajian di layar yang diacak.
+   */
+  random?: boolean;
 }
+
 
 /**
  * Cache memori 5 dtk per kombinasi halaman + filter. Satu halaman =
@@ -183,7 +198,16 @@ export async function getLatestPaged(
   const p = Math.max(1, page);
   const orderby = opts.orderby ?? "modified";
   const limit = Math.max(1, opts.limit ?? 15);
-  const key = [p, orderby, opts.tipe ?? "", opts.genre ?? "", opts.genre2 ?? "", opts.status ?? "", limit].join("|");
+  const key = [
+    p,
+    orderby,
+    opts.tipe ?? "",
+    opts.genre ?? "",
+    opts.genre2 ?? "",
+    opts.status ?? "",
+    limit,
+    opts.random ? "r" : "",
+  ].join("|");
   // `live` = probe: jangan baca/tulis cache memori, langsung rakit ulang.
   // Inflight dedupe mencegah tick 4 dtk menumpuk scrape saat upstream lambat.
   if (opts.live) {
@@ -230,26 +254,34 @@ async function buildLatestPaged(
     },
     "latest-paged",
   );
-  const merged = sortByFresh(
-    mergeCards({
-      komiku: data.komiku?.items ?? [],
-      shinigami: data.shinigami?.items ?? [],
-      komikcast: data.komikcast?.items ?? [],
-    }),
+  const merged = mergeCards({
+    komiku: data.komiku?.items ?? [],
+    shinigami: data.shinigami?.items ?? [],
+    komikcast: data.komikcast?.items ?? [],
+  });
+  // Prioritas data sumber (Shinigami > Komiku > Komikcast) sudah ditangani
+  // oleh mergeCards. Di sini cukup urutkan secara global berdasarkan waktu
+  // terbaru (paling baru di atas). Pengacakan HANYA terjadi jika user
+  // memilih dropdown "Acak" (orderby=rand).
+  const ordered = orderby === "rand" ? shuffle(merged) : sortByFresh(merged);
+  // hasNextPage HANYA dari paginator sumber. Dulu memakai
+  // `merged.length > limit`, padahal gabungan 3 sumber hampir selalu lebih
+  // panjang dari limit walau ini halaman terakhir → tombol halaman berikut
+  // muncul lalu menampilkan halaman kosong.
+  const hasNext = Boolean(
+    data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage,
   );
+  // Halaman terakhir (tidak ada lanjutan) → kirim semua sisa, jangan potong.
   // Potong dulu baru perkaya agar enrich detail hanya mengejar kartu yang
   // benar-benar tampil (lebih hemat upstream). Default 15 (/terbaru);
   // beranda meminta 16 agar grid 8-kolom terisi penuh dua baris.
-  const items = merged.slice(0, limit);
+  const items = hasNext ? ordered.slice(0, limit) : ordered;
   // Probe live: lewati enrich (2-3 request berantai) — auto-refresh hanya
   // perlu tahu judul/chapter baru, dan probe harus tetap cepat.
-  if (!opts.live) await enrichKomikcastOnly(items);
-  return {
-    items,
-    hasNextPage:
-      merged.length > limit ||
-      Boolean(data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage),
-  };
+  // Non-live pun diberi batas waktu: kartu tetap tampil tanpa genre/sinopsis
+  // bila upstream detail lambat.
+  if (!opts.live) await withTimeout(enrichKomikcastOnly(items), 2500);
+  return { items, hasNextPage: hasNext };
 }
 
 const SHINI_TOP_BY_PERIOD: Record<RankPeriod, ShiniTopFilter> = {
@@ -425,6 +457,40 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
   // Kembalikan sebagai MangaDetail (chapters = MergedChapterItem[] adalah
   // subtype ChapterItem[] + field tambahan) + tempel info sources.
   return merged as MangaDetail & Pick<MergedMangaDetail, "sources" | "sourceSlug">;
+}
+
+/**
+ * Ringkasan RINGAN satu komik: hanya Komiku (1 request upstream), bukan
+ * merge tiga sumber. Dipakai badge tipe di daftar peringkat dan badge
+ * "BARU" di halaman favorit — keduanya hanya butuh type/latestChapter,
+ * dan versi merge penuh (beberapa request berantai per judul) terlalu
+ * berat bila dipanggil untuk 10-20 kartu sekaligus.
+ *
+ * Cache 1 jam: tipe komik praktis tidak berubah; chapter terbaru boleh
+ * tertinggal sampai 1 jam — badge hanya penanda, bukan data utama.
+ */
+export interface MangaSummary {
+  slug: string;
+  title: string;
+  type?: string;
+  cover: string;
+  latestChapter?: MangaDetail["latestChapter"];
+}
+
+const summaryCache = createKeyedCache<MangaSummary>(60 * 60_000, 200);
+
+export async function getMangaSummary(slug: string): Promise<MangaSummary> {
+  const clean = slug.replace(/^\/+|\/+$/g, "");
+  return summaryCache.load(clean, async () => {
+    const d = await fetchMangaDetail(clean);
+    return {
+      slug: d.slug,
+      title: d.title,
+      cover: d.cover,
+      ...(d.type ? { type: d.type } : {}),
+      ...(d.latestChapter ? { latestChapter: d.latestChapter } : {}),
+    };
+  });
 }
 
 /** Daftar chapter satu komik berdasarkan slug. */

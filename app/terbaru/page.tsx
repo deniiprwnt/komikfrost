@@ -205,17 +205,19 @@ function TerbaruContent() {
       // dari sumber lain lebih baru harus tetap mengganti daftar.
       // Bandingkan ISI daftar, bukan 3 teratas saja: komik baru yang masuk
       // di posisi 4+ dulu tidak pernah tampil sampai halaman dimuat ulang.
-      const sig = (l: MangaCard[]) =>
-        l
-          .map(cardSig)
-          .join("|");
+      // Tampilan diacak (acak=1) → urutan hasil probe selalu beda. Bandingkan
+      // sebagai himpunan: ganti daftar HANYA bila isinya benar-benar berubah
+      // (ada judul/chapter baru), bukan karena urutan acaknya berbeda.
+      const sig = (l: MangaCard[]) => l.map(cardSig).sort().join("|");
       if (sig(res.items) === sig(cur)) return;
       applyItems(res.items, res.hasNextPage, 1);
     } catch {
       // Abaikan — daftar lama tetap tampil.
     }
   }, [orderby, buildQs, applyItems]);
-  useAutoRefresh(silentCheck, 5_000);
+  // 30 dtk: probe `live` melewati semua cache & menembak 3 sumber — tiap
+  // 5 dtk itu terlalu berat untuk upstream. Update tetap terdeteksi <30 dtk.
+  useAutoRefresh(silentCheck, 30_000);
 
   const scrollToList = useCallback(() => {
     requestAnimationFrame(() => {

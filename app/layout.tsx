@@ -76,6 +76,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning className={`${display.variable} ${sans.variable}`}>
       <head>
+        {/* Tema diterapkan SEBELUM paint: tanpa ini konten sempat tampil
+            terang sekejap lalu berubah gelap (default aplikasi = gelap).
+            Skrip kecil & inline agar tidak menambah request. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}',
+          }}
+        />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
             tidak menunggu gambar pertama. */}
         <link rel="preconnect" href="https://img.komiku.org" crossOrigin="anonymous" />

@@ -35,6 +35,18 @@ interface HomePayload {
   recommended: MangaCard[];
 }
 
+/** Buang parameter `live` dari path — pemuatan awal memakai cache server. */
+function withoutLive(path: string): string {
+  try {
+    const u = new URL(path, "http://localhost");
+    u.searchParams.delete("live");
+    const q = u.searchParams.toString();
+    return u.pathname + (q ? `?${q}` : "");
+  } catch {
+    return path;
+  }
+}
+
 /**
  * Section beranda: tampil instan dari cache (basi < 5 mnt) lalu segarkan
  * diam-diam — layar tidak pernah kosong menunggu jaringan.
@@ -49,11 +61,22 @@ function useHomeSection<K extends keyof HomePayload>(
    */
   probePath?: string,
 ) {
+  // Endpoint khusus section (bila ada) → bentuk payload { items }.
+  // `live=1` hanya dipakai probe auto-refresh; pemuatan awal memakai versi
+  // ber-cache agar tidak menembak ulang tiga sumber di setiap mount.
+  const loadPath = probePath ? withoutLive(probePath) : "/api/home";
   const [data, setData] = useState<MangaCard[] | null>(() => {
     // Cache prefetch dari menu/hover = konten langsung tampil. Rekomendasi
     // dikecualikan: urutannya diacak saat load sehingga memakai cache akan
     // membuat daftar melompat tepat setelah tampil.
     if (shuffleData) return null;
+    // Section dengan endpoint sendiri (daftar terbaru) membaca cache
+    // endpoint itu, bukan /api/home — dulu isinya tertukar dengan payload
+    // /api/home lalu daftar berganti sendiri beberapa detik setelah tampil.
+    if (probePath) {
+      const cachedProbe = peekApiCache<{ items?: MangaCard[] }>(loadPath);
+      return cachedProbe?.items ?? null;
+    }
     const cached = peekApiCache<HomePayload>("/api/home");
     return cached ? cached[key] : null;
   });
@@ -72,31 +95,38 @@ function useHomeSection<K extends keyof HomePayload>(
     async (fresh = false) => {
       setError(null);
       if (hasDataRef.current) setRefreshing(true);
-      // Refresh halaman menghapus cache memori: tampilkan snapshot disk
-      // dulu supaya beranda tidak kosong menunggu scrape.
-      if (!hasDataRef.current && !shuffleData) {
-        const snap = readApiSnapshot<HomePayload>("/api/home");
-        const list = snap ? snap[key] : null;
-        if (list && list.length > 0) {
-          hasDataRef.current = true;
-          dataRef.current = list;
-          setData(list);
-        }
-      }
-      const pick = (home: HomePayload | null | undefined, allowShuffle = true) => {
-        const list = home ? home[key] : null;
+      // Section dengan endpoint sendiri membawa payload { items }, bukan
+      // { latest, popular, recommended }.
+      const listFrom = (payload: unknown): MangaCard[] | null => {
+        if (!payload) return null;
+        if (probePath) return (payload as { items?: MangaCard[] }).items ?? null;
+        return (payload as HomePayload)[key] ?? null;
+      };
+      const pick = (payload: unknown, allowShuffle = true) => {
+        const list = listFrom(payload);
         if (list) hasDataRef.current = true;
         // Refresh diam-diam (stale-while-revalidate) TIDAK mengocok ulang:
         // rekomendasi yang dikocok ulang di background bikin daftar lompat
         // sendiri saat user sedang membaca. Kocok hanya saat muat foreground.
         return list && shuffleData && allowShuffle ? shuffle(list) : list;
       };
+      // Refresh halaman menghapus cache memori: tampilkan snapshot disk
+      // dulu supaya beranda tidak kosong menunggu scrape.
+      if (!hasDataRef.current && !shuffleData) {
+        const snap = readApiSnapshot<HomePayload | { items?: MangaCard[] }>(loadPath);
+        const list = listFrom(snap);
+        if (list && list.length > 0) {
+          hasDataRef.current = true;
+          dataRef.current = list;
+          setData(list);
+        }
+      }
       try {
-        if (fresh) invalidateApi("/api/home");
-        const res = await apiGetSWR<HomePayload>(
-          "/api/home",
-          (home) => {
-            setData(pick(home, false));
+        if (fresh) invalidateApi(loadPath);
+        const res = await apiGetSWR<HomePayload | { items?: MangaCard[] }>(
+          loadPath,
+          (payload) => {
+            setData(pick(payload, false));
             setRefreshing(false);
           },
           () => setRefreshing(false),
@@ -112,7 +142,7 @@ function useHomeSection<K extends keyof HomePayload>(
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [key, shuffleData],
+    [key, shuffleData, loadPath],
   );
   // Cek diam-diam (auto-refresh PWA): fetch baru, ganti daftar bila ISI
   // daftar berubah (komik/chapter baru di posisi mana pun). Tanpa spinner,
@@ -182,7 +212,10 @@ export default function HomePage() {
   const checkNewAll = useCallback(() => {
     void latest.checkNew();
   }, [latest.checkNew]);
-  useAutoRefresh(checkNewAll, 5_000);
+  // 30 dtk (bukan 5): probe `live` melewati SEMUA cache dan menembak tiga
+  // sumber sekaligus — tiap 5 dtk itu ~36 request upstream/menit per tab.
+  // Chapter baru tetap terdeteksi maksimal setengah menit setelah terbit.
+  useAutoRefresh(checkNewAll, 30_000);
 
   // Prefetch hemat: hanya daftar genre + hanya saat browser idle, agar
   // tidak berebut bandwidth/CPU dengan gambar + section beranda.
@@ -229,6 +262,10 @@ export default function HomePage() {
           <div className="flex shrink-0 items-center gap-1">
             <button
               onClick={() => {
+                // Popular & rekomendasi dari /api/home; daftar terbaru punya
+                // endpoint sendiri sehingga cache-nya terpisah.
+                invalidateApi("/api/home");
+                invalidateApi("/api/latest");
                 popular.load(true);
                 latest.load(true);
                 recommended.load(true);

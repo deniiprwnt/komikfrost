@@ -5,14 +5,16 @@ import { expect } from "e2e";
  * Alur utama KomikFrost:
  * beranda → cari "solo leveling" → detail komik → buka chapter → reader.
  *
- * Data live dari sumber scraping (Komikindo primer, Komiku fallback),
+ * Data live dari sumber scraping (Shinigami primer, Komiku/Komikcast
+ * fallback),
  * jadi timeout dibuat longgar. Test menavigasi pakai href asli yang
  * dirender (bukan slug hardcode) agar tahan terhadap perubahan data.
  */
 test("alur utama: beranda → cari → detail → reader", async ({ app, screen, browser }) => {
   // 1. Beranda terbuka: brand + daftar komik tampil.
   await app.open("/");
-  await expect(screen.getByRole("link", "KomikFrost — Beranda")).toBeVisible({ timeout: 30000 });
+  // aria-label logo di components/layout.tsx: "KomikFrost, ke beranda".
+  await expect(screen.getByRole("link", "KomikFrost, ke beranda")).toBeVisible({ timeout: 30000 });
 
   // Tunggu daftar beranda selesai load: route-memory menunda render
   // konten pertama, jadi tunggu sampai ada kartu komik yang terpasang.
@@ -41,8 +43,9 @@ test("alur utama: beranda → cari → detail → reader", async ({ app, screen,
   // sudah sinkron) — pastikan submit tidak lolos dengan query kosong.
   const typed = await input.inputValue();
   if (typed !== "solo leveling") throw new Error(`Input cari berisi "${typed}", bukan "solo leveling"`);
-  // Submit lewat tombol Cari (alur user yang valid, tanpa race keyboard).
-  await form.getByRole("button", "Cari").click();
+  // Form /cari tidak punya tombol submit — Enter di input adalah alur
+  // user yang sah (submit handler form).
+  await input.press("Enter");
   await expect(screen.getByText(/Hasil untuk/i)).toBeVisible({ timeout: 15000 });
 
   // Tunggu hasil (atau empty-state yang eksplisit — bukan loading selamanya).

@@ -57,14 +57,45 @@ export function readApiSnapshot<T>(path: string): T | null {
   }
 }
 
+/**
+ * Buang snapshot kedaluwarsa / berlebih. Snapshot ditulis per path
+ * (semua kombinasi filter & halaman /api/latest), jadi tanpa sapuan ini
+ * localStorage lama-lama penuh dan penulisan baru gagal diam-diam.
+ */
+function pruneSnapshots(): void {
+  try {
+    const now = Date.now();
+    const alive: { key: string; at: number }[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith(SNAP_PREFIX)) continue;
+      let at = 0;
+      try {
+        at = (JSON.parse(window.localStorage.getItem(key) || "{}") as { at?: number }).at ?? 0;
+      } catch {
+        at = 0;
+      }
+      if (!at || now - at > SNAP_TTL_MS) window.localStorage.removeItem(key);
+      else alive.push({ key, at });
+    }
+    // Sisakan 40 snapshot terbaru.
+    alive.sort((a, b) => b.at - a.at);
+    for (const { key } of alive.slice(40)) window.localStorage.removeItem(key);
+  } catch {
+    // storage diblokir — abaikan
+  }
+}
+
 function writeApiSnapshot(path: string, data: unknown): void {
   if (typeof window === "undefined" || !snapshotAllowed(path)) return;
   try {
     const raw = JSON.stringify({ at: Date.now(), data });
     if (raw.length > SNAP_MAX_CHARS) return;
     window.localStorage.setItem(SNAP_PREFIX + path, raw);
+    pruneSnapshots();
   } catch {
     // Kuota penuh / mode privat — cache memori tetap bekerja.
+    pruneSnapshots();
   }
 }
 
@@ -75,6 +106,16 @@ async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false)
     ...(noStore ? { cache: "no-store" as RequestCache } : {}),
   });
   const json = await res.json().catch(() => null);
+  // Sesi gate kedaluwarsa/hilang: kirim user ke halaman masuk dengan
+  // tujuan kembali, bukan menampilkan "Akses terkunci" di setiap halaman.
+  if (res.status === 401 && typeof window !== "undefined") {
+    const here = window.location.pathname + window.location.search;
+    if (!here.startsWith("/masuk")) {
+      window.location.href = `/masuk?next=${encodeURIComponent(here)}`;
+      // Beri waktu navigasi berjalan sebelum promise ditolak.
+      await new Promise(() => {});
+    }
+  }
   if (!res.ok || !json || json.error) {
     const msg =
       json?.error?.message ||
@@ -187,7 +228,11 @@ export function peekApiCacheStale<T>(path: string): T | null {
 /** Panaskan cache sebelum user membuka halaman — dipanggil saat hover/touch. */
 export function prefetchApi(path: string): void {
   if (typeof window === "undefined") return;
-  if (cache.has(path) || inflight.has(path)) return;
+  // Entri BASI tetap perlu disegarkan — dulu `cache.has(path)` membuat
+  // prefetch tidak melakukan apa pun selama entri lama masih di Map,
+  // sehingga hover/touch setelah 30 dtk tidak memanaskan apa pun.
+  const hit = cache.get(path);
+  if ((hit && Date.now() - hit.at < TTL_MS) || inflight.has(path)) return;
   void apiGet(path).catch(() => {
     // Prefetch boleh gagal diam-diam; halaman tujuan akan fetch ulang.
   });

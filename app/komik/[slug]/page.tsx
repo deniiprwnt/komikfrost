@@ -136,20 +136,22 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
   }, [load]);
 
   // Simpan morph sedini mungkin (sebelum render skeleton pertama) agar
-  // tidak hilang karena StrictMode double-render / efek lain.
-  const morphRef = useRef(consumeCoverMorph(slug));
+  // tidak hilang karena StrictMode double-render / efek lain. Lazy init
+  // lewat useState: dulu `useRef(consumeCoverMorph(slug))` mengeksekusi
+  // efek sampingnya di SETIAP render (argumen useRef selalu dievaluasi).
+  const [initialMorph] = useState(() => consumeCoverMorph(slug));
   const playedRef = useRef(false);
 
   // Saat skeleton tampil: terbangkan ghost ke slot cover-nya, lalu
   // teruskan ke hero asli saat data tiba. Tanpa morph = skeleton biasa.
   useEffect(() => {
-    const morph = morphRef.current;
+    const morph = initialMorph;
     if (!morph || playedRef.current || prefersReducedMotion()) return;
     const slot = document.querySelector<HTMLElement>("[data-cover-slot]");
     if (!slot) return;
     playedRef.current = true;
     void flyCover(morph, slot);
-  }, []);
+  }, [initialMorph]);
 
   // Konten tiba: hero asli menggantikan slot skeleton — settle lembut
   // agar "mendarat" dari ghost, lalu bodi masuk berjenjang via CSS.

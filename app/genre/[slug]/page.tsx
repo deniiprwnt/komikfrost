@@ -2,7 +2,7 @@
 
 import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, invalidateApi, titleKey } from "@/lib/client";
+import { apiGet, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
@@ -41,26 +41,31 @@ function parsePage(raw: string | null): number {
 function GenreDetailContent({ slug }: { slug: string }) {
   const router = useRouter();
   const sp = useSearchParams();
+  // Nilai awal HANYA dari URL: sessionStorage tidak bisa dibaca di server,
+  // jadi membacanya di useState membuat markup server & klien berbeda
+  // (hydration mismatch). Nilai tersimpan diterapkan setelah mount.
   const [orderby, setOrderby] = useState<Orderby>(() => {
     const fromUrl = sp.get("orderby") as Orderby | null;
-    if (fromUrl && ORDERBYS.some((o) => o.v === fromUrl)) return fromUrl;
-    try {
-      const saved = sessionStorage.getItem(`bk-genre-${slug}-orderby`) as Orderby | null;
-      if (saved && ORDERBYS.some((o) => o.v === saved)) return saved;
-    } catch {
-      // abaikan — default modified
-    }
-    return "modified";
+    return fromUrl && ORDERBYS.some((o) => o.v === fromUrl) ? fromUrl : "modified";
   });
-  const [tipe, setTipe] = useState(() => {
-    const fromUrl = sp.get("tipe");
-    if (fromUrl !== null) return fromUrl;
+  const [tipe, setTipe] = useState(() => sp.get("tipe") ?? "");
+
+  // Setelah mount: pulihkan filter terakhir (hanya bila URL tidak menentukan).
+  useEffect(() => {
     try {
-      return sessionStorage.getItem(`bk-genre-${slug}-tipe`) ?? "";
+      if (!sp.get("orderby")) {
+        const saved = sessionStorage.getItem(`bk-genre-${slug}-orderby`) as Orderby | null;
+        if (saved && ORDERBYS.some((o) => o.v === saved)) setOrderby(saved);
+      }
+      if (sp.get("tipe") === null) {
+        const savedTipe = sessionStorage.getItem(`bk-genre-${slug}-tipe`);
+        if (savedTipe) setTipe(savedTipe);
+      }
     } catch {
-      return "";
+      // storage diblokir — pakai default
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   const filtersKey = `${orderby}|${tipe}`;
 
@@ -151,7 +156,10 @@ function GenreDetailContent({ slug }: { slug: string }) {
     if (bootedRef.current) return;
     bootedRef.current = true;
     appliedFiltersRef.current = filtersKey;
-    invalidateApi();
+    // Cukup buang memori dedupe halaman. Dulu di sini dipanggil
+    // invalidateApi() TANPA argumen = cache.clear(): seluruh cache klien
+    // (/api/home, detail komik, genre, hasil prefetch menu) ikut terhapus.
+    seenRef.current.clear();
     void loadPage(parsePage(sp.get("page")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -161,8 +169,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
     if (appliedFiltersRef.current === filtersKey) return;
     appliedFiltersRef.current = filtersKey;
     // Batasi memori dedupe lintas-halaman: buang riwayat filter lama.
-    if (seenRef.current.size > 20) seenRef.current.clear();
-    invalidateApi();
+    seenRef.current.clear();
     scrollToList();
     void loadPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps

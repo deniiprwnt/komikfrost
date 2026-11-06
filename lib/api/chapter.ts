@@ -56,7 +56,10 @@ async function loadChapter(
     try {
       return await getChapterMerged(s, c, num, "komikcast");
     } catch {
-      return fetchKomikcastChapter(`/${s}-chapter-${c}-bahasa-indonesia/`);
+      // Token dari riwayat/URL bisa sudah membawa sufiks slug Komikcast —
+      // jangan digandakan ("-bahasa-indonesia-bahasa-indonesia").
+      const tok = c.replace(/-bahasa-indonesia$/i, "");
+      return fetchKomikcastChapter(`/${s}-chapter-${tok}-bahasa-indonesia/`);
     }
   }
   if (source === "shinigami") {
@@ -98,7 +101,7 @@ async function getChapterMerged(
     entrySources.find((r) => r.source === "komiku")?.url ?? `/${slug}-chapter-${token}/`;
   const komikcastUrl =
     entrySources.find((r) => r.source === "komikcast")?.url ??
-    `/${slug}-chapter-${token}-bahasa-indonesia/`;
+    `/${slug}-chapter-${token.replace(/-bahasa-indonesia$/i, "")}-bahasa-indonesia/`;
 
   // Urutan coba: prefer → pemenang merge → sisi lain (prioritas turun).
   const order: ComicSourceId[] = [];

@@ -315,7 +315,12 @@ export async function fetchMangaByGenre(
       : `${KOMIKU_API}/genre/${encodeURIComponent(genre)}/`;
   const html = await fetchHtml(url);
   const $ = cheerio.load(html);
-  return { items: parseBgeCards($), hasNextPage: detectNextPage($) };
+  // Umur cache upstream ikut dikirim: teks relatif dibuat saat HTML
+  // dibangkitkan, jadi tanpa koreksi ini updatedAtTs terlalu "baru".
+  return {
+    items: parseBgeCards($, takeUpstreamAge(url)),
+    hasNextPage: detectNextPage($),
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -335,7 +340,7 @@ export async function searchMangaRemote(
   const $ = cheerio.load(html);
   // Hasil pencarian tidak memakai infinite scroll — halaman penuh (10 kartu)
   // berarti kemungkinan masih ada halaman berikut.
-  const items = parseBgeCards($);
+  const items = parseBgeCards($, takeUpstreamAge(url));
   return { items, hasNextPage: items.length >= 10 };
 }
 

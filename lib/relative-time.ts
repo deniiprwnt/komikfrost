@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Label waktu relatif yang MENUA SENDIRI.
@@ -23,26 +23,64 @@ const TICK_MS = 1_000;
  * `null` di server & render pertama klien → komponen memakai label dari
  * server dulu (tidak ada mismatch hidrasi), lalu berganti ke label hidup.
  */
+/*
+ * Satu sumber waktu bersama untuk SEMUA kartu. Dulu tiap kartu memasang
+ * useState + setInterval sendiri (beranda bisa 40+ timer yang masing-masing
+ * memicu render per detik). Sekarang: satu interval modul, satu snapshot,
+ * semua pelanggan diberi tahu bersamaan. Timer berhenti saat tidak ada
+ * pelanggan dan disegarkan saat tab kembali terlihat.
+ */
+let nowValue: number | null = null;
+let tickTimer = 0;
+const tickListeners = new Set<() => void>();
+
+function publishNow(): void {
+  nowValue = Date.now();
+  for (const cb of tickListeners) cb();
+}
+
+function startTicking(): void {
+  if (tickTimer || typeof window === "undefined") return;
+  publishNow();
+  tickTimer = window.setInterval(publishNow, TICK_MS);
+  // Tab yang lama di background bisa menahan interval; begitu terlihat
+  // lagi label langsung disegarkan tanpa menunggu tick berikutnya.
+  document.addEventListener("visibilitychange", onVisibleTick);
+}
+
+function stopTicking(): void {
+  if (typeof window === "undefined") return;
+  window.clearInterval(tickTimer);
+  tickTimer = 0;
+  document.removeEventListener("visibilitychange", onVisibleTick);
+}
+
+function onVisibleTick(): void {
+  if (document.visibilityState === "visible") publishNow();
+}
+
+function subscribeNow(cb: () => void): () => void {
+  tickListeners.add(cb);
+  startTicking();
+  // Pelanggan baru langsung mendapat nilai terakhir bila sudah ada.
+  if (nowValue !== null) cb();
+  return () => {
+    tickListeners.delete(cb);
+    if (tickListeners.size === 0) stopTicking();
+  };
+}
+
+function getNowSnapshot(): number | null {
+  return nowValue;
+}
+
+function getNowServerSnapshot(): number | null {
+  // Server & render hidrasi memakai label dari server (tanpa mismatch).
+  return null;
+}
+
 export function useNowTick(): number | null {
-  const [now, setNow] = useState<number | null>(null);
-
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    tick();
-    const id = window.setInterval(tick, TICK_MS);
-    // Tab yang lama di background bisa menahan interval; begitu terlihat
-    // lagi label langsung disegarkan tanpa menunggu tick berikutnya.
-    const onVisible = () => {
-      if (document.visibilityState === "visible") tick();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, []);
-
-  return now;
+  return useSyncExternalStore(subscribeNow, getNowSnapshot, getNowServerSnapshot);
 }
 
 /** "3 menit lalu" dari selisih waktu absolut — hanya SATU satuan

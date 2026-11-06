@@ -58,10 +58,18 @@ export function normalizeTitle(raw: string): string {
 
 /** "Chapter 224" / "Ch. 224" → "224" (kunci dedupe chapter). */
 export function normalizeChapterKey(raw: string): string {
+  // Subjudul dibuang SEBELUM tanda baca dibersihkan: "Chapter 180: End" dan
+  // "Chapter 12 - Tamat" harus menghasilkan kunci yang SAMA dengan
+  // "Chapter 180"/"Chapter 12" dari sumber lain. Tanpa ini kuncinya jadi
+  // "180end" ≠ "180" dan chapter yang sama tampil dua kali di daftar.
   const t = raw
     .toLowerCase()
     .replace(/[<>]/g, "") // sisa tag <chapter> literal — isi angka dipertahankan
     .replace(/^(chapter|ch\.?|episode|eps\.?)\s*/i, "")
+    .split(":")[0]
+    .split(" - ")[0]
+    .split(" – ")[0]
+    .split(" — ")[0]
     .replace(/[^a-z0-9.\-]/g, "")
     .trim();
   return t;
@@ -332,7 +340,16 @@ export function anchorTs(key: string, agoMinutes: number, extraAgeMs = 0): numbe
   if (!Number.isFinite(agoMinutes)) return undefined;
   const est = Date.now() - extraAgeMs - agoMinutes * 60_000;
   const prev = tsAnchors.get(key);
-  const next = prev === undefined ? est : Math.min(prev, est);
+  // Normalnya hanya boleh memundurkan (teks relatif yang basi tidak boleh
+  // "maju"). Pengecualian: koreksi sumber yang membuat perkiraan >10 menit
+  // LEBIH BARU dari jangkar diterima, agar waktu tidak tertahan selamanya
+  // di masa lalu saat upstream memperbaiki datanya.
+  const next =
+    prev === undefined
+      ? est
+      : est > prev + 10 * 60_000
+        ? est
+        : Math.min(prev, est);
   tsAnchors.delete(key);
   tsAnchors.set(key, next);
   if (tsAnchors.size > 2000) {

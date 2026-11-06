@@ -6,7 +6,7 @@ import { apiGet, peekApiCache } from "@/lib/client";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import { useUpdatedLabel } from "@/lib/relative-time";
-import type { MangaCard, MangaDetail } from "@/lib/api/types";
+import type { MangaCard } from "@/lib/api/types";
 
 /** Saat cover diklik: rekam posisi + gambar untuk animasi terbang ke detail. */
 function coverMorphProps(slug: string) {
@@ -18,9 +18,14 @@ function coverMorphProps(slug: string) {
 
 /** Ubah path chapter Komiku "/slug-chapter-11-2/" → route internal "/baca/slug/11-2". */
 export function chapterPathToRoute(komikuPath: string): string {
+  // Sudah berupa route internal (mis. hasil navigasi sebelumnya).
+  if (komikuPath.startsWith("/baca/")) return komikuPath;
   const m = komikuPath.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)-chapter-(.+?)\/?$/i);
   if (!m) return "/";
-  return `/baca/${m[1]}/${m[2]}`;
+  // Slug chapter Komikcast membawa sufiks "-bahasa-indonesia"; token route
+  // harus nomor bersih agar /baca/<slug>/<token> tetap sah.
+  const tok = m[2].replace(/-bahasa-indonesia$/i, "");
+  return `/baca/${m[1]}/${tok}`;
 }
 
 const TYPE_STYLE: Record<string, string> = {
@@ -274,9 +279,15 @@ const typeCache = new Map<string, string>();
 
 /** Ranking dari sumber data kerap tak membawa tipe. Bila kosong, ambil dari
  *  detail komik (cache dulu, lalu fetch) supaya badge MANGA/MANHWA/MANHUA selalu ada. */
+/** Bentuk minimal respons /api/manga/<slug>?ringkas=1 (hanya field ini). */
+type TypeSummary = { type?: string };
+
 function useResolvedType(item: MangaCard): string | undefined {
+  // ringkas=1: endpoint 1-request (Komiku saja). Detail merge penuh untuk
+  // 10-20 baris peringkat terlalu berat — ini hanya untuk badge tipe.
+  const summaryPath = `/api/manga/${encodeURIComponent(item.slug)}?ringkas=1`;
   const [type, setType] = useState<string | undefined>(
-    () => item.type || typeCache.get(item.slug) || peekApiCache<MangaDetail>(`/api/manga/${encodeURIComponent(item.slug)}`)?.type,
+    () => item.type || typeCache.get(item.slug) || peekApiCache<TypeSummary>(summaryPath)?.type,
   );
   useEffect(() => {
     if (item.type) {
@@ -289,7 +300,7 @@ function useResolvedType(item: MangaCard): string | undefined {
       return;
     }
     let off = false;
-    apiGet<MangaDetail>(`/api/manga/${encodeURIComponent(item.slug)}`)
+    apiGet<TypeSummary>(summaryPath)
       .then((d) => {
         if (d?.type) typeCache.set(item.slug, d.type);
         if (!off && d?.type) setType(d.type);

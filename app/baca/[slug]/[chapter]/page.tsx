@@ -420,14 +420,9 @@ export default function ReaderPage({
         progressRef.current.style.width = `${pct * 100}%`;
       }
       setProgress((prev) => (Math.abs(prev - pct) < 0.005 ? prev : pct));
-      // Indeks gambar paling atas yang terlihat — untuk "lanjutkan di posisi sama".
-      const imgs = el.querySelectorAll("img[data-pg]");
-      let cur = 0;
-      for (let i = 0; i < imgs.length; i++) {
-        if ((imgs[i] as HTMLElement).getBoundingClientRect().top <= 80) cur = i;
-        else break;
-      }
-      pageNumRef.current = cur;
+      // Indeks gambar teratas ditangani IntersectionObserver di bawah —
+      // dulu tiap event scroll memanggil getBoundingClientRect() untuk
+      // SEMUA gambar (chapter panjang 100+ gambar = layout thrash).
       // Simpan hanya saat melewati batas 10% berikutnya.
       if (pct - savedProgressRef.current >= 0.1 || pct >= 1) {
         savedProgressRef.current = pct >= 1 ? 1 : Math.floor(pct * 10) / 10;
@@ -436,8 +431,28 @@ export default function ReaderPage({
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Halaman teratas yang terlihat dihitung observer (satu kali pasang,
+    // nol getBoundingClientRect per frame). Dipakai "lanjutkan di halaman
+    // yang sama" saat chapter dibuka ulang.
+    const visible = new Set<number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const idx = Number((e.target as HTMLElement).dataset.pg);
+          if (!Number.isFinite(idx)) continue;
+          if (e.isIntersecting) visible.add(idx);
+          else visible.delete(idx);
+        }
+        if (visible.size > 0) pageNumRef.current = Math.min(...visible);
+      },
+      { threshold: 0 },
+    );
+    el.querySelectorAll<HTMLElement>("img[data-pg]").forEach((n) => io.observe(n));
+
     return () => {
       window.removeEventListener("scroll", onScroll);
+      io.disconnect();
       if (hasRestoreTimer) window.clearTimeout(restoreTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

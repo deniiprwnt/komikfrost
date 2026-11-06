@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getMangaDetail } from "@/lib/api/manga";
+import { getMangaDetail, getMangaSummary } from "@/lib/api/manga";
 import { guard, handle } from "../../_lib";
 
 export const maxDuration = 30;
@@ -20,5 +20,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   }
   const blocked = await guard(req);
   if (blocked) return blocked;
+  // ringkas=1 → hanya Komiku (1 request) untuk badge tipe/chapter terbaru.
+  // Dipakai daftar peringkat & halaman favorit yang memanggil banyak judul.
+  if (new URL(req.url).searchParams.get("ringkas") === "1") {
+    return handle(() => getMangaSummary(decoded), { revalidate: 3600, scope: "private" });
+  }
   return handle(() => getMangaDetail(decoded), { revalidate: 30, scope: "private" });
 }

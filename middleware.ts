@@ -24,7 +24,11 @@ export async function middleware(req: NextRequest) {
     // /sw.js sudah tercakup regex .js di bawah.
     pathname === "/manifest.webmanifest" ||
     pathname === "/offline.html" ||
-    /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|woff2?)$/.test(pathname)
+    // Aset statis publik. Rute /api/* DIKECUALIKAN dari aturan ekstensi:
+    // tanpa ini path API berakhiran .js/.css/.png akan lolos gerbang
+    // password (tidak ada hari ini, tapi jangan bergantung pada itu).
+    (!pathname.startsWith("/api/") &&
+      /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|woff2?)$/.test(pathname))
   ) {
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");

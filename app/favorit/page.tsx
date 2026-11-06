@@ -51,8 +51,10 @@ export default function FavoritPage() {
           const b = queue.shift();
           if (!b) break;
           try {
+            // ringkas=1: 1 request (Komiku saja) per favorit, bukan merge
+            // tiga sumber. Badge "BARU" hanya perlu chapter terbaru.
             const d = await apiGet<MangaDetail>(
-              `/api/manga/${encodeURIComponent(b.slug)}`,
+              `/api/manga/${encodeURIComponent(b.slug)}?ringkas=1`,
             );
             if (cancelled || !d.latestChapter) continue;
             const latestTok = chapterTokenFromKomikuUrl(d.latestChapter.url);
