@@ -17,7 +17,12 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
-    /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|woff2?)$/.test(pathname)
+    // Berkas PWA wajib bisa diambil browser TANPA sesi: service worker
+    // mendaftar sebelum login, dan manifest dibaca saat instalasi.
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/offline.html" ||
+    /\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|webmanifest|html|woff2?)$/.test(pathname)
   ) {
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");

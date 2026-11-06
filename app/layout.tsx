@@ -3,6 +3,7 @@ import { Archivo, Figtree } from "next/font/google";
 import { ThemeProvider } from "@/components/theme";
 import { BootSplash } from "@/components/boot-splash";
 import { RouteMemory } from "@/components/route-memory";
+import { Pwa } from "@/components/pwa";
 import { BackToTop, Footer, Header, Main, MobileTabBar } from "@/components/layout";
 import "./globals.css";
 
@@ -77,6 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
             tidak menunggu gambar pertama. */}
+        {/* Standar modern untuk mode standalone (Chrome/Edge/Android).
+            Metadata appleWebApp hanya menghasilkan varian apple-*. */}
+        <meta name="mobile-web-app-capable" content="yes" />
         <link rel="preconnect" href="https://img.komiku.org" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://thumbnail.komiku.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://api.komiku.org" />
@@ -85,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <BootSplash />
           <RouteMemory />
+          <Pwa />
           <Header />
           <Main>{children}</Main>
           <Footer />
