@@ -59,18 +59,16 @@ function withTimeout(p: Promise<unknown>, ms: number): Promise<unknown> {
 }
 
 async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
-  const needy = cards
-    .filter(
-      (c) =>
-        c.sources.length === 1 &&
-        c.sources[0] === "komikcast" &&
-        // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
-        // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
-        // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
-        (!c.genre || !c.synopsis) &&
-        c.sourceSlug?.komikcast,
-    )
-    .slice(0, 6);
+  const needy = cards.filter(
+    (c) =>
+      c.sources.length === 1 &&
+      c.sources[0] === "komikcast" &&
+      // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
+      // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
+      // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
+      (!c.genre || !c.synopsis) &&
+      c.sourceSlug?.komikcast,
+  );
   if (needy.length === 0) return;
   await Promise.all(
     needy.map(async (c) => {
@@ -292,11 +290,14 @@ async function buildLatestPaged(
   // benar-benar tampil (lebih hemat upstream). Default 15 (/terbaru);
   // beranda meminta 16 agar grid 8-kolom terisi penuh dua baris.
   const items = hasNext ? ordered.slice(0, limit) : ordered;
-  // Probe live: lewati enrich (2-3 request berantai) — auto-refresh hanya
-  // perlu tahu judul/chapter baru, dan probe harus tetap cepat.
-  // Non-live pun diberi batas waktu: kartu tetap tampil tanpa genre/sinopsis
-  // bila upstream detail lambat.
-  if (!opts.live) await withTimeout(enrichKomikcastOnly(items), 2500);
+  // Perkaya kartu komikcast-only yang tampil — termasuk saat probe live.
+  // Tanpa ini, halaman 1 yang selalu live=1 tidak pernah mendapat genre/
+  // sinopsis untuk kartu Komikcast (hanya dari endpoint series yang kadang
+  // tidak membawa genre). Timeout lebih longgar untuk non-live.
+  await withTimeout(
+    enrichKomikcastOnly(items),
+    opts.live ? 3000 : 4000,
+  );
   return { items, hasNextPage: hasNext };
 }
 
