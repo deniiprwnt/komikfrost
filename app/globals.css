@@ -487,15 +487,15 @@ h1, h2, h3, p, dd {
 
 /* ---- Karakter anime (SVG orisinal) + HUD + progress miring ------------- */
 .cover-ph {
-  --ph-hair: #2a3b63;
-  --ph-hair-hi: #5a74b8;
+  --ph-hair: #0f5f54;
+  --ph-hair-hi: #43bfa8;
   --ph-skin: #ffe4d4;
   --ph-iris-a: #3ad6c0;
   --ph-iris-b: #1b6fd1;
 }
 .dark .cover-ph {
-  --ph-hair: #8a9cf0;
-  --ph-hair-hi: #c4cfff;
+  --ph-hair: #5ed0b9;
+  --ph-hair-hi: #c2f5ea;
   --ph-skin: #ffe9dc;
 }
 .cover-ph--err {
