@@ -8,7 +8,7 @@ diambil langsung dari sumber data eksternal melalui API internal.
 > Proyek pribadi, bukan layanan publik. Nama sumber data sengaja tidak
 > dicantumkan dalam dokumentasi ini. KomikFrost tidak menyimpan atau
 > me-rehost konten komik.
-
+ 
 ## Fitur
 
 ### Jelajah
