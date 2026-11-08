@@ -559,24 +559,6 @@ h1, h2, h3, p, dd {
 }
 .cover-ph--err .cover-ph__hud { --c: color-mix(in srgb, var(--color-mark-manga) 80%, transparent); }
 
-/* Kilatan cahaya diagonal melintas. */
-.cover-ph--load::after {
-  content: "";
-  position: absolute;
-  top: -20%;
-  bottom: -20%;
-  left: -60%;
-  width: 38%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent);
-  transform: skewX(-18deg);
-  animation: ph-shine 2.4s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes ph-shine {
-  0% { left: -60%; }
-  60%, 100% { left: 140%; }
-}
-
 /* Progress miring bergaya manga. */
 .cover-ph__bar {
   position: relative;
@@ -619,9 +601,6 @@ h1, h2, h3, p, dd {
     radial-gradient(circle at 50% 44%, #ffffffe6 0%, transparent 54%),
     linear-gradient(160deg, #e2f4ef 0%, #f1f7f6 55%, #d6ece7 100%);
 }
-.cover-ph--load::after {
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-}
 .cover-ph__label { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
 /* Gelap: lebih dalam, cahaya lembut, kilau halus (tanpa sudut putih tajam). */
 .dark .cover-ph__speed { opacity: 0.45; }
@@ -634,9 +613,6 @@ h1, h2, h3, p, dd {
   background:
     radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
     linear-gradient(160deg, #10282a 0%, #111a1f 55%, #12302d 100%);
-}
-.dark .cover-ph--load::after {
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.07), transparent);
 }
 .dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 
@@ -661,8 +637,9 @@ h1, h2, h3, p, dd {
   border-radius: 0;
 }
 .dark .cover-ph--err .cover-ph__hud { --c: var(--color-accent-strong); }
-/* Latar error: mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
-.cover-ph--err {
+/* Latar error & loading (sama): mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
+.cover-ph--err,
+.cover-ph--load {
   --ph-hair: #0f5f54;
   --ph-hair-hi: #43bfa8;
   background:
@@ -671,7 +648,8 @@ h1, h2, h3, p, dd {
     radial-gradient(90% 60% at 100% 100%, #a9dfd6 0%, transparent 62%),
     linear-gradient(160deg, #eaf7f4 0%, #dff1ed 100%);
 }
-.dark .cover-ph--err {
+.dark .cover-ph--err,
+.dark .cover-ph--load {
   --ph-hair: #5ed0b9;
   --ph-hair-hi: #c2f5ea;
   background:
@@ -680,8 +658,10 @@ h1, h2, h3, p, dd {
     radial-gradient(90% 60% at 100% 100%, #0f3a3a 0%, transparent 62%),
     linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
 }
-.cover-ph--err .cover-ph__speed { opacity: 0.32; }
-.dark .cover-ph--err .cover-ph__speed { opacity: 0.3; }
+.cover-ph--err .cover-ph__speed,
+.cover-ph--load .cover-ph__speed { opacity: 0.32; }
+.dark .cover-ph--err .cover-ph__speed,
+.dark .cover-ph--load .cover-ph__speed { opacity: 0.3; }
 
 /* Panel header PWA: area status bar WAJIB solid (tidak tembus ke halaman
    terang/putih saat scroll) + penutup tetap di atas saat overscroll. */
