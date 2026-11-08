@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { anchorTs, updatedAtMinutes } from "./aggregator";
+import { proxiedImage } from "./img-proxy";
 import type {
   ApiError,
   ChapterData,
@@ -147,7 +148,9 @@ function absUrl(src: string | undefined): string {
 }
 
 function pickImg($el: cheerio.Cheerio<any>): string {
-  return absUrl($el.attr("data-src") || $el.attr("src"));
+  // Cover/thumbnail lewat proxy: host gambar Komiku ikut diblokir dari
+  // jaringan Indonesia, jadi URL mentah berakhir sebagai slot kosong.
+  return proxiedImage(absUrl($el.attr("data-src") || $el.attr("src")));
 }
 
 /* ------------------------------------------------------------------ */

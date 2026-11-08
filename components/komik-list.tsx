@@ -5,6 +5,7 @@ import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import type { MangaCard } from "@/lib/api/types";
 import { useUpdatedLabel } from "@/lib/relative-time";
+import { useCoverLoad } from "@/lib/use-cover-load";
 import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 
 /**
@@ -15,6 +16,7 @@ import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 export function KomikListCard({ item }: { item: MangaCard }) {
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
+  const cover = useCoverLoad();
   return (
     <article
       {...warm}
@@ -26,9 +28,9 @@ export function KomikListCard({ item }: { item: MangaCard }) {
         onClick={(e) => captureCoverMorph(item.slug, e.currentTarget.closest("article"))}
         className="relative h-[132px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-paper-3 sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px] dark:bg-ink-3"
       >
-        {item.thumbnail ? (
+        {item.thumbnail && cover.state !== "error" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.thumbnail} alt="" loading="lazy" decoding="async" fetchPriority="low" onLoad={(e) => e.currentTarget.classList.add("blur-done")} className="blur-up h-full w-full object-cover" />
+          <img ref={cover.ref} src={item.thumbnail} alt="" loading="lazy" decoding="async" fetchPriority="low" onLoad={cover.onLoad} onError={cover.onError} className="blur-up h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center p-1 text-center text-[11px] text-muted dark:text-muted-dark">
             Tanpa cover

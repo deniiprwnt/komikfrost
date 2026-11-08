@@ -6,6 +6,7 @@ import { apiGet, peekApiCache } from "@/lib/client";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import { useUpdatedLabel } from "@/lib/relative-time";
+import { useCoverLoad } from "@/lib/use-cover-load";
 import type { MangaCard } from "@/lib/api/types";
 
 /** Saat cover diklik: rekam posisi + gambar untuk animasi terbang ke detail. */
@@ -133,9 +134,9 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   // tujuan terbuka dari cache (terasa instan). Sentuhan yang berubah jadi
   // scroll dibatalkan, lihat useIntentPrefetch.
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
-  // Status gambar sudah termuat: dipakai untuk menampilkan skeleton
-  // (shimmer) sebelum gambar siap, bukan kotak kosong gelap.
-  const [imgLoaded, setImgLoaded] = useState(false);
+  // Status cover: shimmer hanya indikator, gambar TIDAK pernah disembunyikan
+  // menunggu `onLoad` (event itu bisa terlewat untuk gambar dari cache).
+  const cover = useCoverLoad();
   // Label waktu dihitung ulang tiap menit (bukan teks beku dari server).
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   // Genre dari daftar, atau diambil sendiri bila kosong (Komikcast).
@@ -151,27 +152,28 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         {...coverMorphProps(item.slug)}
         className="relative block aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3"
       >
-        {item.thumbnail ? (
+        {!item.thumbnail || cover.state === "error" ? (
+          <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
+            Tanpa cover
+          </div>
+        ) : (
           <>
-            {!imgLoaded && <div className="absolute inset-0 shimmer" />}
+            {/* Shimmer DI BELAKANG gambar: cover langsung terlihat saat piksel
+                pertama datang, bukan menunggu state React. */}
+            {cover.state !== "loaded" && <div className="absolute inset-0 shimmer" />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              ref={cover.ref}
               src={item.thumbnail}
               alt={item.title}
               loading="lazy"
               decoding="async"
               fetchPriority="low"
-              onLoad={(e) => {
-                setImgLoaded(true);
-                e.currentTarget.classList.add("blur-done");
-              }}
-              className={`h-full w-full object-cover transition-[transform,opacity] duration-300 group-hover:scale-[1.04] ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              onLoad={cover.onLoad}
+              onError={cover.onError}
+              className="relative h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           </>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
-            Tanpa cover
-          </div>
         )}
         {item.type && (
           <div className="absolute left-0 top-0">

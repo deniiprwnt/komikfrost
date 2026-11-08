@@ -25,6 +25,7 @@ import type {
   MangaDetail,
   PagedResult,
 } from "./types";
+import { proxiedImage } from "./img-proxy";
 
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
@@ -190,7 +191,7 @@ function toCard(s: KcSeries): MangaCard {
     slug: s.slug,
     title: s.title,
     ...(s.title_english ? { altTitle: s.title_english } : {}),
-    thumbnail: s.poster_url ?? "",
+    thumbnail: proxiedImage(s.poster_url),
     ...(normalizeType(s.type) ? { type: normalizeType(s.type)! } : {}),
     ...(genreOne ? { genre: genreOne.name || genreOne.slug } : {}),
     ...(s.synopsis ? { synopsis: s.synopsis } : {}),
@@ -285,7 +286,7 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
     slug: s.slug,
     title: s.title,
     ...(s.title_english ? { altTitle: s.title_english } : {}),
-    cover: s.poster_url ?? "",
+    cover: proxiedImage(s.poster_url),
     synopsis: s.synopsis ?? "",
     ...(s.type ? { type: s.type } : {}),
     genres: toGenres(s.genres),
@@ -327,7 +328,7 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
   const type = normalizeType(s.type);
   const brief: KcBrief = {
     ...(s.title ? { title: s.title } : {}),
-    ...(s.poster_url ? { cover: s.poster_url } : {}),
+    ...(s.poster_url ? { cover: proxiedImage(s.poster_url) } : {}),
     ...(g ? { genre: g.name || g.slug } : {}),
     ...(type ? { type } : {}),
     ...(s.synopsis ? { synopsis: s.synopsis } : {}),

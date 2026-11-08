@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { IMG_HOSTS } from "@/lib/api/img-proxy";
 import { guard } from "../_lib";
 
 /**
@@ -23,20 +24,8 @@ export const maxDuration = 30;
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-const ALLOWED_HOSTS = new Set([
-  "assets.shngm.id",
-  "image2.komiku.to",
-  "image3.komiku.to",
-  "image4.komiku.to",
-  "image5.komiku.to",
-  "image6.komiku.to",
-  "image7.komiku.to",
-  "image8.komiku.to",
-  "img.komiku.org",
-  "thumbnail.komiku.to",
-  "thumbnail.komiku.org",
-  "cdn.komikcast.top",
-]);
+// Allowlist fetch upstream = daftar host di img-proxy (satu sumber).
+const ALLOWED_HOSTS = IMG_HOSTS;
 
 const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
 
