@@ -36,7 +36,9 @@ test("alur utama: beranda → cari → detail → reader", async ({ app, screen,
 
   // 2. Cari "solo leveling" lewat form pencarian halaman /cari.
   await app.open("/cari");
-  const form = browser.locator('form[role="search"]');
+  // Form /cari di `<main>` (header juga punya form pencarian ber-role
+  // search — selektor di-scope ke main agar tidak ambigu).
+  const form = browser.locator('main form[role="search"]');
   const input = form.getByLabel("Cari judul komik");
   await input.fill("solo leveling");
   // Baca nilai DOM langsung (state React settle async, tapi value input
