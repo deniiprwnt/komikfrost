@@ -190,6 +190,9 @@ export default function ReaderPage({
   const [showTop, setShowTop] = useState(false);
   // Speed-dial bawah: tombol panah → klik membuka Prev/Next, panah naik.
   const [fabOpen, setFabOpen] = useState(false);
+  // Sembunyikan speed-dial setelah tombol panah men-scroll ke atas: tanpa
+  // ini tombol tetap terlihat selama animasi smooth-scroll (terasa nyangkut).
+  const [fabSuppressed, setFabSuppressed] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -220,6 +223,7 @@ export default function ReaderPage({
     setShowTop(false);
     setRestorePct(null);
     setChapters(null);
+    setFabSuppressed(false);
     pageNumRef.current = 0;
     savedProgressRef.current = 0;
     // Posisi tersimpan chapter ini (bila dibuka ulang) — dibaca SEBELUM
@@ -479,7 +483,11 @@ export default function ReaderPage({
     };
   }, []);
 
-  const fabVisible = (mode === "scroll" && showTop) || mode === "page";
+  // Mode halaman: speed-dial adalah navigasi utama, tapi setelah panah
+  // ditekan (scroll ke atas) ia ikut disembunyikan sampai user berpindah
+  // halaman lagi (pageIdx berubah) atau menggulir.
+  const fabVisible =
+    mode === "page" ? !fabSuppressed : showTop && !fabSuppressed;
 
   // Tutup speed-dial: tap di luar, tombol Esc, tombol disembunyikan, atau
   // overlay tap-nav tampil (slot bawah yang sama).
@@ -503,6 +511,25 @@ export default function ReaderPage({
   useEffect(() => {
     if (!fabVisible || showTapNav) setFabOpen(false);
   }, [fabVisible, showTapNav]);
+  // Setelah tombol panah men-scroll ke atas, speed-dial disembunyikan.
+  // Munculkan lagi saat user benar-benar menggulir (wheel/touchmove) atau
+  // berpindah halaman di mode halaman (pageIdx berubah) - bukan sekadar tap
+  // pada tombol yang barusan disembunyikan itu sendiri.
+  useEffect(() => {
+    if (!fabSuppressed) return;
+    const reset = () => setFabSuppressed(false);
+    window.addEventListener("wheel", reset, { passive: true });
+    window.addEventListener("touchmove", reset, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", reset);
+      window.removeEventListener("touchmove", reset);
+    };
+  }, [fabSuppressed]);
+  useEffect(() => {
+    // Pindah halaman di mode page = niat navigasi, tampilkan kembali.
+    if (mode === "page" && fabSuppressed) setFabSuppressed(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageIdx]);
 
   if (error) return <ErrorState message={error} onRetry={load} />;
   if (!data) return <ReaderSkeleton />;
@@ -718,6 +745,9 @@ export default function ReaderPage({
             onClick={() => {
               if (fabOpen) {
                 setFabOpen(false);
+                // Sembunyikan seluruh speed-dial seketika agar tidak
+                // nyangkut selama animasi smooth-scroll.
+                setFabSuppressed(true);
                 scrollTop();
               } else {
                 setFabOpen(true);
