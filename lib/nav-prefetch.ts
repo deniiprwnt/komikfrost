@@ -49,7 +49,11 @@ function canWarm(): boolean {
  * menang dulu; jarak antar-menu mencegah tiga scrape berat berjalan
  * bersamaan.
  */
-const WARM_DELAY_MS = 6000;
+// Jeda diturunkan 6000 -> 3000: fetch halaman pembuka biasanya selesai
+// <3 dtk pada koneksi wajar, jadi upstream sudah longgar setelah 3 dtk.
+// Prefetch menunya sendiri sudah berurutan (WARM_GAP_MS) agar tidak
+// membanjiri upstream bersamaan.
+const WARM_DELAY_MS = 3000;
 const WARM_GAP_MS = 1200;
 
 export function warmPrimaryNav(currentPath: string): void {

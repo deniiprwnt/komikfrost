@@ -15,8 +15,12 @@ export async function GET(req: NextRequest) {
     : "harian";
   const blocked = await guard(req);
   if (blocked) return blocked;
+  // Revalidate 30 -> 120 dtk: peringkat jarang berubah (upstream update
+  // harian). Cache browser lebih lama = navigasi bolak-balik instan,
+  // tanpa mengorbankan kebenaran data â€” auto-refresh halaman populer di
+  // klien tetap 60 dtk (silentCheck membandingkan isi 3 teratas).
   return handle(async () => ({ period, items: await getPopular(period) }), {
-    revalidate: 30,
+    revalidate: 120,
     scope: "private",
   });
 }

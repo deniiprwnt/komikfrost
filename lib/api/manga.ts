@@ -151,16 +151,23 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
       // Coba 2x — kegagalan fragment API sering cuma sementara (beban
       // bersamaan saat /api/home menembak beberapa request sekaligus),
       // jadi jangan langsung jatuh ke fetchHome() yang datanya lebih basi.
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const { items } = await fetchMangaList(params);
-          if (items.length > 0) return items;
-        } catch {
-          // coba lagi (attempt berikutnya) sebelum fallback
+      // Total waktu (retry + fallback) dibatasi 10 dtk: kalau fragment API
+      // sedang down, 2 retry (16 dtk) + fetchHome (5-8 dtk) bisa menahan
+      // /api/home sampai 24 dtk. Timeout membuat source ini gagal cepat
+      // sehingga agregator lanjut tanpa menunggu ekor lambatnya.
+      const attempt = async () => {
+        for (let i = 0; i < 2; i++) {
+          try {
+            const { items } = await fetchMangaList(params);
+            if (items.length > 0) return items;
+          } catch {
+            // coba lagi (attempt berikutnya) sebelum fallback
+          }
         }
-      }
-      const home = await fetchHome();
-      return page > 1 ? [] : home.latest;
+        const home = await fetchHome();
+        return page > 1 ? [] : home.latest;
+      };
+      return (await withTimeout(attempt(), 10_000)) ?? [];
     },
     shinigami: async () => {
       const { items } = await fetchShiniLatest(page);
@@ -178,7 +185,9 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   });
   // Kartu komikcast-only yang miskin (timing lolos dari halaman-1 source
   // lain) diperkaya via search exact-match — pola sama seperti search.
-  await withTimeout(enrichKomikcastOnly(merged), 2500);
+  // Enrich tetap <=5 kartu; batas waktu 2500 -> 1500 dtk. Enrich hanya
+  // melengkapi genre/sinopsis â€” kartu tetap tampil walau dilewati.
+  await withTimeout(enrichKomikcastOnly(merged), 1500);
   // Urutkan berdasarkan waktu terbaru secara global (lintas sumber).
   // Prioritas sumber (Shinigami > Komiku > Komikcast) sudah ditangani
   // saat mergeCards: jika komik ada di beberapa sumber, datanya diambil
@@ -220,7 +229,11 @@ export interface LatestOpts {
  * TTL sengaja pendek (5 dtk, ≤ interval auto-refresh 5 dtk) agar tiap
  * probe mendapat hasil merge terbaru dari cache upstream 30 dtk.
  */
-const latestCache = createKeyedCache<PagedResult<MangaCard>>(5_000, 50);
+// TTL dinaikkan 5 dtk -> 30 dtk: probe live (`opts.live`) tetap bypass
+// total (lihat getLatestPaged), jadi auto-refresh 30 dtk klien tidak
+// terpengaruh. Kunjungan non-live (pagination halaman 2+, prefetch) jadi
+// instan dari cache server, bukan scrape 3 source berulang.
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(30_000, 50);
 
 /** Dedupe probe live: beberapa tab / tick bersamaan = satu kali scrape. */
 const liveInflight = new Map<string, Promise<PagedResult<MangaCard>>>();
@@ -320,9 +333,12 @@ async function buildLatestPaged(
   // Tanpa ini, halaman 1 yang selalu live=1 tidak pernah mendapat genre/
   // sinopsis untuk kartu Komikcast (hanya dari endpoint series yang kadang
   // tidak membawa genre). Timeout lebih longgar untuk non-live.
+  // Batas waktu enrich diturunkan (3000/4000 -> 1500/2500). Untuk probe live
+  // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
+  // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
   await withTimeout(
     enrichKomikcastOnly(items),
-    opts.live ? 3000 : 4000,
+    opts.live ? 1500 : 2500,
   );
   return { items, hasNextPage: hasNext };
 }
@@ -430,7 +446,10 @@ export async function getLatestUpdate(): Promise<MangaCard[]> {
  * dirakit dari slug + nomor, dan navigasi tetap ditulis ulang dari daftar
  * gabungan — sementara tahap itu menambah 2-3 request berantai per chapter.
  */
-const detailCache = createKeyedCache<MangaDetail>(30_000, 60);
+// TTL dinaikkan 30 dtk -> 60 dtk: klik chapter -> back -> klik chapter lain
+// sering terjadi dalam <1 menit; tanpa cache ini setiap back = scrape tiga
+// source ulang. 1 menit cukup untuk navigasi bolak-balik tanpa basi lama.
+const detailCache = createKeyedCache<MangaDetail>(60_000, 60);
 
 export async function getMangaDetail(
   slug: string,

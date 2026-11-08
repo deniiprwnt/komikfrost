@@ -25,5 +25,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   if (new URL(req.url).searchParams.get("ringkas") === "1") {
     return handle(() => getMangaSummary(decoded), { revalidate: 3600, scope: "private" });
   }
-  return handle(() => getMangaDetail(decoded), { revalidate: 30, scope: "private" });
+  // Revalidate 30 -> 60 dtk: detail komik jarang berubah, sedangkan 30 dtk
+  // terlalu agresif untuk back-navigation cepat dari reader. Server-side
+  // cache detail (60 dtk di detailCache) tetap jadi lapis utama.
+  return handle(() => getMangaDetail(decoded), { revalidate: 60, scope: "private" });
 }
