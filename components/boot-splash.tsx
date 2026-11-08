@@ -62,7 +62,7 @@ export function BootSplash() {
         phase === "hide" ? "boot-splash-hide" : ""
       }`}
     >
-      <span className="boot-splash-pop flex h-20 w-20 items-center justify-center rounded-[14px] bg-accent text-white">
+      <span className="boot-splash-pop flex h-20 w-20 items-center justify-center rounded-[10px] bg-accent text-white">
         <svg viewBox="48 48 160 160" className="h-16 w-16" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"

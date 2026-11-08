@@ -23,7 +23,7 @@ function isActive(pathname: string, href: string) {
 /** Logo mark: Rupture Panel — panel komik dibelah fracture kristalin, negative space membentuk K. */
 function Mark() {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[7px] bg-accent text-white transition-transform duration-200 group-hover/logo:scale-105">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4.5px] bg-accent text-white transition-transform duration-200 group-hover/logo:scale-105">
       <svg viewBox="48 48 160 160" className="h-[28px] w-[28px]" fill="currentColor" aria-hidden="true">
         <path
           fillRule="evenodd"
@@ -372,7 +372,7 @@ export function MobileTabBar() {
       aria-label="Navigasi utama"
       className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
     >
-      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-[1.75rem] border border-line glass p-1.5 dark:border-line-dark">
+      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-[18px] border border-line glass p-1.5 dark:border-line-dark">
         <span
           aria-hidden="true"
           className="dock-pill"
