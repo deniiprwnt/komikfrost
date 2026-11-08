@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
     );
   }
   const page = Math.min(50, Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1));
-  const blocked = await guard(req);
+  // Bucket khusus: pencarian memicu 2-3 scrape + enrich, jadi lebih
+  // ketat dari bucket API umum (60/menit).
+  const blocked = await guard(req, { limit: 20, bucket: "search" });
   if (blocked) return blocked;
   return handle(
     async () => ({ keyword: q, page, ...(await searchManga(q, page)) }),

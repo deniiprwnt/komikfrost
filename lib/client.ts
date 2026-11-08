@@ -62,9 +62,15 @@ export function readApiSnapshot<T>(path: string): T | null {
  * (semua kombinasi filter & halaman /api/latest), jadi tanpa sapuan ini
  * localStorage lama-lama penuh dan penulisan baru gagal diam-diam.
  */
+let lastPruneAt = 0;
+const PRUNE_INTERVAL_MS = 30_000;
+
 function pruneSnapshots(): void {
   try {
     const now = Date.now();
+    // Jangan pindai seluruh localStorage tiap tulisan; cukup sesekali.
+    if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+    lastPruneAt = now;
     const alive: { key: string; at: number }[] = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
@@ -114,10 +120,19 @@ async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false)
       window.location.href = `/masuk?next=${encodeURIComponent(here)}`;
       // Beri waktu navigasi berjalan sebelum promise ditolak. Timeout
       // sebagai jaring pengaman: bila navigasi gagal (CSP, iframe, dsb.),
-      // jangan biarkan UI macet selamanya menunggu promise abadi.
-      await new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Mengalihkan ke halaman masuk...")), 5000),
-      );
+      // jangan biarkan UI macet selamanya menunggu promise abadi. Timer
+      // dibersihkan bila halaman benar-benar dilepas lebih dulu.
+      await new Promise<never>((_, reject) => {
+        const id = setTimeout(
+          () => reject(new Error("Mengalihkan ke halaman masuk...")),
+          5000,
+        );
+        window.addEventListener(
+          "beforeunload",
+          () => clearTimeout(id),
+          { once: true },
+        );
+      });
     }
   }
   if (!res.ok || !json || json.error) {
@@ -136,10 +151,12 @@ export async function apiGet<T>(
   // `noStore` (cek background auto-refresh): lewati cache memori baca/tulis
   // + cache HTTP browser agar benar-benar menembak server. Dedupe inflight
   // tetap dipakai supaya pemanggil bersamaan (2 section beranda) = 1 fetch.
-  if (opts?.noStore && !opts?.signal) {
-    const pending = inflight.get(path);
-    if (pending) return pending as Promise<T>;
-    const p = fetchJson<T>(path, undefined, true)
+  if (opts?.noStore) {
+    if (!opts.signal) {
+      const pending = inflight.get(path);
+      if (pending) return pending as Promise<T>;
+    }
+    const p = fetchJson<T>(path, opts.signal, true)
       .then((data) => {
         // Hasil probe = data paling baru → ikut jadi cache memori supaya
         // pindah halaman lalu kembali tidak menampilkan daftar yang lebih tua.
@@ -150,7 +167,7 @@ export async function apiGet<T>(
       .finally(() => {
         if (inflight.get(path) === p) inflight.delete(path);
       });
-    inflight.set(path, p);
+    if (!opts.signal) inflight.set(path, p);
     return p;
   }
   // Data segar dari cache — tanpa round-trip jaringan sama sekali.

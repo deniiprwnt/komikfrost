@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
   // Halaman login + API login selalu lolos (kalau sudah login → lempar ke beranda).
   // PENTING: /api/gate harus dikecualikan — kalau tidak, user yang belum
   // login tidak akan pernah bisa login karena request login-nya ikut diblokir.
-  if (pathname === "/masuk" || pathname === "/api/gate") {
+  if (pathname === "/masuk" || pathname === "/api/gate" || pathname === "/api/health") {
     if (pathname === "/masuk" && authed) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
@@ -72,7 +72,9 @@ export async function middleware(req: NextRequest) {
     // Halaman → alihkan ke /masuk dengan kembali ke tujuan semula.
     const url = req.nextUrl.clone();
     url.pathname = "/masuk";
-    url.searchParams.set("next", pathname);
+    // Sertakan query string (filter & pagination) agar tidak hilang
+    // setelah login.
+    url.searchParams.set("next", pathname + req.nextUrl.search);
     const redirect = NextResponse.redirect(url);
     redirect.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
     redirect.cookies.delete(COOKIE);

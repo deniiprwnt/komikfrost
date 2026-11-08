@@ -292,6 +292,28 @@ function TerbaruContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Kembali ke /terbaru lewat navigasi client (pathname sama, mount tidak
+  // terjadi, mis. klik menu "Terbaru" saat filter sedang aktif): sinkronkan
+  // state dengan URL supaya filter lama tidak bocor. Bila filters berubah,
+  // effect [filtersKey] di bawah yang memuat ulang halaman 1.
+  const spKey = sp.toString();
+  useEffect(() => {
+    if (!bootedRef.current) return;
+    const nextOrderby = parseOrderby(sp.get("orderby"));
+    const nextTipe = initParam(sp, "tipe");
+    const nextStatus = initParam(sp, "status");
+    const nextGenre1 = initParam(sp, "genre");
+    const nextGenre2 = initParam(sp, "genre2");
+    const nextFilters = `${nextOrderby}|${nextTipe}|${nextStatus}|${nextGenre1}|${nextGenre2}`;
+    if (nextFilters === filtersKey) return;
+    setOrderby(nextOrderby);
+    setTipe(nextTipe);
+    setStatus(nextStatus);
+    setGenre1(nextGenre1);
+    setGenre2(nextGenre2);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spKey]);
+
   // Perubahan filter (bukan mount): kembali ke halaman 1 (selalu fresh).
   useEffect(() => {
     if (appliedFiltersRef.current === filtersKey) return;

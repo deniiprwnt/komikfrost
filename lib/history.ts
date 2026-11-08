@@ -134,7 +134,9 @@ export function useHistory(): {
  *  label tidak membeku sampai ada render lain. */
 export function timeAgo(ts: number, now = Date.now()): string {
   const s = Math.max(1, Math.floor((now - ts) / 1000));
-  if (s < 60) return `${s} detik lalu`;
+  // Konsisten dengan formatAgo (lib/relative-time.ts): tick bersama
+  // sekarang 15 dtk, jadi label detik tidak akurat lagi.
+  if (s < 60) return "baru saja";
   const m = Math.floor(s / 60);
   if (m < 60) return `${m} menit lalu`;
   const h = Math.floor(m / 60);

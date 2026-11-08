@@ -97,7 +97,14 @@ export function rateLimited(req: Request, limit = LIMIT, bucket = "api"): boolea
 export function checkPassword(input: string): boolean {
   const pw = getPassword();
   if (!pw) return true;
-  return input.length === pw.length && safeEqual(input, pw);
+  // Bandingkan dengan padding ke panjang tetap agar panjang password tidak
+  // bocor lewat timing/waktu respons.
+  const PAD = 256;
+  const a = input.padEnd(PAD, "\0").slice(0, PAD);
+  const b = pw.padEnd(PAD, "\0").slice(0, PAD);
+  let diff = input.length ^ pw.length;
+  for (let i = 0; i < PAD; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 export async function gateCookie(): Promise<string> {

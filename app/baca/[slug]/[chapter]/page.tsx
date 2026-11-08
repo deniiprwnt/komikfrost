@@ -801,12 +801,12 @@ function PageMode({
   setFailed: (f: Set<number> | ((s: Set<number>) => Set<number>)) => void;
 }) {
   const total = data.images.length;
-  const cur = Math.min(Math.max(0, pageIdx), total - 1);
+  const cur = total === 0 ? 0 : Math.min(Math.max(0, pageIdx), total - 1);
 
   const go = useCallback(
     (d: number) => {
       setPageIdx((p) => {
-        const n = Math.min(Math.max(0, p + d), total - 1);
+        const n = Math.min(Math.max(0, p + d), Math.max(0, total - 1));
         if (n !== p) window.scrollTo({ top: 0 });
         return n;
       });
@@ -829,13 +829,17 @@ function PageMode({
     return () => window.removeEventListener("keydown", onKey);
   }, [go]);
 
-  const src = data.images[cur];
-  const isFailed = failed.has(cur) || !src;
+  const src = total === 0 ? undefined : data.images[cur];
+  const isFailed = total === 0 || failed.has(cur) || !src;
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="relative min-w-0 overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black">
-        {isFailed ? (
+        {total === 0 ? (
+          <div className="flex min-h-60 items-center justify-center px-4 py-12 text-center text-xs text-muted dark:text-muted-dark">
+            Chapter ini tidak memiliki gambar yang bisa ditampilkan.
+          </div>
+        ) : isFailed ? (
           <div className="flex min-h-60 items-center justify-center px-4 py-12 text-center text-xs text-muted dark:text-muted-dark">
             Halaman {cur + 1} gagal dimuat dari sumber data. Periksa koneksi lalu muat ulang.
           </div>
@@ -890,17 +894,17 @@ function PageMode({
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => go(-1)}
-          disabled={cur === 0}
+          disabled={total === 0 || cur === 0}
           className="min-h-11 flex-1 rounded-full border border-line px-4 py-2 text-sm font-semibold text-fg disabled:opacity-40 sm:min-h-0 dark:border-line-dark dark:text-fg-dark"
         >
           ← Sebelumnya
         </button>
         <span className="shrink-0 text-xs tabular-nums text-muted dark:text-muted-dark">
-          {cur + 1} / {total}
+          {total === 0 ? "0 / 0" : `${cur + 1} / ${total}`}
         </span>
         <button
           onClick={() => go(1)}
-          disabled={cur === total - 1}
+          disabled={total === 0 || cur === total - 1}
           className="min-h-11 flex-1 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
         >
           Berikutnya →

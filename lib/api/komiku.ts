@@ -82,8 +82,9 @@ async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<s
     // `fresh` = probe live beranda/terbaru: lewati cache HTTP Next agar
     // polling 5 dtk benar-benar menembak sumber data, bukan snapshot lama.
     if (fresh) init.cache = "no-store";
-    // Default 10 dtk agar /terbaru dan beranda segera mengikuti update
-    // (auto-refresh klien 5 dtk; cache lebih lama = komik baru terlambat).
+    // Cache HTTP Next/CDN: pakai `revalidate` dari pemanggil (default 30 dtk
+    // di signature). Beranda dan /terbaru sudah di-refresh oleh probe `fresh`
+    // dan auto-refresh klien, jadi nilai default tidak perlu lebih pendek.
     else init.next = { revalidate };
     res = await fetch(url, init);
   } catch (e) {

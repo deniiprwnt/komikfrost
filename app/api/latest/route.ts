@@ -32,8 +32,15 @@ export async function GET(req: NextRequest) {
     : null;
   const rawTipe = searchParams.get("tipe");
   const tipe: Tipe | null = TIPES.includes(rawTipe as Tipe) ? (rawTipe as Tipe) : null;
-  const genre = searchParams.get("genre");
-  const genre2 = searchParams.get("genre2");
+  // Slug genre hanya huruf kecil + angka + tanda hubung (allowlist bentuk).
+  // Nilai arbitrer tidak diteruskan ke upstream.
+  const sanitizeGenre = (v: string | null): string | null => {
+    if (!v) return null;
+    const s = v.trim().toLowerCase();
+    return /^[a-z0-9][a-z0-9-]{0,63}$/.test(s) ? s : null;
+  };
+  const genre = sanitizeGenre(searchParams.get("genre"));
+  const genre2 = sanitizeGenre(searchParams.get("genre2"));
   const rawStatus = searchParams.get("status");
   const status: Status | null = STATUSES.includes(rawStatus as Status)
     ? (rawStatus as Status)

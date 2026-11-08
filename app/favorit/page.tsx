@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { chapterTokenFromKomikuUrl, useBookmarks } from "@/lib/bookmarks";
@@ -35,6 +35,8 @@ export default function FavoritPage() {
   // Badge "BARU": dicek di background setelah daftar tampil (konkurensi 3,
   // pakai cache 30 dtk apiGet — ramah rate limit). Gagal fetch = tanpa badge.
   const [updates, setUpdates] = useState<UpdateMap>({});
+  // Cache latestChapter per slug - cegah fetch ulang saat riwayat berubah.
+  const latestCacheRef = useRef(new Map<string, MangaDetail["latestChapter"]>());
 
   useEffect(() => {
     if (bookmarks.length === 0) {
@@ -51,13 +53,18 @@ export default function FavoritPage() {
           const b = queue.shift();
           if (!b) break;
           try {
-            // ringkas=1: 1 request (Komiku saja) per favorit, bukan merge
-            // tiga sumber. Badge "BARU" hanya perlu chapter terbaru.
-            const d = await apiGet<MangaDetail>(
-              `/api/manga/${encodeURIComponent(b.slug)}?ringkas=1`,
-            );
-            if (cancelled || !d.latestChapter) continue;
-            const latestTok = chapterTokenFromKomikuUrl(d.latestChapter.url);
+            let latest = latestCacheRef.current.get(b.slug);
+            if (!latest) {
+              // ringkas=1: 1 request (Komiku saja) per favorit, bukan merge
+              // tiga sumber. Badge "BARU" hanya perlu chapter terbaru.
+              const d = await apiGet<MangaDetail>(
+                `/api/manga/${encodeURIComponent(b.slug)}?ringkas=1`,
+              );
+              if (cancelled || !d.latestChapter) continue;
+              latest = d.latestChapter;
+              latestCacheRef.current.set(b.slug, latest);
+            }
+            const latestTok = chapterTokenFromKomikuUrl(latest!.url);
             if (!latestTok) continue;
             // Sudah terlihat = pernah buka detail saat chapter ini terbaru,
             // ATAU sedang membaca chapter ini (riwayat). Tanpa keduanya
@@ -70,7 +77,7 @@ export default function FavoritPage() {
               ].filter(Boolean),
             );
             if (seen.size > 0 && !seen.has(latestTok)) {
-              out[b.slug] = { label: d.latestChapter.label, url: d.latestChapter.url };
+              out[b.slug] = latest!;
             }
           } catch {
             // Tanpa badge untuk judul ini — detail diklik user akan fetch ulang.

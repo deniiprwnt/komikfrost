@@ -110,11 +110,9 @@ function useResolvedGenre(item: MangaCard): string | undefined {
     () => item.genre || peekApiCache<TypeSummary>(path)?.genre,
   );
   useEffect(() => {
-    if (item.genre) {
-      setGenre(item.genre);
-      return;
-    }
-    if (genre) return;
+    // Reset per slug: komponen kartu bisa dipakai ulang dengan slug lain.
+    setGenre(item.genre || peekApiCache<TypeSummary>(path)?.genre);
+    if (item.genre) return;
     let off = false;
     apiGet<TypeSummary>(path)
       .then((d) => {
@@ -125,7 +123,7 @@ function useResolvedGenre(item: MangaCard): string | undefined {
       off = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.slug, item.genre]);
+  }, [item.slug, item.genre, path]);
   return genre;
 }
 
@@ -343,15 +341,14 @@ function useResolvedType(item: MangaCard): string | undefined {
     () => item.type || typeCache.get(item.slug) || peekApiCache<TypeSummary>(summaryPath)?.type,
   );
   useEffect(() => {
-    if (item.type) {
-      setType(item.type);
-      return;
-    }
-    const known = typeCache.get(item.slug);
-    if (known) {
-      setType(known);
-      return;
-    }
+    // Reset per slug (komponen bisa dipakai ulang).
+    setType(
+      item.type ||
+        typeCache.get(item.slug) ||
+        peekApiCache<TypeSummary>(summaryPath)?.type,
+    );
+    if (item.type) return;
+    if (typeCache.get(item.slug)) return;
     let off = false;
     apiGet<TypeSummary>(summaryPath)
       .then((d) => {
@@ -362,7 +359,8 @@ function useResolvedType(item: MangaCard): string | undefined {
     return () => {
       off = true;
     };
-  }, [item.slug, item.type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.slug, item.type, summaryPath]);
   return type;
 }
 

@@ -28,8 +28,18 @@ const PRECACHE = [
 // TIDAK ber-hash, jadi cache-first menyajikan bundel basi — export baru
 // (mis. <Sidebar />) belum ada di chunk lama sehingga React melempar
 // "Element type is invalid. Received a promise that resolves to undefined".
-const isDevHost =
-  self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
+// Dev = localhost/loopback ATAU IP privat (LAN) â€” nama chunk Next dev tidak
+// ber-hash, cache-first menyajikan bundel basi. Port sengaja TIDAK dipakai
+// sebagai penanda: self-hosting produksi di port non-standar tetap harus
+// menyimpan cache.
+const isDevHost = (() => {
+  const h = self.location.hostname;
+  if (h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" || h === "::1") return true;
+  if (/^10\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(h)) return true;
+  return false;
+})();
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

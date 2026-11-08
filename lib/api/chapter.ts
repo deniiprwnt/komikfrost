@@ -104,16 +104,26 @@ async function getChapterMerged(
     `/${slug}-chapter-${token.replace(/-bahasa-indonesia$/i, "")}-bahasa-indonesia/`;
 
   // Urutan coba: prefer → pemenang merge → sisi lain (prioritas turun).
+  const entryHas = (s: ComicSourceId) => entrySources.some((r) => r.source === s);
   const order: ComicSourceId[] = [];
   if (prefer) order.push(prefer);
-  const winner: ComicSourceId = hasShini
-    ? "shinigami"
-    : entrySources.some((r) => r.source === "komiku")
-      ? "komiku"
-      : "komikcast";
-  if (!order.includes(winner)) order.push(winner);
-  for (const s of ["shinigami", "komiku", "komikcast"] as ComicSourceId[]) {
-    if (!order.includes(s) && (s === "komiku" || s === "komikcast" || shinigamiId)) order.push(s);
+  if (entrySources.length > 0) {
+    const winner: ComicSourceId = hasShini
+      ? "shinigami"
+      : entryHas("komiku")
+        ? "komiku"
+        : "komikcast";
+    if (!order.includes(winner)) order.push(winner);
+    for (const s of ["shinigami", "komiku", "komikcast"] as ComicSourceId[]) {
+      if (order.includes(s)) continue;
+      // Shinigami boleh dicoba via nomor walau tidak ada di daftar (ID UUID).
+      if (entryHas(s) || (s === "shinigami" && shinigamiId)) order.push(s);
+    }
+  } else {
+    // Chapter belum ada di daftar gabungan (mis. baru terbit) -> coba semua.
+    for (const s of ["shinigami", "komiku", "komikcast"] as ComicSourceId[]) {
+      if (!order.includes(s)) order.push(s);
+    }
   }
 
   let lastErr: unknown = null;

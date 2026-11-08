@@ -460,7 +460,17 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
     displaySlug,
   );
 
-  const firstCh: ChapterRef | undefined = get("firstChapter");
+  let firstCh: ChapterRef | undefined = details.komiku?.firstChapter ?? get("firstChapter");
+  {
+    const n = chapterNum(firstCh?.label);
+    const kcFirst = details.komikcast?.firstChapter;
+    const fromKcGuess =
+      !!firstCh && !!kcFirst && firstCh.url === kcFirst.url && Number.isFinite(n) && (n as number) > 1;
+    const fullSlug = details.komiku?.slug ?? details.shinigami?.slug;
+    if (fromKcGuess && fullSlug) {
+      firstCh = { label: "Chapter 1", url: `/${fullSlug}-chapter-1/` };
+    }
+  }
   // latestChapter lintas source: nomor TERTINGGI menang — SAMA seperti
   // mergeCards. Nomor sama → Shinigami menang (urutan SOURCE_PRIORITY).
   let latestCh: ChapterRef | undefined = get("latestChapter");

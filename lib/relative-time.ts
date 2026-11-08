@@ -16,7 +16,7 @@ import { useSyncExternalStore } from "react";
  * Next memulihkan halaman dari cache router.
  */
 
-const TICK_MS = 1_000;
+const TICK_MS = 15_000;
 
 /**
  * Waktu sekarang (epoch ms) yang di-update tiap 1 dtk.
@@ -52,6 +52,8 @@ function stopTicking(): void {
   if (typeof window === "undefined") return;
   window.clearInterval(tickTimer);
   tickTimer = 0;
+  // Snapshot basi tidak boleh dipakai pelanggan baru setelah idle panjang.
+  nowValue = null;
   document.removeEventListener("visibilitychange", onVisibleTick);
 }
 
@@ -88,8 +90,9 @@ export function useNowTick(): number | null {
  *  di bawah 1 menit, jadi label masih berdetak tiap tick 1 dtk. */
 export function formatAgo(ts: number, now: number): string {
   const secs = Math.max(0, Math.floor((now - ts) / 1000));
-  if (secs < 1) return "baru saja";
-  if (secs < 60) return `${secs} detik lalu`;
+  // <60 dtk cukup "baru saja": menghindari tick per-detik untuk semua
+  // kartu (puluhan re-render/detik di beranda).
+  if (secs < 60) return "baru saja";
   const mins = Math.floor(secs / 60);
   if (mins < 60) return `${mins} menit lalu`;
   const hours = Math.floor(mins / 60);

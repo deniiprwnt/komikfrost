@@ -80,6 +80,12 @@ npm install
 npm run dev
 ```
 
+Cek tipe:
+
+```bash
+npm run typecheck
+```
+
 Buka `http://localhost:3000`.
 
 Build production:
