@@ -15,7 +15,11 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({
  * iOS 26+: bar transparan di atas konten — dark pakai black-translucent
  * (teks putih), light pakai default (teks hitam).
  */
-function syncMeta(theme: Theme) {
+export function syncMeta() {
+  const dark = document.documentElement.classList.contains("dark");
+  // Saat boot splash PWA tampil, bar sistem dikunci gelap (lihat
+  // boot-splash.tsx) agar tidak ada pita putih di atas splash.
+  if (document.documentElement.classList.contains("booting")) return;
   const setMeta = (name: string, content: string) => {
     let el = document.querySelector(`meta[name="${name}"]`);
     if (!el) {
@@ -27,9 +31,9 @@ function syncMeta(theme: Theme) {
   };
   setMeta(
     "apple-mobile-web-app-status-bar-style",
-    theme === "dark" ? "black-translucent" : "default",
+    dark ? "black-translucent" : "default",
   );
-  setMeta("theme-color", theme === "dark" ? "#0c1114" : "#eef2f3");
+  setMeta("theme-color", dark ? "#0c1114" : "#eef2f3");
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -40,7 +44,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const initial: Theme = saved === "light" || saved === "dark" ? saved : "dark";
     setTheme(initial);
     document.documentElement.classList.toggle("dark", initial === "dark");
-    syncMeta(initial);
+    syncMeta();
   }, []);
 
   const toggle = () => {
@@ -48,7 +52,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const next: Theme = t === "dark" ? "light" : "dark";
       localStorage.setItem("bk-theme", next);
       document.documentElement.classList.toggle("dark", next === "dark");
-      syncMeta(next);
+      syncMeta();
       return next;
     });
   };

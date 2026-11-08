@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { syncMeta } from "@/components/theme";
+
+/** Lepas kunci chrome gelap saat splash selesai (lihat theme.tsx). */
+function releaseBootLock() {
+  document.documentElement.classList.remove("booting");
+  syncMeta();
+}
 
 /**
  * Splash boot PWA — markup ikut server-render (langsung ada di first paint,
@@ -22,6 +29,7 @@ export function BootSplash() {
         true || document.referrer.startsWith("android-app://");
     // Bukan PWA: lepas via React agar reconciler tetap konsisten.
     if (!mq && !legacy) {
+      document.documentElement.classList.remove("booting");
       setPhase("gone");
       return;
     }
@@ -33,7 +41,12 @@ export function BootSplash() {
     const timers: number[] = [];
     const hide = () => {
       setPhase("hide");
-      timers.push(window.setTimeout(() => setPhase("gone"), FADE_MS + 100));
+      timers.push(
+        window.setTimeout(() => {
+          releaseBootLock();
+          setPhase("gone");
+        }, FADE_MS + 100),
+      );
     };
     const hideWhenReady = () => {
       timers.push(
@@ -62,7 +75,13 @@ export function BootSplash() {
         phase === "hide" ? "boot-splash-hide" : ""
       }`}
     >
-      <span className="boot-splash-pop flex h-20 w-20 items-center justify-center rounded-[10px] bg-accent text-white">
+      <span
+        className="boot-splash-pop flex h-20 w-20 items-center justify-center rounded-[22%] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+        style={{
+          background:
+            "radial-gradient(120% 120% at 76% 84%, rgba(30,143,120,0.45) 0%, rgba(22,120,102,0) 68%), linear-gradient(145deg, #1d3a3f 0%, #101d21 55%, #0a1417 100%)",
+        }}
+      >
         <svg viewBox="48 48 160 160" className="h-16 w-16" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"

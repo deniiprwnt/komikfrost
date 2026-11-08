@@ -119,6 +119,19 @@ html.dark {
   color-scheme: dark;
 }
 
+/* Boot splash PWA: kunci seluruh kanvas (termasuk status bar iOS/Android
+   dan pita safe-area di atas) ke warna splash, supaya tidak ada pita putih
+   di atas logo saat aplikasi dibuka. Dilepas oleh BootSplash setelah splash
+   selesai (components/boot-splash.tsx). */
+html.booting,
+html.booting body {
+  background-color: #0c1114;
+  color-scheme: dark;
+}
+html.booting body::before {
+  background: #0c1114;
+}
+
 ::selection {
   background: color-mix(in srgb, var(--color-accent) 30%, transparent);
   color: inherit;
