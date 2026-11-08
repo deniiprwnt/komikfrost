@@ -284,8 +284,11 @@ export default function ReaderPage({
       if (!data) return;
       const toNum = (c: string) => parseFloat(c.replace(/-(\d+)$/, ".$1"));
       const cur = toNum(chapter);
-      if (!data.prevUrl && Number.isFinite(cur)) {
-        const next = String(cur + 1).replace(".", "-");
+      // Sama seperti navHrefs: hanya tebak +1 untuk chapter BULAT.
+      // Chapter desimal (mis. 11.9) dulu menjadi "12-9" (salah) dan memicu
+      // prefetch ke endpoint 404 yang membuang satu request.
+      if (!data.prevUrl && Number.isFinite(cur) && Number.isInteger(cur)) {
+        const next = String(cur + 1);
         prefetchApi(`/api/chapter/${encodeURIComponent(data.mangaSlug)}/${encodeURIComponent(next)}`);
       }
       return;
