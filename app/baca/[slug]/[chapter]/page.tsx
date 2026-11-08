@@ -183,6 +183,9 @@ export default function ReaderPage({
   const tapNavTimerRef = useRef(0);
   // Tombol kembali-ke-atas — muncul setelah user scroll cukup jauh.
   const [showTop, setShowTop] = useState(false);
+  // Speed-dial bawah: tombol panah → klik membuka Prev/Next, panah naik.
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -468,6 +471,31 @@ export default function ReaderPage({
     };
   }, []);
 
+  const fabVisible = (mode === "scroll" && showTop) || mode === "page";
+
+  // Tutup speed-dial: tap di luar, tombol Esc, tombol disembunyikan, atau
+  // overlay tap-nav tampil (slot bawah yang sama).
+  // HARUS di atas return kondisional: hook setelah early return bikin
+  // React error #310 (jumlah hook berubah antar render).
+  useEffect(() => {
+    if (!fabOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFabOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [fabOpen]);
+  useEffect(() => {
+    if (!fabVisible || showTapNav) setFabOpen(false);
+  }, [fabVisible, showTapNav]);
+
   if (error) return <ErrorState message={error} onRetry={load} />;
   if (!data) return <ReaderSkeleton />;
 
@@ -493,8 +521,12 @@ export default function ReaderPage({
     });
   };
 
-  const { nextHref } = navHrefs(data, data.mangaSlug, chapter);
+  const { prevHref, nextHref } = navHrefs(data, data.mangaSlug, chapter);
+  // Dekat akhir konten: nav permanen di alur halaman sudah terlihat.
+  const nearEnd =
+    mode === "page" ? pageIdx >= data.images.length - 1 : progress >= 0.97;
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
   // Tombol "Chapter berikut" mengambang — tampil saat hampir tamat agar
   // tidak perlu scroll ke nav bawah: scroll ≥95% (belum mentok, karena
   // nav permanen sudah terlihat di 100%) atau halaman terakhir mode page.
@@ -656,21 +688,91 @@ export default function ReaderPage({
         </div>
       )}
 
-      {/* Tombol kembali-ke-atas — digantung cukup tinggi agar tidak
-          menabrak menu Prev/Isi/Next permanen di dasar konten maupun
-          overlay tap-nav (mobile + desktop). */}
-      {((mode === "scroll" && showTop) || mode === "page") && (
-        <button
-          onClick={scrollTop}
-          aria-label="Kembali ke atas"
-          className={`fixed right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-line-dark bg-ink-2/95 text-fg-dark shadow-xl backdrop-blur transition-all active:scale-95 sm:right-8 dark:border-line-dark ${
-            (mode === "scroll" && showTapNav) || showNextFloat
-              ? "bottom-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-36"
-              : "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-24"
+      {/* Speed-dial bawah. Tertutup: hanya tombol panah di dasar layar.
+          Diklik: Prev & Next muncul di dasar, panah naik sedikit; klik
+          panah lagi = kembali ke atas. Naik otomatis bila nav chapter
+          melayang/permanen sedang tampil agar tidak bertumpuk. */}
+      {fabVisible && (
+        <div
+          ref={fabRef}
+          className={`fixed right-3 z-40 flex flex-col items-end gap-2 transition-[bottom] duration-300 ease-out sm:right-8 ${
+            mode === "scroll" && showTapNav
+              ? "bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[6.75rem]"
+              : showNextFloat
+                ? "bottom-[calc(8.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-[10rem]"
+                : nearEnd
+                  ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-[5.5rem]"
+                  : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:bottom-6"
           }`}
         >
-          <IconUp className="h-5 w-5" />
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (fabOpen) {
+                setFabOpen(false);
+                scrollTop();
+              } else {
+                setFabOpen(true);
+              }
+            }}
+            aria-expanded={fabOpen}
+            aria-label={fabOpen ? "Kembali ke atas" : "Buka navigasi chapter"}
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-line-dark bg-ink-2/95 text-fg-dark shadow-lg shadow-black/25 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent/60 active:scale-95"
+          >
+            <IconUp className="h-5 w-5" />
+          </button>
+
+          {/* Baris Prev/Next: tinggi 0 → penuh, mendorong panah ke atas. */}
+          <div
+            className={`grid w-full justify-items-end transition-[grid-template-rows,opacity] duration-300 ease-out ${
+              fabOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
+            }`}
+            aria-hidden={!fabOpen}
+          >
+            <div className="overflow-hidden">
+              <div className="flex gap-2 pb-px">
+                {prevHref ? (
+                  <Link
+                    href={prevHref}
+                    onClick={() => setFabOpen(false)}
+                    tabIndex={fabOpen ? 0 : -1}
+                    className="flex h-11 touch-manipulation items-center gap-1.5 rounded-xl border border-line-dark bg-ink-2/95 pl-3 pr-4 text-[13px] font-semibold text-fg-dark shadow-lg shadow-black/25 backdrop-blur active:scale-95"
+                  >
+                    <IconChevron dir="left" className="h-4 w-4 shrink-0" />
+                    Prev
+                  </Link>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    className="flex h-11 items-center gap-1.5 rounded-xl border border-line-dark/50 bg-ink-2/80 pl-3 pr-4 text-[13px] font-semibold text-muted-dark/45"
+                  >
+                    <IconChevron dir="left" className="h-4 w-4 shrink-0" />
+                    Prev
+                  </span>
+                )}
+                {nextHref ? (
+                  <Link
+                    href={nextHref}
+                    onClick={() => setFabOpen(false)}
+                    tabIndex={fabOpen ? 0 : -1}
+                    className="flex h-11 touch-manipulation items-center gap-1.5 rounded-xl bg-accent pl-4 pr-3 text-[13px] font-semibold text-white shadow-lg shadow-black/25 active:scale-95"
+                  >
+                    Next
+                    <IconChevron dir="right" className="h-4 w-4 shrink-0" />
+                  </Link>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    className="flex h-11 items-center gap-1.5 rounded-xl border border-line-dark/50 bg-ink-2/80 pl-4 pr-3 text-[13px] font-semibold text-muted-dark/45"
+                  >
+                    Next
+                    <IconChevron dir="right" className="h-4 w-4 shrink-0" />
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
