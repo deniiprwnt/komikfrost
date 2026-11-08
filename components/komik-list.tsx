@@ -29,7 +29,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
       >
         <CoverImage src={item.thumbnail} alt="" title={item.title} className="h-full w-full object-cover" />
         {item.type && (
-          <div className="absolute left-0 top-0">
+          <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />
           </div>
         )}

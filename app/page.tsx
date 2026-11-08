@@ -327,7 +327,7 @@ export default function HomePage() {
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     />
                     {h.progress > 0 && (
-                      <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
+                      <span aria-hidden className="absolute inset-x-0 bottom-0 z-10 h-1 bg-black/40">
                         <span className="block h-full bg-accent" style={{ width: `${Math.round(h.progress * 100)}%` }} />
                       </span>
                     )}

@@ -159,17 +159,19 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           title={item.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
         />
+        {/* z-10: <CoverImage> menaruh gambarnya di z-index 1, jadi badge
+            harus di atasnya agar tetap terlihat. */}
         {item.type && (
-          <div className="absolute left-0 top-0">
+          <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />
           </div>
         )}
         <SourceBadge
-          className="absolute right-0 top-0 max-w-[55%] [&>span]:rounded-none [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[9px]"
+          className="absolute right-0 top-0 z-10 max-w-[55%] [&>span]:rounded-none [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[9px]"
           sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
         />
         {item.latestChapter && (
-          <span className="absolute bottom-0 left-0 max-w-full truncate bg-accent px-2 py-1 text-[11px] font-bold leading-none text-white">
+          <span className="absolute bottom-0 left-0 z-10 max-w-full truncate bg-accent px-2 py-1 text-[11px] font-bold leading-none text-white">
             {item.latestChapter.label}
           </span>
         )}
@@ -261,7 +263,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
       >
         <CoverImage src={item.thumbnail} alt="" title={item.title} className="h-full w-full object-cover" />
         {item.type && (
-          <div className="absolute left-0 top-0">
+          <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />
           </div>
         )}

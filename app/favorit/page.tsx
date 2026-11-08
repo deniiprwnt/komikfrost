@@ -156,7 +156,7 @@ export default function FavoritPage() {
                   />
                 </Link>
                 {b.type && (
-                  <div className="pointer-events-none absolute left-1.5 top-1.5">
+                  <div className="pointer-events-none absolute left-1.5 top-1.5 z-10">
                     <TypeBadge type={b.type} />
                   </div>
                 )}
@@ -164,7 +164,7 @@ export default function FavoritPage() {
                   <Link
                     href={chapterPathToRoute(updates[b.slug].url)}
                     title={`Baca ${updates[b.slug].label} sekarang`}
-                    className="absolute bottom-1.5 left-1.5 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-fresh px-2 py-0.5 text-[10px] font-bold text-white shadow"
+                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-fresh px-2 py-0.5 text-[10px] font-bold text-white shadow"
                   >
                     BARU · {updates[b.slug].label}
                   </Link>
