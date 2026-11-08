@@ -278,10 +278,10 @@ export default function HomePage() {
               <svg className={`h-4 w-4 ${anyRefreshing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24">
                 <path
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M4 4v6h6M20 20v-6h-6M5.6 9a7 7 0 0 1 12.8 0M18.4 15a7 7 0 0 1-12.8 0"
+                  d="M20 11a8 8 0 0 0-14.3-4.5M4 4v3.75h3.75M4 13a8 8 0 0 0 14.3 4.5M20 20v-3.75h-3.75"
                 />
               </svg>
             </button>

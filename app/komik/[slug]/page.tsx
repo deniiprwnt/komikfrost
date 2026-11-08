@@ -22,9 +22,9 @@ function DetailSkeleton() {
           <div className="shimmer h-6 w-3/4 rounded" />
           <div className="shimmer h-4 w-1/2 rounded" />
           <div className="flex flex-wrap gap-1.5">
-            <div className="shimmer h-6 w-16 rounded-full" />
-            <div className="shimmer h-6 w-20 rounded-full" />
-            <div className="shimmer h-6 w-14 rounded-full" />
+            <div className="shimmer h-6 w-16 rounded-lg" />
+            <div className="shimmer h-6 w-20 rounded-lg" />
+            <div className="shimmer h-6 w-14 rounded-lg" />
           </div>
           <div className="grid grid-cols-1 gap-1.5 min-[420px]:grid-cols-2">
             <div className="shimmer h-4 w-2/3 rounded" />
@@ -33,8 +33,8 @@ function DetailSkeleton() {
             <div className="shimmer h-4 w-1/2 rounded" />
           </div>
           <div className="flex flex-col gap-2 pt-2 min-[420px]:flex-row">
-            <div className="shimmer h-10 flex-1 rounded-full min-[420px]:flex-none min-[420px]:px-5 min-[420px]:w-36" />
-            <div className="shimmer h-10 flex-1 rounded-full min-[420px]:flex-none min-[420px]:w-36" />
+            <div className="shimmer h-10 flex-1 rounded-lg min-[420px]:flex-none min-[420px]:px-5 min-[420px]:w-36" />
+            <div className="shimmer h-10 flex-1 rounded-lg min-[420px]:flex-none min-[420px]:w-36" />
           </div>
         </div>
       </div>
@@ -244,7 +244,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               aria-label={saved ? "Hapus dari favorit" : "Simpan ke favorit"}
               aria-pressed={saved}
               title={saved ? "Hapus dari favorit" : "Simpan ke favorit"}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors active:scale-95 ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors active:scale-95 ${
                 saved
                   ? "border-accent bg-accent-soft text-accent dark:bg-accent-soft-dark"
                   : "border-line text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
@@ -252,9 +252,9 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             >
               <svg viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} className="h-5 w-5">
                 <path
-                  d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"
+                  d="M7 3.75h10a1.25 1.25 0 0 1 1.25 1.25v15.25L12 16.4l-6.25 3.85V5A1.25 1.25 0 0 1 7 3.75Z"
                   stroke="currentColor"
-                  strokeWidth="1.8"
+                  strokeWidth="1.5"
                   strokeLinejoin="round"
                 />
               </svg>
@@ -271,7 +271,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
                 <Link
                   key={g.slug}
                   href={`/genre/${g.slug}`}
-                  className="morph-stagger-item rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
+                  className="morph-stagger-item rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
                 >
                   {g.name}
                 </Link>
@@ -292,7 +292,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             {detail.latestChapter && (
               <Link
                 href={chapterPathToRoute(detail.latestChapter.url)}
-                className="morph-stagger-item min-w-0 flex-1 truncate rounded-full bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white transition-transform active:scale-[0.98] min-[420px]:flex-none sm:order-2"
+                className="morph-stagger-item min-w-0 flex-1 truncate rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white transition-transform active:scale-[0.98] min-[420px]:flex-none sm:order-2"
               >
                 Lanjut · {detail.latestChapter.label}
               </Link>
@@ -300,7 +300,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             {detail.firstChapter && (
               <Link
                 href={chapterPathToRoute(detail.firstChapter.url)}
-                className="morph-stagger-item min-w-0 flex-1 truncate rounded-full border border-line px-5 py-2.5 text-center text-sm font-semibold text-fg min-[420px]:flex-none dark:border-line-dark dark:text-fg-dark sm:order-1"
+                className="morph-stagger-item min-w-0 flex-1 truncate rounded-lg border border-line px-5 py-2.5 text-center text-sm font-semibold text-fg min-[420px]:flex-none dark:border-line-dark dark:text-fg-dark sm:order-1"
               >
                 Baca dari awal
               </Link>
@@ -335,7 +335,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               placeholder="Cari chapter..."
               aria-label="Cari chapter"
               enterKeyHint="search"
-              className="search-field order-3 h-12 w-full min-w-0 basis-full rounded-full border border-line bg-paper px-4 text-base text-fg outline-none sm:h-10 sm:text-sm dark:border-line-dark dark:bg-ink dark:text-fg-dark"
+              className="search-field order-3 h-12 w-full min-w-0 basis-full rounded-lg border border-line bg-paper px-4 text-base text-fg outline-none sm:h-10 sm:text-sm dark:border-line-dark dark:bg-ink dark:text-fg-dark"
             />
           )}
           {detail.chapters.length > 1 && (
@@ -343,7 +343,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               onClick={() => setAsc((a) => !a)}
               aria-label={asc ? "Urutkan terbaru dulu" : "Urutkan terlama dulu"}
               title={asc ? "Terbaru dulu" : "Terlama dulu"}
-              className="order-2 flex shrink-0 items-center gap-1 rounded-full border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent sm:text-xs dark:border-line-dark dark:bg-ink dark:text-muted-dark"
+              className="order-2 flex shrink-0 items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent sm:text-xs dark:border-line-dark dark:bg-ink dark:text-muted-dark"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
                 <path
@@ -393,7 +393,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             </h2>
             <Link
               href={`/genre/${detail.genres[0].slug}`}
-              className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-accent hover:underline"
+              className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-accent hover:underline"
             >
               Lihat semua
             </Link>

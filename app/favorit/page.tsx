@@ -15,9 +15,9 @@ function IconTrash({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13h10l1-13"
+        d="M4.5 7h15M9.5 7V4.75h5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12M10 11v5.5M14 11v5.5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -123,7 +123,7 @@ export default function FavoritPage() {
           placeholder="Cari favorit…"
           aria-label="Cari di daftar favorit"
           enterKeyHint="search"
-          className="search-field h-12 w-full min-w-0 rounded-full border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:max-w-xs sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+          className="search-field h-12 w-full min-w-0 rounded-lg border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:max-w-xs sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
         />
       )}
 
@@ -173,7 +173,7 @@ export default function FavoritPage() {
               <button
                 onClick={() => remove(b.slug)}
                 aria-label={`Hapus ${b.title} dari favorit`}
-                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm hover:bg-mark-manga"
+                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-mark-manga"
               >
                 <IconTrash className="h-4 w-4" />
               </button>

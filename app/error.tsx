@@ -33,13 +33,13 @@ export default function Error({
       <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
         <button
           onClick={() => reset()}
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Coba lagi
         </button>
         <Link
           href="/"
-          className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-fg dark:border-line-dark dark:text-fg-dark"
+          className="rounded-lg border border-line px-5 py-2.5 text-sm font-semibold text-fg dark:border-line-dark dark:text-fg-dark"
         >
           Beranda
         </Link>

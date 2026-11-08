@@ -579,14 +579,14 @@ export default function ReaderPage({
           <div
             role="group"
             aria-label="Mode baca"
-            className="flex shrink-0 rounded-full border border-line p-0.5 text-[11px] font-semibold dark:border-line-dark"
+            className="flex shrink-0 rounded-lg border border-line p-0.5 text-[11px] font-semibold dark:border-line-dark"
           >
             {(["scroll", "page"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => switchMode(m)}
                 aria-pressed={mode === m}
-                className={`rounded-full px-2.5 py-1.5 transition-colors ${
+                className={`rounded-lg px-2.5 py-1.5 transition-colors ${
                   mode === m
                     ? "bg-accent text-white"
                     : "text-muted hover:text-fg dark:text-muted-dark dark:hover:text-fg-dark"
@@ -637,7 +637,7 @@ export default function ReaderPage({
           <button
             type="button"
             onClick={() => load()}
-            className="min-h-11 shrink-0 touch-manipulation rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.97]"
+            className="min-h-11 shrink-0 touch-manipulation rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.97]"
           >
             Muat ulang
           </button>
@@ -730,7 +730,7 @@ export default function ReaderPage({
               scrollTop();
             }}
             aria-label="Kembali ke atas"
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-accent bg-accent text-white shadow-lg shadow-accent/30 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-accent bg-accent text-white shadow-lg shadow-accent/30 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
           >
             <IconUp className="h-5 w-5" />
           </button>
@@ -834,7 +834,7 @@ function PageMode({
         <button
           onClick={() => go(-1)}
           disabled={total === 0 || cur === 0}
-          className="min-h-11 flex-1 rounded-full border border-line px-4 py-2 text-sm font-semibold text-fg disabled:opacity-40 sm:min-h-0 dark:border-line-dark dark:text-fg-dark"
+          className="min-h-11 flex-1 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg disabled:opacity-40 sm:min-h-0 dark:border-line-dark dark:text-fg-dark"
         >
           ← Sebelumnya
         </button>
@@ -844,7 +844,7 @@ function PageMode({
         <button
           onClick={() => go(1)}
           disabled={total === 0 || cur === total - 1}
-          className="min-h-11 flex-1 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          className="min-h-11 flex-1 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
         >
           Berikutnya →
         </button>

@@ -287,7 +287,7 @@ export function ReaderPageError({
         <button
           type="button"
           onClick={onRetry}
-          className="relative min-h-11 touch-manipulation rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white transition-transform active:scale-[0.97]"
+          className="relative min-h-11 touch-manipulation rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white transition-transform active:scale-[0.97]"
         >
           Coba lagi
         </button>

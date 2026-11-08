@@ -67,7 +67,7 @@ export default function GenreListPage() {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Ketik nama genre…"
         enterKeyHint="search"
-        className="search-field h-12 w-full min-w-0 rounded-full border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:max-w-xs sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+        className="search-field h-12 w-full min-w-0 rounded-lg border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:max-w-xs sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
       />
       {picked.length > 0 && (
         <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-accent/40 bg-accent-soft/40 p-3 sm:p-4 dark:border-accent/30 dark:bg-accent-soft-dark/40">
@@ -82,13 +82,13 @@ export default function GenreListPage() {
             )}
             <Link
               href={picked.length === 1 ? `/genre/${picked[0]}` : `/terbaru?genre=${picked[0]}&genre2=${picked[1]}`}
-              className="shrink-0 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white sm:text-[13px]"
+              className="shrink-0 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white sm:text-[13px]"
             >
               {picked.length === 1 ? "Lihat genre ini" : "Lihat gabungan"}
             </Link>
             <button
               onClick={() => setPicked([])}
-              className="shrink-0 rounded-full border border-line px-4 py-2 text-xs font-semibold text-muted sm:text-[13px] dark:border-line-dark dark:text-muted-dark"
+              className="shrink-0 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-muted sm:text-[13px] dark:border-line-dark dark:text-muted-dark"
             >
               Reset
             </button>
@@ -124,7 +124,7 @@ export default function GenreListPage() {
                   {g.name}
                 </Link>
                 {typeof g.count === "number" && (
-                  <span className="hidden shrink-0 rounded-full bg-paper-3 px-1.5 py-0.5 text-[10px] tabular-nums text-muted min-[420px]:px-2 min-[420px]:text-[11px] sm:inline dark:bg-ink-3 dark:text-muted-dark">
+                  <span className="hidden shrink-0 rounded-lg bg-paper-3 px-1.5 py-0.5 text-[10px] tabular-nums text-muted min-[420px]:px-2 min-[420px]:text-[11px] sm:inline dark:bg-ink-3 dark:text-muted-dark">
                     {g.count.toLocaleString("id-ID")}
                   </span>
                 )}
@@ -132,7 +132,7 @@ export default function GenreListPage() {
                   onClick={() => toggle(g.slug)}
                   aria-pressed={active}
                   aria-label={active ? `Batalkan genre ${g.name}` : `Pilih genre ${g.name}`}
-                  className={`flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full border text-base font-bold leading-none transition-colors ${
+                  className={`flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-lg border text-base font-bold leading-none transition-colors ${
                     active
                       ? "border-transparent bg-accent text-white"
                       : "border-line text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"

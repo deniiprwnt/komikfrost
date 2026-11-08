@@ -61,7 +61,7 @@ function MasukForm() {
           autoFocus
           autoComplete="current-password"
           enterKeyHint="go"
-          className="h-12 w-full min-w-0 rounded-full border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted focus-visible:border-accent sm:h-11 sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+          className="h-12 w-full min-w-0 rounded-lg border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted focus-visible:border-accent sm:h-11 sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
         />
         {error && (
           <p className="rounded-xl border border-mark-manga/30 bg-mark-manga/5 px-4 py-2.5 text-center text-sm text-mark-manga">
@@ -71,7 +71,7 @@ function MasukForm() {
         <button
           type="submit"
           disabled={loading || !pw}
-          className="h-12 w-full rounded-full bg-accent text-sm font-semibold text-white disabled:opacity-50 sm:h-11"
+          className="h-12 w-full rounded-lg bg-accent text-sm font-semibold text-white disabled:opacity-50 sm:h-11"
         >
           {loading ? "Memeriksa…" : "Masuk"}
         </button>

@@ -399,9 +399,9 @@ export function RankRow({ item }: { item: MangaCard }) {
             {item.genre && item.views && <span aria-hidden="true" className="h-0.5 w-0.5 shrink-0 rounded-full bg-current opacity-60" />}
             {item.views && (
               <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
-                  <circle cx="12" cy="12" r="3" />
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+                  <circle cx="12" cy="12" r="2.75" />
                 </svg>
                 {String(item.views).replace(/\s*views?$/i, "")}
               </span>

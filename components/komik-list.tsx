@@ -70,7 +70,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.firstChapter && (
               <Link
                 href={chapterPathToRoute(item.firstChapter.url)}
-                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-full border border-line bg-paper px-3.5 py-1 text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs dark:border-line-dark dark:bg-ink dark:text-fg-dark"
+                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-lg border border-line bg-paper px-3.5 py-1 text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs dark:border-line-dark dark:bg-ink dark:text-fg-dark"
               >
                 <span className="truncate">
                   <span className="sm:hidden">{item.firstChapter.label}</span>
@@ -83,7 +83,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.latestChapter && (
               <Link
                 href={chapterPathToRoute(item.latestChapter.url)}
-                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-full bg-accent px-3.5 py-1 text-xs font-semibold text-white transition-[opacity,transform] active:scale-[0.97] hover:opacity-90 sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs"
+                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-lg bg-accent px-3.5 py-1 text-xs font-semibold text-white transition-[opacity,transform] active:scale-[0.97] hover:opacity-90 sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs"
               >
                 <span className="truncate">
                   <span className="sm:hidden">{item.latestChapter.label}</span>

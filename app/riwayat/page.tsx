@@ -12,9 +12,9 @@ function IconTrash({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13h10l1-13"
+        d="M4.5 7h15M9.5 7V4.75h5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12M10 11v5.5M14 11v5.5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -42,14 +42,14 @@ export default function RiwayatPage() {
         <div className="flex shrink-0 items-center gap-1.5">
           <Link
             href="/favorit"
-            className="rounded-full border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+            className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
           >
             Favorit →
           </Link>
           {entries.length > 0 && !confirmClear && (
             <button
               onClick={() => setConfirmClear(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-xs font-semibold text-muted hover:border-mark-manga hover:text-mark-manga sm:py-1.5 dark:border-line-dark dark:text-muted-dark"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-muted hover:border-mark-manga hover:text-mark-manga sm:py-1.5 dark:border-line-dark dark:text-muted-dark"
             >
               <IconTrash className="h-3.5 w-3.5" />
               Hapus semua
@@ -66,7 +66,7 @@ export default function RiwayatPage() {
           <div className="flex shrink-0 gap-2">
             <button
               onClick={() => setConfirmClear(false)}
-              className="rounded-full border border-line px-4 py-1.5 text-xs font-semibold text-fg dark:border-line-dark dark:text-fg-dark"
+              className="rounded-lg border border-line px-4 py-1.5 text-xs font-semibold text-fg dark:border-line-dark dark:text-fg-dark"
             >
               Batal
             </button>
@@ -75,7 +75,7 @@ export default function RiwayatPage() {
                 clear();
                 setConfirmClear(false);
               }}
-              className="rounded-full bg-mark-manga px-4 py-1.5 text-xs font-semibold text-white"
+              className="rounded-lg bg-mark-manga px-4 py-1.5 text-xs font-semibold text-white"
             >
               Ya, hapus
             </button>
@@ -117,7 +117,7 @@ export default function RiwayatPage() {
                 </div>
                 <Link
                   href={h.route}
-                  className="mt-1.5 w-fit rounded-full bg-accent px-3.5 py-1.5 text-[11px] font-semibold text-white sm:text-xs"
+                  className="mt-1.5 w-fit rounded-lg bg-accent px-3.5 py-1.5 text-[11px] font-semibold text-white sm:text-xs"
                 >
                   Lanjutkan
                 </Link>
@@ -125,7 +125,7 @@ export default function RiwayatPage() {
               <button
                 onClick={() => remove(h.slug)}
                 aria-label={`Hapus ${h.title} dari riwayat`}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-paper hover:text-mark-manga sm:h-9 sm:w-9 dark:text-muted-dark dark:hover:bg-ink"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-paper hover:text-mark-manga sm:h-9 sm:w-9 dark:text-muted-dark dark:hover:bg-ink"
               >
                 <IconTrash className="h-[18px] w-[18px] sm:h-4 sm:w-4" />
               </button>

@@ -36,7 +36,7 @@ function ClearButton({ onClear, className = "" }: { onClear: () => void; classNa
       onClick={onClear}
       aria-label="Hapus pencarian"
       title="Hapus pencarian"
-      className={`absolute z-10 flex h-6 w-6 items-center justify-center rounded-full text-muted transition-colors hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark ${className}`}
+      className={`absolute z-10 flex h-6 w-6 items-center justify-center rounded-lg text-muted transition-colors hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark ${className}`}
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
         <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -366,7 +366,7 @@ export function MobileTabBar() {
       aria-label="Navigasi utama"
       className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
     >
-      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-[18px] border border-line glass p-1.5 dark:border-line-dark">
+      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-2xl border border-line glass p-1.5 dark:border-line-dark">
         <span
           aria-hidden="true"
           className="dock-pill"
@@ -479,9 +479,9 @@ function IconHome({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M4 11.5 12 4l8 7.5M6 9.5V19a1 1 0 0 0 1 1h3.5v-5a1.5 1.5 0 0 1 1.5-1.5v0A1.5 1.5 0 0 1 13.5 15v5H17a1 1 0 0 0 1-1V9.5"
+        d="M4 10.6 12 4l8 6.6V19a1 1 0 0 1-1 1h-4.25v-5.25a1 1 0 0 0-1-1h-3.5a1 1 0 0 0-1 1V20H5a1 1 0 0 1-1-1Z"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -492,8 +492,14 @@ function IconHome({ className }: IconProps) {
 function IconClock({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 8v4.5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M12 7.5V12l3 1.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -502,9 +508,10 @@ function IconFlame({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M12 3c1 2.5-2.5 3.8-2.5 7a4 4 0 0 0 8 0c0-1-.4-1.8-1-2.5.6 2-.6 2.8-1.2 1.8C14.6 7.5 13 6.5 12 3ZM7.5 14A4.5 4.5 0 0 0 12 18.5a4.5 4.5 0 0 0 4.5-4.5c0-.7-.1-1.2-.3-1.7a6 6 0 0 1-8.4 0c-.2.5-.3 1-.3 1.7Z"
+        d="M12.5 3c.7 3.2 5.5 5.2 5.5 10.5a6 6 0 0 1-12 0c0-2.3.9-3.9 2-5 .1 1.8.9 2.9 2.2 3.2C9.4 8.6 10.6 5.4 12.5 3Z"
         stroke="currentColor"
         strokeWidth="1.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
@@ -515,12 +522,13 @@ function IconTag({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M11.5 4H6a2 2 0 0 0-2 2v5.5a2 2 0 0 0 .59 1.41l8 8a2 2 0 0 0 2.82 0l5.5-5.5a2 2 0 0 0 0-2.82l-8-8A2 2 0 0 0 11.5 4Z"
+        d="M12.4 3.75h6.85a1 1 0 0 1 1 1v6.85a1 1 0 0 1-.29.7l-8.1 8.1a1 1 0 0 1-1.42 0l-6.85-6.85a1 1 0 0 1 0-1.42l8.1-8.1a1 1 0 0 1 .71-.28Z"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="8" cy="8" r="1.3" fill="currentColor" />
+      <circle cx="16" cy="8" r="1.1" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -528,8 +536,14 @@ function IconTag({ className }: IconProps) {
 function IconSearch({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="m20 20-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="6.75" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="m20 20-3.9-3.9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -538,13 +552,19 @@ function IconHistory({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M4 5v5h5M4.5 10a8 8 0 1 1-.6 4"
+        d="M3.75 12a8.25 8.25 0 1 0 2.45-5.85L3.75 8.5M3.75 4v4.5h4.5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M12 8v4.5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 7.75V12l3 1.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -561,9 +581,10 @@ function IconBookmark({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"
+        d="M7 3.75h10a1.25 1.25 0 0 1 1.25 1.25v15.25L12 16.4l-6.25 3.85V5A1.25 1.25 0 0 1 7 3.75Z"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
@@ -573,12 +594,13 @@ function IconBookmark({ className }: IconProps) {
 function IconSun({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3.75" stroke="currentColor" strokeWidth="1.5" />
       <path
-        d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+        d="M12 3v1.75M12 19.25V21M3 12h1.75M19.25 12H21M5.64 5.64l1.24 1.24M17.12 17.12l1.24 1.24M5.64 18.36l1.24-1.24M17.12 6.88l1.24-1.24"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -588,9 +610,10 @@ function IconMoon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
       <path
-        d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"
+        d="M20 13.9A8 8 0 1 1 10.1 4a6.3 6.3 0 0 0 9.9 9.9Z"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>

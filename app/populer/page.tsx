@@ -102,7 +102,7 @@ function PopulerContent() {
               href={p.v === "harian" ? "/populer" : `/populer?period=${p.v}`}
               onMouseEnter={() => prefetchApi(`/api/popular?period=${p.v}`)}
               onTouchStart={() => prefetchApi(`/api/popular?period=${p.v}`)}
-              className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors sm:py-1.5 ${
+              className={`shrink-0 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-colors sm:py-1.5 ${
                 active
                   ? "border-transparent bg-accent text-white"
                   : "border-line text-muted hover:text-fg dark:border-line-dark dark:text-muted-dark dark:hover:text-fg-dark"

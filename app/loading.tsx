@@ -8,7 +8,7 @@ import { GridSkeleton } from "@/components/states";
 export default function Loading() {
   return (
     <div aria-busy="true" aria-label="Memuat halaman">
-      <div className="shimmer mb-3 h-6 w-40 rounded-full" />
+      <div className="shimmer mb-3 h-6 w-40 rounded-lg" />
       <GridSkeleton count={10} />
     </div>
   );

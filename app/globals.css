@@ -12,13 +12,13 @@
   /* Lebar konten maksimum — melebar di monitor besar (1440px). */
   --container-app: 90rem;
 
-  /* Sudut lembut tapi tetap rapi — bukan bubble, bukan kotak tajam. */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-3xl: 16px;
+  /* Sudut tipis seragam dengan logo — bukan bubble, bukan kotak tajam. */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
 
   /* Palet teal-ink yang sama, dihaluskan: permukaan gelap sedikit
      diangkat, garis lebih tipis, aksen kurang jenuh. */
@@ -37,10 +37,10 @@
   --color-muted-dark: #8fa0a7;
 
   /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
-  --color-accent: #167866;
-  --color-accent-strong: #0e5f50;
-  --color-accent-soft: #d6ece7;
-  --color-accent-soft-dark: #12332e;
+  --color-accent: #337e76;
+  --color-accent-strong: #26675f;
+  --color-accent-soft: #dfedea;
+  --color-accent-soft-dark: #172f2d;
 
   /* Penanda tipe bacaan — hue sama, saturasi diredam. */
   --color-mark-manga: #bf4f48;
@@ -60,8 +60,8 @@
    tetap putih, mis. logo & tombol). Teks beraksen di atas gelap memakai
    teal yang lebih terang lewat aturan di bawah. */
 html.dark {
-  --color-accent: #178270;
-  --color-accent-strong: #52bca6;
+  --color-accent: #2f7d75;
+  --color-accent-strong: #78b8ae;
 }
 :root {
   --on-accent: #ffffff;
@@ -103,8 +103,8 @@ html.dark {
 
 :root {
   color-scheme: light dark;
-  --radius-card: 10px;
-  --radius-btn: 8px;
+  --radius-card: 5px;
+  --radius-btn: 4px;
   --radius-pill: 999px;
 }
 
@@ -201,7 +201,7 @@ div {
 }
 .rail-scroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--color-muted) 45%, transparent);
-  border-radius: 999px;
+  border-radius: 3px;
 }
 .rail-scroll::-webkit-scrollbar-track {
   background: transparent;
@@ -239,7 +239,7 @@ div {
     background-color: var(--sb-track);
     background-clip: padding-box;
     border: 2px solid transparent;
-    border-radius: 999px;
+    border-radius: 3px;
   }
   *::-webkit-scrollbar-corner {
     background: transparent;
@@ -253,7 +253,7 @@ div {
     background-color: var(--sb-thumb);
     background-clip: padding-box;
     border: 2px solid transparent;
-    border-radius: 999px;
+    border-radius: 3px;
     min-height: 48px;
     min-width: 48px;
     transition: background-color 0.2s;
@@ -470,15 +470,15 @@ h1, h2, h3, p, dd {
 
 /* ---- Karakter anime (SVG orisinal) + HUD + progress miring ------------- */
 .cover-ph {
-  --ph-hair: #0f5f54;
-  --ph-hair-hi: #43bfa8;
+  --ph-hair: #2b6b63;
+  --ph-hair-hi: #68b3a8;
   --ph-skin: #ffe4d4;
-  --ph-iris-a: #3ad6c0;
+  --ph-iris-a: #66bfb3;
   --ph-iris-b: #1b6fd1;
 }
 .dark .cover-ph {
-  --ph-hair: #5ed0b9;
-  --ph-hair-hi: #c2f5ea;
+  --ph-hair: #7cc0b5;
+  --ph-hair-hi: #cfe8e3;
   --ph-skin: #ffe9dc;
 }
 .cover-ph--err {
@@ -528,7 +528,7 @@ h1, h2, h3, p, dd {
   width: clamp(30px, 56cqw, 112px);
   height: clamp(3px, 2.6cqmin, 6px);
   overflow: hidden;
-  border-radius: 9999px;
+  border-radius: 2px;
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
   transform: skewX(-22deg);
 }
@@ -556,12 +556,12 @@ h1, h2, h3, p, dd {
 .cover-ph--load {
   background:
     radial-gradient(circle at 50% 42%, #ffffffe6 0%, transparent 56%),
-    linear-gradient(165deg, #ffe4ef 0%, #e2f4ef 55%, #dcecff 100%);
+    linear-gradient(165deg, #ffe4ef 0%, #e6f1ee 55%, #dcecff 100%);
 }
 .cover-ph--err {
   background:
     radial-gradient(circle at 50% 44%, #ffffffe6 0%, transparent 54%),
-    linear-gradient(160deg, #e2f4ef 0%, #f1f7f6 55%, #d6ece7 100%);
+    linear-gradient(160deg, #e6f1ee 0%, #f1f7f6 55%, #dfedea 100%);
 }
 .cover-ph__label { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
 /* Gelap: lebih dalam, cahaya lembut, kilau halus (tanpa sudut putih tajam). */
@@ -574,20 +574,20 @@ h1, h2, h3, p, dd {
 .dark .cover-ph--err {
   background:
     radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
-    linear-gradient(160deg, #10282a 0%, #111a1f 55%, #12302d 100%);
+    linear-gradient(160deg, #132a29 0%, #111a1f 55%, #162f2d 100%);
 }
 .dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 
 /* ---- Error: warna primary (teal) ------------- */
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
-  --ph-iris-a: #5fd6c0;
-  --ph-iris-b: #167866;
+  --ph-iris-a: #6fc2b7;
+  --ph-iris-b: #337e76;
 }
 .dark .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
-  --ph-iris-a: #7fe3cf;
-  --ph-iris-b: #1c8f7a;
+  --ph-iris-a: #8ccdc3;
+  --ph-iris-b: #3a8c82;
 }
 .cover-ph--err .cover-ph__avatar {
   filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
@@ -595,22 +595,22 @@ h1, h2, h3, p, dd {
 /* Latar error & loading (sama): mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
 .cover-ph--err,
 .cover-ph--load {
-  --ph-hair: #0f5f54;
-  --ph-hair-hi: #43bfa8;
+  --ph-hair: #2b6b63;
+  --ph-hair-hi: #68b3a8;
   background:
     radial-gradient(70% 55% at 50% 46%, #ffffffd9 0%, transparent 70%),
-    radial-gradient(90% 60% at 0% 0%, #bfeade 0%, transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, #a9dfd6 0%, transparent 62%),
-    linear-gradient(160deg, #eaf7f4 0%, #dff1ed 100%);
+    radial-gradient(90% 60% at 0% 0%, #cfe5e0 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #bcdad4 0%, transparent 62%),
+    linear-gradient(160deg, #ecf4f2 0%, #e0eeeb 100%);
 }
 .dark .cover-ph--err,
 .dark .cover-ph--load {
-  --ph-hair: #5ed0b9;
-  --ph-hair-hi: #c2f5ea;
+  --ph-hair: #7cc0b5;
+  --ph-hair-hi: #cfe8e3;
   background:
     radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 72%),
-    radial-gradient(90% 60% at 0% 0%, #15423c 0%, transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, #0f3a3a 0%, transparent 62%),
+    radial-gradient(90% 60% at 0% 0%, #1a3a37 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #153536 0%, transparent 62%),
     linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
 }
 .cover-ph--err .cover-ph__speed,
@@ -1335,7 +1335,7 @@ article.cv-auto:not(.group):active {
   font-size: 0.6875rem;
   line-height: 1;
   padding: 0.25rem 0.4rem;
-  border-radius: 6px;
+  border-radius: 3px;
   border: 1px solid var(--color-line);
   color: var(--color-muted);
   background: var(--color-paper);
@@ -1354,7 +1354,7 @@ article.cv-auto:not(.group):active {
   flex-shrink: 0;
   width: 2.25rem;
   height: 1.25rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--color-paper-3);
   border: 1px solid var(--color-line);
   transition: background-color 200ms ease;
@@ -1367,7 +1367,7 @@ article.cv-auto:not(.group):active {
   left: 2px;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  border-radius: 2px;
   background: var(--color-muted);
   transition: transform 260ms var(--ease-out), background-color 200ms ease;
 }
@@ -1402,7 +1402,7 @@ article.cv-auto:not(.group):active {
   place-items: center;
   width: 1.6rem;
   height: 1.6rem;
-  border-radius: 999px;
+  border-radius: 4px;
   border: 1px solid var(--color-line);
   background: var(--color-paper-2);
   color: var(--color-muted);
@@ -1434,7 +1434,7 @@ article.cv-auto:not(.group):active {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2rem 0.5rem;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
@@ -1480,7 +1480,7 @@ article.cv-auto:not(.group):active {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.65rem;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid var(--color-line);
   background: var(--color-paper-2);
   color: var(--color-fg);
