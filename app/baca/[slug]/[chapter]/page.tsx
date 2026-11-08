@@ -94,7 +94,7 @@ function ChapterNav({
   const base =
     "group relative flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[13px] font-semibold select-none transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out active:scale-[0.97] sm:h-12 sm:gap-2 sm:px-6 sm:text-sm";
   const ghost = `${base} border border-line-dark bg-ink-3/70 text-fg-dark hover:border-accent/60 hover:bg-accent/10 hover:text-white`;
-  const primary = `${base} bg-accent text-white shadow-[0_6px_18px_-8px_var(--color-accent)] hover:bg-accent-strong hover:shadow-[0_8px_22px_-8px_var(--color-accent)]`;
+  const primary = `${base} bg-accent text-white hover:bg-accent-strong`;
   const off = `${base} cursor-not-allowed border border-line-dark/50 text-muted-dark/45 active:scale-100`;
 
   return (

@@ -12,50 +12,64 @@
   /* Lebar konten maksimum — melebar di monitor besar (1440px). */
   --container-app: 90rem;
 
-  /* Geometri tegas: sudut kecil, bukan bubble. Pil ditangani di bawah. */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-3xl: 16px;
+  /* Sudut lembut tapi tetap rapi — bukan bubble, bukan kotak tajam. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 24px;
 
-  /* Ink = dark surfaces, Paper = light surfaces. Cool neutrals, not cream. */
-  --color-ink: #090d10;
-  --color-ink-2: #10161a;
-  --color-ink-3: #182026;
-  --color-line-dark: #1e2a30;
+  /* Palet teal-ink yang sama, dihaluskan: permukaan gelap sedikit
+     diangkat, garis lebih tipis, aksen kurang jenuh. */
+  --color-ink: #0c1114;
+  --color-ink-2: #121a1e;
+  --color-ink-3: #1a2328;
+  --color-line-dark: #222d33;
   --color-paper: #eef2f3;
-  --color-paper-2: #fbfdfd;
-  --color-paper-3: #e2e9eb;
-  --color-line: #d6e0e2;
+  --color-paper-2: #f8fbfb;
+  --color-paper-3: #e3eaec;
+  --color-line: #d9e2e4;
 
-  --color-fg: #0b1013;
-  --color-fg-dark: #eaf1f2;
-  --color-muted: #566469;
+  --color-fg: #0e1417;
+  --color-fg-dark: #e6eeef;
+  --color-muted: #5a686d;
   --color-muted-dark: #8fa0a7;
 
-  /* Brand accent: ink teal — distinct from the usual SaaS-blue / vermilion. */
-  --color-accent: #0f8f79;
-  --color-accent-strong: #0a7562;
-  --color-accent-soft: #d3eee8;
-  --color-accent-soft-dark: #0f3a33;
+  /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
+  --color-accent: #167866;
+  --color-accent-strong: #0e5f50;
+  --color-accent-soft: #d6ece7;
+  --color-accent-soft-dark: #12332e;
 
-  /* Reading-type marks (manga / manhwa / manhua). */
-  --color-mark-manga: #d84a41;
-  --color-mark-manhwa: #2f7fc4;
-  --color-mark-manhua: #c1892e;
+  /* Penanda tipe bacaan — hue sama, saturasi diredam. */
+  --color-mark-manga: #bf4f48;
+  --color-mark-manhwa: #3a7ab4;
+  --color-mark-manhua: #9c6f1c;
 
-  --color-gold: #e0a53c;
+  --color-gold: #d8a84a;
 
-  /* "Update baru" (favorit) — hijau lebih gelap dari accent teal, lolos
-     kontras 4.5:1 dengan teks putih pada badge kecil. */
-  --color-fresh: #187a3d;
-  --color-fresh-dark: #57c17f;
+  --color-fresh: #1b7a40;
+  --color-fresh-dark: #5fbd82;
 
-  /* Error — merah yang aman untuk teks kecil di atas paper (>=4.5:1). */
-  --color-danger: #b23a33;
+  --color-danger: #a8433b;
   --color-danger-dark: #e57368;
+}
+
+/* Tema gelap: isi aksen tetap teal sedang (teks/ikon putih di atasnya
+   tetap putih, mis. logo & tombol). Teks beraksen di atas gelap memakai
+   teal yang lebih terang lewat aturan di bawah. */
+html.dark {
+  --color-accent: #178270;
+  --color-accent-strong: #52bca6;
+}
+:root {
+  --on-accent: #ffffff;
+}
+.dark .text-accent:not([class*="dark:text-"]),
+.dark .hover\:text-accent:hover,
+.dark .group-hover\:text-accent:is(:where(.group):hover *) {
+  color: var(--color-accent-strong);
 }
 
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).
@@ -99,8 +113,8 @@ html.dark {
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: #fff;
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: inherit;
 }
 
 html {
@@ -182,15 +196,15 @@ div {
 :root {
   --sb-size: 8px;
   --sb-track: color-mix(in srgb, var(--color-muted) 7%, transparent);
-  --sb-thumb: color-mix(in srgb, var(--color-accent) 38%, var(--color-muted) 22%);
-  --sb-thumb-hover: color-mix(in srgb, var(--color-accent) 80%, transparent);
+  --sb-thumb: color-mix(in srgb, var(--color-muted) 32%, transparent);
+  --sb-thumb-hover: color-mix(in srgb, var(--color-accent) 70%, transparent);
   --sb-thumb-active: var(--color-accent-strong);
   --sb-glow: color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 .dark {
   --sb-track: color-mix(in srgb, white 4%, transparent);
-  --sb-thumb: color-mix(in srgb, var(--color-accent) 42%, var(--color-muted-dark) 18%);
-  --sb-thumb-hover: var(--color-accent);
+  --sb-thumb: color-mix(in srgb, var(--color-muted-dark) 34%, transparent);
+  --sb-thumb-hover: color-mix(in srgb, var(--color-accent) 75%, transparent);
   --sb-thumb-active: color-mix(in srgb, var(--color-accent) 80%, white);
   --sb-glow: color-mix(in srgb, var(--color-accent) 55%, transparent);
 }
@@ -609,7 +623,7 @@ label.rounded-full {
 }
 @media (hover: hover) {
   .cv-auto.group:hover {
-    translate: 0 -4px;
+    translate: 0 -3px;
   }
 }
 .cv-auto.group:active {
@@ -676,28 +690,11 @@ article.cv-auto:not(.group):active {
   }
 }
 
-/* 7) Tombol aksen: kilau tipis melintas saat hover (desktop). */
+/* 7) Tombol aksen: cukup meredup halus saat hover — tanpa kilau. */
 @media (hover: hover) {
-  a.bg-accent:not(.fixed):not(.absolute),
-  button.bg-accent:not(.fixed):not(.absolute) {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  a.bg-accent:not(.fixed)::after,
-  button.bg-accent:not(.fixed)::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
-    transform: translateX(-120%);
-    transition: transform 650ms var(--ease-out);
-    pointer-events: none;
-  }
-  a.bg-accent:not(.fixed):hover::after,
-  button.bg-accent:not(.fixed):hover::after {
-    transform: translateX(120%);
+  a.bg-accent:not(.fixed),
+  button.bg-accent:not(.fixed) {
+    transition: background-color 200ms ease, opacity 200ms ease;
   }
 }
 
@@ -777,15 +774,10 @@ article.cv-auto:not(.group):active {
 .suggest-panel {
   transform-origin: top center;
   animation: suggest-in 0.22s var(--ease-out);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-accent) 12%, transparent) inset,
-    0 18px 40px -12px rgba(0, 0, 0, 0.22),
-    0 4px 12px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 22px 44px -22px rgba(40, 34, 20, 0.32), 0 2px 8px -4px rgba(40, 34, 20, 0.08);
 }
 .dark .suggest-panel {
-  box-shadow:
-    0 18px 44px -12px rgba(0, 0, 0, 0.7),
-    0 0 0 1px color-mix(in srgb, var(--color-accent) 14%, transparent);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
 }
 .suggest-item { position: relative; }
 .suggest-link {
@@ -821,8 +813,7 @@ article.cv-auto:not(.group):active {
 .dark .suggest-item[data-active] .suggest-title,
 .dark .suggest-link:focus-visible .suggest-title { color: var(--color-accent); }
 .suggest-item[data-active] .suggest-thumb {
-  transform: scale(1.06) rotate(-1deg);
-  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--color-accent) 60%, black);
+  transform: scale(1.03);
 }
 .suggest-item[data-active] .suggest-arrow { opacity: 1; transform: none; }
 .suggest-link:active { transform: scale(0.99); }
@@ -831,8 +822,7 @@ article.cv-auto:not(.group):active {
 }
 @media (hover: hover) {
   .suggest-more:hover {
-    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-    letter-spacing: 0.02em;
+    background: color-mix(in srgb, var(--color-accent) 9%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -845,26 +835,24 @@ article.cv-auto:not(.group):active {
 /* ====================================================================== */
 
 /* Subtle background depth for dark mode */
-.dark body {
-  background-image: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--color-accent) 4%, transparent) 0%, transparent 50%);
-}
+/* (latar polos — kedalaman datang dari lapisan permukaan, bukan gradien) */
 
 /* Glassmorphism utility */
 .glass {
-  background: color-mix(in srgb, var(--color-paper) 85%, transparent);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: color-mix(in srgb, var(--color-paper) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
 }
 .dark .glass {
-  background: color-mix(in srgb, var(--color-ink) 85%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 80%, transparent);
 }
 
 /* Premium shadow for elevated elements */
 .shadow-premium {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 0 rgba(40, 34, 20, 0.04), 0 8px 24px -16px rgba(40, 34, 20, 0.18);
 }
 .dark .shadow-premium {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px -16px rgba(0, 0, 0, 0.6);
 }
 
 /* Refined card hover: lift + glow */
@@ -873,12 +861,13 @@ article.cv-auto:not(.group):active {
 }
 @media (hover: hover) {
   .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12);
-    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -18px rgba(40, 34, 20, 0.28);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line));
   }
   .dark .card-hover:hover {
-    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-accent);
+    box-shadow: 0 14px 28px -18px rgba(0, 0, 0, 0.7);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line-dark));
   }
 }
 .card-hover:active {
@@ -887,10 +876,7 @@ article.cv-auto:not(.group):active {
 
 /* Brand gradient text */
 .text-gradient-brand {
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-accent-strong);
 }
 
 /* ====================================================================== */
@@ -917,8 +903,6 @@ article.cv-auto:not(.group):active {
   width: var(--sidebar-w);
   isolation: isolate;
   transition: width 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
-  background-image:
-    radial-gradient(120% 40% at 0% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%);
 }
 /* Layar pendek (HP landscape): izinkan scroll, tooltip rail dikorbankan. */
 @media (max-height: 700px) {
@@ -945,24 +929,21 @@ article.cv-auto:not(.group):active {
   .sb-item:hover .sb-ico {
     background: var(--color-accent-soft);
     color: var(--color-accent-strong);
-    transform: scale(1.08) rotate(-3deg);
+    transform: scale(1.05);
   }
   .dark .sb-item:hover .sb-ico {
     background: var(--color-accent-soft-dark);
-    color: #fff;
+    color: var(--color-accent-strong);
   }
 }
 .sb-active {
-  background-image: linear-gradient(90deg,
-    color-mix(in srgb, var(--color-accent) 20%, transparent),
-    color-mix(in srgb, var(--color-accent) 4%, transparent) 85%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 11%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 .sb-item[aria-current="page"] .sb-ico,
 .dark .sb-item[aria-current="page"] .sb-ico {
   background: var(--color-accent);
-  color: #fff;
-  box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--color-accent) 70%, transparent);
+  color: var(--on-accent);
 }
 .sb-item:active { scale: 0.98; }
 .sb-item[aria-current="page"]::before {
@@ -1052,7 +1033,7 @@ article.cv-auto:not(.group):active {
   height: 14px;
   border-radius: 50%;
   background: var(--color-muted);
-  transition: transform 260ms var(--ease-spring), background-color 200ms ease;
+  transition: transform 260ms var(--ease-out), background-color 200ms ease;
 }
 .sb-switch[data-on] { background: var(--color-accent-soft); }
 .dark .sb-switch[data-on] { background: var(--color-accent-soft-dark); }
@@ -1061,7 +1042,7 @@ article.cv-auto:not(.group):active {
 .sb[data-peek] {
   width: var(--sb-full);
   background-color: var(--color-paper);
-  box-shadow: 24px 0 48px -24px rgba(0, 0, 0, 0.35);
+  box-shadow: 24px 0 48px -28px rgba(40, 34, 20, 0.3);
 }
 .dark .sb[data-peek] { background-color: var(--color-ink); }
 
@@ -1089,9 +1070,9 @@ article.cv-auto:not(.group):active {
   border: 1px solid var(--color-line);
   background: var(--color-paper-2);
   color: var(--color-muted);
-  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px -6px rgba(40, 34, 20, 0.3);
   opacity: 0;
-  transition: opacity 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms var(--ease-spring);
+  transition: opacity 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms var(--ease-out);
 }
 .dark .sb-handle { border-color: var(--color-line-dark); background: var(--color-ink-2); color: var(--color-muted-dark); }
 .sb:hover .sb-handle,
@@ -1102,17 +1083,15 @@ article.cv-auto:not(.group):active {
 .sb-promo {
   padding: 0.85rem 0.9rem;
   border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-line));
-  background-image:
-    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%);
-  background-color: var(--color-paper-2);
+  border: 1px solid var(--color-line);
+  background-color: color-mix(in srgb, var(--color-accent) 6%, var(--color-paper-2));
   overflow: hidden;
   max-height: 10rem;
   transition: opacity 200ms ease, max-height 300ms var(--ease-out), padding 300ms var(--ease-out);
 }
 .dark .sb-promo {
-  border-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-line-dark));
-  background-color: var(--color-ink-2);
+  border-color: var(--color-line-dark);
+  background-color: color-mix(in srgb, var(--color-accent) 7%, var(--color-ink-2));
 }
 .sb-chip {
   display: inline-flex;
@@ -1172,7 +1151,7 @@ article.cv-auto:not(.group):active {
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 26px -14px rgba(40, 34, 20, 0.35);
   opacity: 0;
   translate: -4px -50%;
   pointer-events: none;
@@ -1211,15 +1190,13 @@ article.cv-auto:not(.group):active {
 }
 .dock {
   box-shadow:
-    0 14px 34px -12px rgba(0, 0, 0, 0.35),
-    0 2px 8px -2px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 18px 36px -20px rgba(40, 34, 20, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .dark .dock {
   box-shadow:
-    0 16px 38px -12px rgba(0, 0, 0, 0.8),
-    0 0 0 1px color-mix(in srgb, var(--color-accent) 10%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 20px 40px -20px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .dock-pill {
   position: absolute;
@@ -1229,13 +1206,11 @@ article.cv-auto:not(.group):active {
   width: calc((100% - 0.75rem) / 5);
   border-radius: 1rem;
   background: var(--color-accent-soft);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 28%, transparent),
-    0 6px 16px -6px color-mix(in srgb, var(--color-accent) 55%, transparent);
-  transition: transform 460ms var(--ease-spring), opacity 200ms ease;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  transition: transform 420ms var(--ease-out), opacity 200ms ease;
 }
 .dark .dock-pill {
-  background: color-mix(in srgb, var(--color-accent) 24%, var(--color-ink-2));
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-ink-2));
 }
 .dock-item {
   transition: color 200ms ease, scale 160ms var(--ease-out);
@@ -1243,8 +1218,8 @@ article.cv-auto:not(.group):active {
   user-select: none;
 }
 .dock-item:active { scale: 0.92; }
-.dock-icon { transition: transform 360ms var(--ease-spring); }
-.dock-item[aria-current="page"] .dock-icon { transform: translateY(-1px) scale(1.12); }
+.dock-icon { transition: transform 300ms var(--ease-out); }
+.dock-item[aria-current="page"] .dock-icon { transform: scale(1.06); }
 .dock-item:focus-visible { outline-offset: -2px; border-radius: 1rem; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1260,8 +1235,8 @@ article.cv-auto:not(.group):active {
   .hdr-search:focus-within .hdr-kbd { display: none; }
   .hdr-search:focus-within .search-field {
     box-shadow:
-      0 0 0 4px color-mix(in srgb, var(--color-accent) 14%, transparent),
-      0 14px 32px -14px rgba(0, 0, 0, 0.4);
+      0 0 0 4px color-mix(in srgb, var(--color-accent) 13%, transparent),
+      0 14px 30px -18px rgba(40, 34, 20, 0.4);
   }
   .hdr-search .suggest-panel { margin-top: 0.6rem; border-radius: 1.25rem; }
   .hdr-search .suggest-panel ul { max-height: min(28rem, calc(100dvh - 7rem)); }

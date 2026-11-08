@@ -69,7 +69,7 @@ export const viewport: Viewport = {
   // dihapus — yang berlaku adalah meta theme-color yang ditulis ulang
   // ThemeProvider setiap tema diganti, agar bar browser/PWA selalu sama
   // dengan tema aplikasi, bukan tema OS.
-  themeColor: "#0b1013",
+  themeColor: "#0c1114",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

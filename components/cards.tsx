@@ -256,7 +256,7 @@ export function UpdateTile({ item, featured = false }: { item: MangaCard; featur
           </div>
           <p className="display-cond mt-1.5 line-clamp-2 text-2xl sm:text-3xl">{item.title}</p>
           {item.latestChapter && (
-            <p className="mt-1.5 text-xs font-bold text-accent">{item.latestChapter.label}</p>
+            <p className="mt-1.5 text-xs font-bold text-accent dark:text-white">{item.latestChapter.label}</p>
           )}
         </div>
       </Link>
@@ -315,7 +315,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
         {item.latestChapter && (
           <Link
             href={chapterPathToRoute(item.latestChapter.url)}
-            className="mt-auto w-fit max-w-full truncate pt-1 text-xs font-semibold leading-tight text-accent hover:underline"
+            className="mt-auto w-fit max-w-full truncate pt-1 text-xs font-semibold leading-tight text-accent hover:underline dark:text-white"
           >
             {item.latestChapter.label}
           </Link>
@@ -440,7 +440,7 @@ export function RankRow({ item }: { item: MangaCard }) {
         {item.latestChapter && (
           <Link
             href={chapterPathToRoute(item.latestChapter.url)}
-            className="relative z-10 mt-1 inline-flex w-fit max-w-full items-center rounded-md bg-accent-soft px-2 py-1 text-[11px] font-semibold leading-tight text-accent-strong transition-colors hover:bg-accent hover:text-white sm:text-xs dark:bg-accent-soft-dark dark:text-accent"
+            className="relative z-10 mt-1 inline-flex w-fit max-w-full items-center rounded-md bg-accent-soft px-2 py-1 text-[11px] font-semibold leading-tight text-accent-strong transition-colors hover:bg-accent hover:text-white sm:text-xs dark:bg-accent-soft-dark dark:text-white"
           >
             <span className="truncate">{item.latestChapter.label}</span>
             <span aria-hidden="true" className="ml-1 opacity-70">›</span>

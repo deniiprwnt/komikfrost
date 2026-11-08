@@ -29,7 +29,7 @@ function syncMeta(theme: Theme) {
     "apple-mobile-web-app-status-bar-style",
     theme === "dark" ? "black-translucent" : "default",
   );
-  setMeta("theme-color", theme === "dark" ? "#0b1013" : "#e8eeef");
+  setMeta("theme-color", theme === "dark" ? "#0c1114" : "#eef2f3");
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

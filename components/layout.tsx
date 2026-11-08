@@ -23,7 +23,7 @@ function isActive(pathname: string, href: string) {
 /** Logo mark: Rupture Panel — panel komik dibelah fracture kristalin, negative space membentuk K. */
 function Mark() {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-[0_4px_14px_-4px_var(--color-accent)] transition-transform duration-200 group-hover/logo:scale-105">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition-transform duration-200 group-hover/logo:scale-105">
       <svg viewBox="48 48 160 160" className="h-[26px] w-[26px]" fill="currentColor" aria-hidden="true">
         <path
           fillRule="evenodd"
