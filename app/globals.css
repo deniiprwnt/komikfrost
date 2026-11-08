@@ -1200,7 +1200,13 @@ article.cv-auto:not(.group):active {
 /* ====================================================================== */
 /* Dock navigasi mobile (components/layout.tsx → <MobileTabBar />)         */
 /* ====================================================================== */
+/* Dock menempel rendah di bawah layar. Di iPhone (PWA) safe-area bawah
+   ~34px untuk home indicator; dock cukup berjarak 6px dari batas aman
+   dikurangi --dock-lift, sehingga jaraknya ~14px dari tepi layar dan
+   tidak melayang tinggi. Ubah --dock-lift untuk naik/turun. */
+:root { --dock-lift: 26px; }
 .dock-wrap {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - var(--dock-lift), 0px) + 6px);
   transition: transform 380ms var(--ease-out), opacity 260ms ease;
 }
 .dock {

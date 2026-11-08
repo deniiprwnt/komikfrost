@@ -370,7 +370,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:hidden"
+      className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
     >
       <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-[1.75rem] border border-line glass p-1.5 dark:border-line-dark">
         <span
@@ -463,7 +463,7 @@ export function BackToTop() {
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Kembali ke atas"
-      className="fab-in group/fab fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
+      className="fab-in group/fab fixed bottom-[calc(5.25rem+max(env(safe-area-inset-bottom,0px)_-_var(--dock-lift,26px),0px))] right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 transition-transform duration-300 group-hover/fab:-translate-y-0.5">
         <path
