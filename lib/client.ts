@@ -9,6 +9,8 @@
  * - `stale` true = data basi (< 5 menit) dikembalikan langsung sambil
  *   fetch baru jalan di background (stale-while-revalidate) — layar
  *   tampil instan lalu diperbarui diam-diam saat data segar tiba.
+ * - `signal` membatalkan hasil untuk pemanggil (dipakai effect yang
+ *   parameternya bisa berubah) tanpa membuang cache/prefetch.
  */
 
 export interface ApiSuccess<T> {
@@ -144,10 +146,18 @@ async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false)
   return (json as ApiSuccess<T>).data;
 }
 
+/** Error batal standar: pemanggil (effect) mengabaikannya, bukan menampilkan error. */
+function abortedError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException("Permintaan dibatalkan.", "AbortError");
+}
+
 export async function apiGet<T>(
   path: string,
   opts?: { signal?: AbortSignal; noStore?: boolean },
 ): Promise<T> {
+  if (opts?.signal?.aborted) throw abortedError(opts.signal);
   // `noStore` (cek background auto-refresh): lewati cache memori baca/tulis
   // + cache HTTP browser agar benar-benar menembak server. Dedupe inflight
   // tetap dipakai supaya pemanggil bersamaan (2 section beranda) = 1 fetch.
@@ -171,15 +181,26 @@ export async function apiGet<T>(
     return p;
   }
   // Data segar dari cache — tanpa round-trip jaringan sama sekali.
+  // Pemanggil ber-signal tetap memakai cache: membatalkan request tidak
+  // membuang manfaat prefetch yang sudah ada.
   const hit = cache.get(path);
-  if (hit && Date.now() - hit.at < TTL_MS && !opts?.signal) {
+  if (hit && Date.now() - hit.at < TTL_MS) {
     return hit.data as T;
   }
 
-  const pending = inflight.get(path);
-  if (pending && !opts?.signal) return pending as Promise<T>;
+  // Pemanggil ber-signal fetch sendiri (tidak ikut dedupe) agar abort
+  // benar-benar menghentikan request; hasilnya tetap masuk cache.
+  if (opts?.signal) {
+    const data = await fetchJson<T>(path, opts.signal);
+    cache.set(path, { at: Date.now(), data });
+    writeApiSnapshot(path, data);
+    return data;
+  }
 
-  const p = fetchJson<T>(path, opts?.signal)
+  const pending = inflight.get(path);
+  if (pending) return pending as Promise<T>;
+
+  const p = fetchJson<T>(path)
     .then((data) => {
       cache.set(path, { at: Date.now(), data });
       writeApiSnapshot(path, data);
@@ -188,7 +209,7 @@ export async function apiGet<T>(
     .finally(() => {
       if (inflight.get(path) === p) inflight.delete(path);
     });
-  if (!opts?.signal) inflight.set(path, p);
+  inflight.set(path, p);
   return p;
 }
 

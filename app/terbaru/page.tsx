@@ -230,7 +230,7 @@ function TerbaruContent() {
   // disegarkan diam-diam — kembali dari detail tidak menunggu jaringan.
   // Filter berubah / pagination (fresh): selalu fetch baru.
   const loadPage = useCallback(
-    async (p: number, fresh = false) => {
+    async (p: number, fresh = false, signal?: AbortSignal) => {
       const path = `/api/latest?${buildQs(p)}`;
       // Cache prefetch masih segar → tampilkan isi yang sudah ada tanpa
       // mengganti layar dengan skeleton.
@@ -255,7 +255,10 @@ function TerbaruContent() {
         const fetchPath = `/api/latest?${qs}`;
 
         if (fresh || isLive) {
-          const res = await apiGet<LatestPayload>(fetchPath, { noStore: isLive });
+          const res = await apiGet<LatestPayload>(fetchPath, {
+            noStore: isLive,
+            ...(signal ? { signal } : {}),
+          });
           applyItems(res.items, res.hasNextPage, p);
           setLoading(false);
           return;
@@ -274,6 +277,8 @@ function TerbaruContent() {
         }
         // data null = mustahil (apiGet throw bila gagal).
       } catch (e) {
+        // Dibatalkan efek (filter berganti) — bukan kegagalan.
+        if (signal?.aborted) return;
         // Sudah ada isi (cache/snapshot) → jangan ganti layar dengan error;
         // daftar lama tetap terbaca, refresh bisa dicoba lagi nanti.
         if (!shown) setError(e instanceof Error ? e.message : "Gagal memuat data.");
@@ -321,7 +326,14 @@ function TerbaruContent() {
     // Batasi memori dedupe lintas-halaman: buang riwayat filter lama.
     if (pagesRef.current.size > 20) pagesRef.current.clear();
     scrollToList();
-    void loadPage(1, true);
+    const ctrl = new AbortController();
+    void loadPage(1, true, ctrl.signal);
+    // Reset penanda saat cleanup: StrictMode dev melepas & menjalankan ulang
+    // efek, jadi run kedua harus tetap memuat data.
+    return () => {
+      ctrl.abort();
+      appliedFiltersRef.current = "";
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey]);
 

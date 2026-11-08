@@ -82,7 +82,7 @@ function CariContent() {
 
   // Muat satu halaman penuh (mengganti daftar, bukan menumpuk).
   // Duplikat lintas-halaman dibuang via seenRef per kata kunci.
-  const loadPage = useCallback(async (kw: string, p: number) => {
+  const loadPage = useCallback(async (kw: string, p: number, signal?: AbortSignal) => {
     if (!kw) {
       setItems([]);
       setHasNext(false);
@@ -98,6 +98,7 @@ function CariContent() {
     try {
       const res = await apiGet<SearchPayload>(
         `/api/search?q=${encodeURIComponent(kw)}&page=${p}`,
+        signal ? { signal } : undefined,
       );
       const fresh = dedupePage(kw, res.items);
       setItems(fresh);
@@ -118,6 +119,7 @@ function CariContent() {
         try {
           const next = await apiGet<SearchPayload>(
             `/api/search?q=${encodeURIComponent(kw)}&page=2`,
+            signal ? { signal } : undefined,
           );
           const seen = seenRef.current.get(kw);
           const unseenExact = next.items.filter((c) => {
@@ -133,9 +135,11 @@ function CariContent() {
         setHasNext(res.hasNextPage);
       }
     } catch (e) {
+      // Dibatalkan efek (kata kunci berganti) — bukan kegagalan.
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Gagal memuat data.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [dedupePage]);
 
@@ -144,7 +148,14 @@ function CariContent() {
     if (bootedRef.current) return;
     bootedRef.current = true;
     appliedQRef.current = q;
-    void loadPage(q, parsePage(sp.get("page")));
+    const ctrl = new AbortController();
+    void loadPage(q, parsePage(sp.get("page")), ctrl.signal);
+    // Reset penanda saat cleanup: StrictMode dev melepas & menjalankan ulang
+    // efek, jadi run kedua harus tetap memuat data.
+    return () => {
+      ctrl.abort();
+      bootedRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -153,7 +164,12 @@ function CariContent() {
     if (appliedQRef.current === q) return;
     appliedQRef.current = q;
     scrollToList();
-    void loadPage(q, 1);
+    const ctrl = new AbortController();
+    void loadPage(q, 1, ctrl.signal);
+    return () => {
+      ctrl.abort();
+      appliedQRef.current = "";
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 

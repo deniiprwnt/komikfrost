@@ -188,7 +188,7 @@ export default function ReaderPage({
   const tapNavTimerRef = useRef(0);
   // Tombol kembali-ke-atas — muncul setelah user scroll cukup jauh.
   const [showTop, setShowTop] = useState(false);
-  // Speed-dial bawah: tombol panah → klik membuka Prev/Next, panah naik.
+  // Tombol kembali-ke-atas: panah naik saja, tanpa Prev/Next.
   // Sembunyikan tombol setelah diklik: tanpa ini tombol tetap terlihat
   // selama animasi smooth-scroll (terasa nyangkut).
   const [fabSuppressed, setFabSuppressed] = useState(false);
@@ -212,7 +212,7 @@ export default function ReaderPage({
     }
   };
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     setData(null);
     setFailed(new Set());
@@ -237,6 +237,7 @@ export default function ReaderPage({
       setData(
         await apiGet<ChapterData>(
           `/api/chapter/${encodeURIComponent(slug)}/${encodeURIComponent(chapter)}`,
+          { signal },
         ),
       );
       // Daftar chapter untuk dropdown: dari cache detail bila ada
@@ -267,13 +268,16 @@ export default function ReaderPage({
         window.scrollTo({ top: 0 });
       }
     } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Gagal memuat chapter.");
     }
   }, [slug, chapter]);
 
   useEffect(() => {
-      load();
-    }, [load]);
+    const ctrl = new AbortController();
+    load(ctrl.signal);
+    return () => ctrl.abort();
+  }, [load]);
 
     // Judul tab: judul chapter apa adanya (sudah memuat nama komik + nomor).
     usePageTitle(data ? data.title : null);
@@ -506,8 +510,10 @@ export default function ReaderPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageIdx]);
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={error} onRetry={() => load()} />;
   if (!data) return <ReaderSkeleton />;
+
+  const massFailure = data.images.length > 0 && (failed.size / data.images.length) >= 0.5;
 
   // Tap gambar (mode scroll): toggle overlay navigasi; sembunyikan otomatis
   // setelah 6 detik agar tidak menutupi bacaan. Tidak dimunculkan saat
@@ -615,6 +621,25 @@ export default function ReaderPage({
               return tok ? [{ value: tok, label: c.title, hint: c.date || undefined }] : [];
             })}
           />
+        </div>
+      )}
+
+      {massFailure && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2"
+        >
+          <p className="min-w-0 flex-1 text-muted dark:text-muted-dark">
+            {failed.size} dari {data.images.length} halaman gagal dimuat.
+          </p>
+          <button
+            type="button"
+            onClick={() => load()}
+            className="min-h-11 shrink-0 touch-manipulation rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.97]"
+          >
+            Muat ulang
+          </button>
         </div>
       )}
 

@@ -77,19 +77,20 @@ function useSimilar(detail: MangaDetail | null) {
   useEffect(() => {
     setItems(null);
     if (!firstGenre || !currentSlug) return;
-    let cancelled = false;
-    apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(firstGenre)}`)
+    // Pindah slug membatalkan request genre lama (data komik lain).
+    const ctrl = new AbortController();
+    apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(firstGenre)}`, {
+      signal: ctrl.signal,
+    })
       .then((res) => {
-        if (!cancelled) {
+        if (!ctrl.signal.aborted) {
           setItems(res.items.filter((it) => it.slug !== currentSlug).slice(0, 12));
         }
       })
       .catch(() => {
-        if (!cancelled) setItems([]);
+        if (!ctrl.signal.aborted) setItems([]);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ctrl.abort();
   }, [firstGenre, currentSlug]);
   return items;
 }
@@ -119,11 +120,14 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
     };
   }, [slug]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     setDetail(null);
     try {
-      const d = await apiGet<MangaDetail>(`/api/manga/${encodeURIComponent(slug)}`);
+      const d = await apiGet<MangaDetail>(
+        `/api/manga/${encodeURIComponent(slug)}`,
+        signal ? { signal } : undefined,
+      );
       setDetail(d);
       // Tandai chapter terbaru sudah terlihat — badge "BARU" di Favorit
       // hilang untuk komik ini sampai ada chapter yang lebih baru.
@@ -131,12 +135,16 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
         setLatestSeen(d.slug, d.latestChapter.url);
       }
     } catch (e) {
+      // Dibatalkan efek (slug berganti) — bukan kegagalan.
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Gagal memuat data.");
     }
   }, [slug]);
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    void load(ctrl.signal);
+    return () => ctrl.abort();
   }, [load]);
 
   // Simpan morph sedini mungkin (sebelum render skeleton pertama) agar
@@ -172,7 +180,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
     );
   }, [detail]);
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={error} onRetry={() => load()} />;
   if (!detail) return <DetailSkeleton />;
 
   const chapters = detail.chapters.filter((c) =>

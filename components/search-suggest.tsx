@@ -61,8 +61,13 @@ export function SearchSuggest({
     }
     setLoading(true);
     const my = ++reqId.current;
+    // Ketikan berikutnya membatalkan request lama — hemat kuota API dan
+    // tidak ada respons basi yang sempat masuk.
+    const ctrl = new AbortController();
     const t = window.setTimeout(() => {
-      apiGet<SuggestPayload>(`/api/search?q=${encodeURIComponent(kw)}`)
+      apiGet<SuggestPayload>(`/api/search?q=${encodeURIComponent(kw)}`, {
+        signal: ctrl.signal,
+      })
         .then((res) => {
           if (reqId.current !== my) return;
           setItems(res.items.slice(0, MAX_ITEMS));
@@ -70,13 +75,17 @@ export function SearchSuggest({
           setOpen(true);
         })
         .catch(() => {
+          if (ctrl.signal.aborted) return;
           if (reqId.current === my) setItems([]);
         })
         .finally(() => {
           if (reqId.current === my) setLoading(false);
         });
     }, 300);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      ctrl.abort();
+    };
   }, [kw, enabled]);
 
   // Tutup saat klik/tap di luar.

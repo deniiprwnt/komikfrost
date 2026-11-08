@@ -34,7 +34,7 @@ function PopulerContent() {
   });
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     // Ganti periode tanpa cache: kosongkan agar skeleton tampil. Bila cache
     // prefetch sudah ada, biarkan daftar tampil sampai data baru tiba.
@@ -44,15 +44,20 @@ function PopulerContent() {
     try {
       const res = await apiGet<{ period: string; items: MangaCard[] }>(
         `/api/popular?period=${period}`,
+        signal ? { signal } : undefined,
       );
       setItems(res.items);
     } catch (e) {
+      // Dibatalkan efek (periode berganti) — bukan kegagalan.
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Gagal memuat data.");
     }
   }, [period]);
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    void load(ctrl.signal);
+    return () => ctrl.abort();
   }, [load]);
 
   // Auto-refresh PWA: cek diam-diam tiap interval, ganti daftar HANYA
@@ -109,7 +114,7 @@ function PopulerContent() {
         })}
       </div>
       {!items && !error && <ListSkeleton count={10} />}
-      {error && <ErrorState message={error} onRetry={load} />}
+      {error && <ErrorState message={error} onRetry={() => load()} />}
       {items && items.length === 0 && (
         <EmptyState message="Belum ada data peringkat dari sumber data." />
       )}
