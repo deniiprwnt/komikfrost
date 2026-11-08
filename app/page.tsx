@@ -285,7 +285,7 @@ export default function HomePage() {
                 />
               </svg>
             </button>
-            <Link href="/populer" className="rounded-md px-2 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white">
+            <Link href="/populer" className="section-link rounded-md px-2 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white">
               Lihat semua
             </Link>
           </div>

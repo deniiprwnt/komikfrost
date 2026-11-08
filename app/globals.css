@@ -72,6 +72,13 @@ html.dark {
   color: var(--color-accent-strong);
 }
 
+/* Tautan "Lihat semua": saat hover latar jadi aksen, teks harus putih.
+   Aturan .dark .text-accent di atas berada di luar layer Tailwind sehingga
+   menang atas hover:text-white; rule ini mengembalikan warna hover. */
+.dark .section-link:hover {
+  color: var(--on-accent);
+}
+
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).
    Dipakai progress bar reader, scroll-margin, dan kolom sticky agar
    tidak tertutup header di ukuran layar mana pun. */

@@ -99,7 +99,7 @@ export function SectionHead({
       {href && (
         <Link
           href={href}
-          className="shrink-0 rounded-md px-2 py-1 text-xs font-bold text-accent transition-colors hover:bg-accent hover:text-white"
+          className="section-link shrink-0 rounded-md px-2 py-1 text-xs font-bold text-accent transition-colors hover:bg-accent hover:text-white"
         >
           {linkLabel}
         </Link>
