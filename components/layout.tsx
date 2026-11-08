@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "./theme";
 import { SearchSuggest } from "./search-suggest";
+import { BrandMark } from "./brand-mark";
 import { NavLink } from "./nav-link";
 import { warmPrimaryNav } from "@/lib/nav-prefetch";
 
@@ -23,14 +24,7 @@ function isActive(pathname: string, href: string) {
 /** Logo mark: Rupture Panel — panel komik dibelah fracture kristalin, negative space membentuk K. */
 function Mark() {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4.5px] bg-accent text-white transition-transform duration-200 group-hover/logo:scale-105">
-      <svg viewBox="48 48 160 160" className="h-[28px] w-[28px]" fill="currentColor" aria-hidden="true">
-        <path
-          fillRule="evenodd"
-          d="M64 64H124L96 128L124 192H64Z M156 64H192V192H156L128 128Z"
-        />
-      </svg>
-    </span>
+    <BrandMark className="h-9 w-9 transition-transform duration-200 group-hover/logo:scale-105" />
   );
 }
 

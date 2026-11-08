@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { syncMeta } from "@/components/theme";
+import { BrandMark } from "@/components/brand-mark";
 
 /** Lepas kunci chrome gelap saat splash selesai (lihat theme.tsx). */
 function releaseBootLock() {
@@ -75,20 +76,7 @@ export function BootSplash() {
         phase === "hide" ? "boot-splash-hide" : ""
       }`}
     >
-      <span
-        className="boot-splash-pop flex h-20 w-20 items-center justify-center rounded-[22%] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 76% 84%, rgba(30,143,120,0.45) 0%, rgba(22,120,102,0) 68%), linear-gradient(145deg, #1d3a3f 0%, #101d21 55%, #0a1417 100%)",
-        }}
-      >
-        <svg viewBox="48 48 160 160" className="h-16 w-16" fill="currentColor" aria-hidden="true">
-          <path
-            fillRule="evenodd"
-            d="M64 64H124L96 128L124 192H64Z M156 64H192V192H156L128 128Z"
-          />
-        </svg>
-      </span>
+      <BrandMark className="boot-splash-pop h-20 w-20" />
       <p className="font-display text-2xl font-extrabold tracking-tight text-white">
         Komik<span className="text-accent">Frost</span>
       </p>

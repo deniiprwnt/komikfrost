@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePageTitle } from "@/lib/page-title";
+import { BrandMark } from "@/components/brand-mark";
 
 function MasukForm() {
   usePageTitle("Masuk");
@@ -42,14 +43,7 @@ function MasukForm() {
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4">
-      <span className="flex h-12 w-12 items-center justify-center rounded-[6px] bg-accent text-white">
-        <svg viewBox="48 48 160 160" className="h-10 w-10" fill="currentColor" aria-hidden="true">
-          <path
-            fillRule="evenodd"
-            d="M64 64H124L96 128L124 192H64Z M156 64H192V192H156L128 128Z"
-          />
-        </svg>
-      </span>
+      <BrandMark className="h-12 w-12" />
       <div className="text-center">
         <h1 className="font-display text-xl font-extrabold text-fg dark:text-fg-dark">
           Komik<span className="text-accent">Frost</span>
