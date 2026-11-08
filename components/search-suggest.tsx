@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiGet, prefetchApi } from "@/lib/client";
 import type { MangaCard } from "@/lib/api/types";
 import { SourceBadge } from "./cards";
+import { CoverImage } from "./cover-image";
 
 interface SuggestPayload {
   keyword: string;
@@ -171,22 +172,9 @@ export function SearchSuggest({
                     }}
                     className="suggest-link flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2"
                   >
-                    {it.thumbnail ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={it.thumbnail}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-                        className="suggest-thumb blur-up h-14 w-10 shrink-0 rounded-lg bg-paper-3 object-cover dark:bg-ink-3"
-                      />
-                    ) : (
-                      <span className="flex h-14 w-10 shrink-0 items-center justify-center rounded-md bg-paper-3 text-[9px] text-muted dark:bg-ink-3 dark:text-muted-dark">
-                        ?
-                      </span>
-                    )}
+                    <span className="suggest-thumb relative block h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-paper-3 dark:bg-ink-3">
+                      <CoverImage src={it.thumbnail} alt="" title={it.title} className="h-full w-full object-cover" />
+                    </span>
                     <span className="flex h-14 min-w-0 flex-1 flex-col justify-center gap-1.5">
                       <span className="suggest-title block truncate text-[13px] font-semibold leading-tight text-fg dark:text-fg-dark">
                         {it.title}

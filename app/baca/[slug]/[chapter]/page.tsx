@@ -9,6 +9,7 @@ import { usePageTitle } from "@/lib/page-title";
 import type { ChapterData, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute } from "@/components/cards";
 import { ErrorState } from "@/components/states";
+import { ReaderPageImage, ReaderPageError } from "@/components/cover-image";
 import { Select } from "@/components/select";
 
 function ReaderSkeleton() {
@@ -466,7 +467,7 @@ export default function ReaderPage({
       },
       { threshold: 0 },
     );
-    pagesRef.current?.querySelectorAll<HTMLElement>("img[data-pg]").forEach((n) => io.observe(n));
+    pagesRef.current?.querySelectorAll<HTMLElement>("[data-pg]").forEach((n) => io.observe(n));
 
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -647,43 +648,27 @@ export default function ReaderPage({
         <div ref={pagesRef} className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black">
         {data.images.map((src, i) =>
           failed.has(i) ? (
-            <div
+            <ReaderPageError
               key={i}
-              className="flex min-h-40 items-center justify-center border-b border-line px-4 py-8 text-center text-xs text-muted dark:border-ink-3 dark:text-muted-dark"
-            >
-              Halaman {i + 1} gagal dimuat dari sumber data. Periksa koneksi lalu muat ulang.
-            </div>
+              index={i}
+              onRetry={() =>
+                setFailed((s) => {
+                  const n = new Set(s);
+                  n.delete(i);
+                  return n;
+                })
+              }
+            />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <ReaderPageImage
               key={i}
               src={src}
               alt={`${data.title} halaman ${i + 1}`}
-              loading={i < 2 ? "eager" : "lazy"}
-              fetchPriority={i === 0 ? "high" : i < 3 ? "auto" : "low"}
-              decoding={i < 3 ? "sync" : "async"}
-              draggable={false}
-              onError={(e) => {
-                // Gambar lewat proxy: kegagalan upstream sering sementara
-                // (timeout/5xx). Coba sekali lagi sebelum menyerah.
-                const el = e.currentTarget;
-                if (src.startsWith("/api/img") && !el.dataset.retried) {
-                  el.dataset.retried = "1";
-                  el.src = `${src}&r=${Date.now()}`;
-                  return;
-                }
-                // Fallback sesuai perilaku Komiku: imageN.komiku.to → img.komiku.org
-                const alt = src.replace(/image\d+\.komiku\.to/i, "img.komiku.org");
-                if (alt !== src && !el.dataset.fb) {
-                  el.dataset.fb = "1";
-                  el.src = alt;
-                  return;
-                }
-                setFailed((s) => new Set(s).add(i));
-              }}
-              data-pg={i}
+              index={i}
+              priority={i < 2}
+              onFail={() => setFailed((s) => new Set(s).add(i))}
               onClick={tapNav}
-              className="w-full cursor-pointer select-none"
+              imgClassName="block w-full cursor-pointer select-none"
             />
           ),
         )}
@@ -805,43 +790,28 @@ function PageMode({
     <div className="flex min-w-0 flex-col gap-2">
       <div className="relative min-w-0 overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black">
         {total === 0 ? (
-          <div className="flex min-h-60 items-center justify-center px-4 py-12 text-center text-xs text-muted dark:text-muted-dark">
-            Chapter ini tidak memiliki gambar yang bisa ditampilkan.
-          </div>
+          <ReaderPageError index={0} message="Chapter ini tidak memiliki gambar yang bisa ditampilkan." />
         ) : isFailed ? (
-          <div className="flex min-h-60 items-center justify-center px-4 py-12 text-center text-xs text-muted dark:text-muted-dark">
-            Halaman {cur + 1} gagal dimuat dari sumber data. Periksa koneksi lalu muat ulang.
-          </div>
+          <ReaderPageError
+            index={cur}
+            onRetry={() =>
+              setFailed((s) => {
+                const n = new Set(s);
+                n.delete(cur);
+                return n;
+              })
+            }
+          />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <ReaderPageImage
             key={cur}
             src={src}
             alt={`${data.title} halaman ${cur + 1}`}
-            // Halaman yang sedang dilihat dimuat segera (fetchPriority
-            // high). Tanpa ini, mode page menunggu antrean lazy-load yang
-            // dipicu oleh halaman sebelumnya.
-            loading={cur === 0 ? "eager" : "lazy"}
-            fetchPriority={cur === 0 ? "high" : "auto"}
-            draggable={false}
-            onError={(e) => {
-              const el = e.currentTarget;
-              if (src.startsWith("/api/img") && !el.dataset.retried) {
-                el.dataset.retried = "1";
-                el.src = `${src}&r=${Date.now()}`;
-                return;
-              }
-              const alt = src.replace(/image\d+\.komiku\.to/i, "img.komiku.org");
-              if (alt !== src && !el.dataset.fb) {
-                el.dataset.fb = "1";
-                el.src = alt;
-                return;
-              }
-              setFailed((s) => new Set(s).add(cur));
-            }}
-            data-pg={cur}
-            decoding="async"
-            className="max-h-[75vh] w-full select-none object-contain"
+            index={cur}
+            priority={cur === 0}
+            mode="page"
+            onFail={() => setFailed((s) => new Set(s).add(cur))}
+            imgClassName="block max-h-[75vh] w-full select-none object-contain"
           />
         )}
         {/* Zona tap: kiri 1/3 mundur, kanan 2/3 maju */}

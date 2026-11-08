@@ -6,6 +6,7 @@ import { timeAgo, useHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
 import { useNowTick } from "@/lib/relative-time";
 import { SectionHead, EmptyState } from "@/components/states";
+import { CoverImage } from "@/components/cover-image";
 
 function IconTrash({ className }: { className?: string }) {
   return (
@@ -93,16 +94,9 @@ export default function RiwayatPage() {
               <Link
                 href={h.route}
                 aria-label={`${h.title} — ${h.chapterLabel}`}
-                className="h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-paper-3 min-[420px]:h-24 min-[420px]:w-[68px] dark:bg-ink-3"
+                className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-paper-3 min-[420px]:h-24 min-[420px]:w-[68px] dark:bg-ink-3"
               >
-                {h.cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={h.cover} alt="" loading="lazy" decoding="async" fetchPriority="low" onLoad={(e) => e.currentTarget.classList.add("blur-done")} className="blur-up h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center p-1 text-center text-[10px] text-muted dark:text-muted-dark">
-                    Tanpa cover
-                  </div>
-                )}
+                <CoverImage src={h.cover} alt="" title={h.title} className="h-full w-full object-cover" />
               </Link>
               <div className="flex min-w-0 flex-1 flex-col">
                 <Link

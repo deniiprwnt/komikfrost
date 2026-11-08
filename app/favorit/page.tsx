@@ -9,6 +9,7 @@ import { useHistory } from "@/lib/history";
 import type { MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge } from "@/components/cards";
 import { SectionHead, EmptyState } from "@/components/states";
+import { CoverImage } from "@/components/cover-image";
 
 function IconTrash({ className }: { className?: string }) {
   return (
@@ -147,22 +148,12 @@ export default function FavoritPage() {
                   aria-label={b.title}
                   className="absolute inset-0 block"
                 >
-                  {b.cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={b.cover}
-                      alt={b.title}
-                      loading="lazy"
-                      decoding="async"
-                      fetchPriority="low"
-                      onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-                      className="blur-up h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
-                      Tanpa cover
-                    </span>
-                  )}
+                  <CoverImage
+                    src={b.cover}
+                    alt={b.title}
+                    title={b.title}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                  />
                 </Link>
                 {b.type && (
                   <div className="pointer-events-none absolute left-1.5 top-1.5">

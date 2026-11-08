@@ -7,6 +7,7 @@ import { timeAgo, useHistory } from "@/lib/history";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
 import { MangaGridCard, RankRow } from "@/components/cards";
+import { CoverImage } from "@/components/cover-image";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { cardSig, useNowTick } from "@/lib/relative-time";
 
@@ -319,22 +320,12 @@ export default function HomePage() {
                   className="cv-auto group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
                 >
                   <div className="relative aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3">
-                    {h.cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={h.cover}
-                        alt={h.title}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-                        className="blur-up h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center p-2 text-center text-[11px] text-muted dark:text-muted-dark">
-                        {h.title}
-                      </div>
-                    )}
+                    <CoverImage
+                      src={h.cover}
+                      alt={h.title}
+                      title={h.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                    />
                     {h.progress > 0 && (
                       <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
                         <span className="block h-full bg-accent" style={{ width: `${Math.round(h.progress * 100)}%` }} />

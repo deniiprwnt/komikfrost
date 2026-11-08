@@ -6,7 +6,7 @@ import { apiGet, peekApiCache } from "@/lib/client";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import { useUpdatedLabel } from "@/lib/relative-time";
-import { useCoverLoad } from "@/lib/use-cover-load";
+import { CoverImage } from "./cover-image";
 import type { MangaCard } from "@/lib/api/types";
 
 /** Saat cover diklik: rekam posisi + gambar untuk animasi terbang ke detail. */
@@ -128,15 +128,16 @@ function useResolvedGenre(item: MangaCard): string | undefined {
   return genre;
 }
 
-/** Kartu grid vertikal: cover bersudut miring + judul + chapter terbaru. Tanpa bingkai. */
+/**
+ * Kartu grid vertikal: cover + judul + chapter terbaru.
+ * `w-full`: pembungkus grid/rail bertipe flex, tanpa ini lebar kartu mengikuti
+ * isi (judul/genre) sehingga antar kartu tidak seragam.
+ */
 export function MangaGridCard({ item }: { item: MangaCard }) {
   // Hover/sentuh = niat membuka — panaskan data detail agar halaman
   // tujuan terbuka dari cache (terasa instan). Sentuhan yang berubah jadi
   // scroll dibatalkan, lihat useIntentPrefetch.
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
-  // Status cover: shimmer hanya indikator, gambar TIDAK pernah disembunyikan
-  // menunggu `onLoad` (event itu bisa terlewat untuk gambar dari cache).
-  const cover = useCoverLoad();
   // Label waktu dihitung ulang tiap menit (bukan teks beku dari server).
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   // Genre dari daftar, atau diambil sendiri bila kosong (Komikcast).
@@ -144,7 +145,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
+      className="cv-auto group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
     >
       <Link
         href={`/komik/${item.slug}`}
@@ -152,29 +153,12 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         {...coverMorphProps(item.slug)}
         className="relative block aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3"
       >
-        {!item.thumbnail || cover.state === "error" ? (
-          <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
-            Tanpa cover
-          </div>
-        ) : (
-          <>
-            {/* Shimmer DI BELAKANG gambar: cover langsung terlihat saat piksel
-                pertama datang, bukan menunggu state React. */}
-            {cover.state !== "loaded" && <div className="absolute inset-0 shimmer" />}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={cover.ref}
-              src={item.thumbnail}
-              alt={item.title}
-              loading="lazy"
-              decoding="async"
-              fetchPriority="low"
-              onLoad={cover.onLoad}
-              onError={cover.onError}
-              className="relative h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-            />
-          </>
-        )}
+        <CoverImage
+          src={item.thumbnail}
+          alt={item.title}
+          title={item.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+        />
         {item.type && (
           <div className="absolute left-0 top-0">
             <TypeBadge type={item.type} flush />
@@ -238,17 +222,12 @@ export function UpdateTile({ item, featured = false }: { item: MangaCard; featur
         {...coverMorphProps(item.slug)}
         className="chamfer absolute inset-0 block overflow-hidden bg-paper-3 dark:bg-ink-3"
       >
-        {item.thumbnail && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.thumbnail}
-            alt={item.title}
-            loading="lazy"
-            decoding="async"
-            onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-            className="blur-up h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-          />
-        )}
+        <CoverImage
+          src={item.thumbnail}
+          alt={item.title}
+          title={item.title}
+          className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+        />
         <div className="absolute inset-x-0 bottom-0 bg-ink p-3 text-fg-dark sm:p-4">
           <div className="flex items-center gap-2">
             <TypeBadge type={item.type} />
@@ -280,10 +259,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
         {...coverMorphProps(item.slug)}
         className="relative h-[58px] w-[88px] shrink-0 overflow-hidden rounded-sm bg-paper-3 min-[420px]:h-[68px] min-[420px]:w-[110px] dark:bg-ink-3"
       >
-        {item.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.thumbnail} alt="" loading="lazy" decoding="async" fetchPriority="low" onLoad={(e) => e.currentTarget.classList.add("blur-done")} className="blur-up h-full w-full object-cover" />
-        ) : null}
+        <CoverImage src={item.thumbnail} alt="" title={item.title} className="h-full w-full object-cover" />
         {item.type && (
           <div className="absolute left-0 top-0">
             <TypeBadge type={item.type} flush />
@@ -394,18 +370,12 @@ export function RankRow({ item }: { item: MangaCard }) {
         {...coverMorphProps(item.slug)}
         className="relative z-10 h-[80px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-paper-3 shadow-md shadow-black/20 ring-1 ring-black/5 sm:h-[96px] sm:w-[72px] dark:bg-ink-3 dark:ring-white/10"
       >
-        {item.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.thumbnail}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            fetchPriority="low"
-            onLoad={(e) => e.currentTarget.classList.add("blur-done")}
-            className="blur-up h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : null}
+        <CoverImage
+          src={item.thumbnail}
+          alt=""
+          title={item.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Link

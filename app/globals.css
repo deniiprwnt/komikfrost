@@ -310,11 +310,11 @@ h1, h2, h3, p, dd {
 /* ---------------------------------------------------------------------- */
 .cv-auto {
   content-visibility: auto;
-  contain-intrinsic-size: auto 220px;
+  contain-intrinsic-block-size: auto 220px;
 }
 .cv-row {
   content-visibility: auto;
-  contain-intrinsic-size: auto 76px;
+  contain-intrinsic-block-size: auto 76px;
 }
 @keyframes shimmer-sweep {
   from { background-position: -200% 0; }
@@ -349,6 +349,410 @@ h1, h2, h3, p, dd {
 .blur-up.blur-done {
   filter: none;
   transform: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Placeholder cover bergaya anime — <CoverImage> & halaman pembaca.        */
+/* Garis kecepatan manga, kelopak sakura, kilau bintang, wajah kaomoji.    */
+/* Container query: ukuran elemen menyesuaikan kotak (thumbnail → hero).   */
+/* ---------------------------------------------------------------------- */
+.cover-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  container-type: size;
+}
+.cover-frame > img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.cover-ph {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 3cqmin, 8px);
+  padding: 6cqmin;
+  overflow: hidden;
+  text-align: center;
+  color: var(--color-fg);
+}
+.dark .cover-ph { color: var(--color-fg-dark); }
+
+/* Garis kecepatan (focus lines) — dua lapis sudut berbeda, berputar pelan. */
+.cover-ph__speed {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background:
+    repeating-conic-gradient(from 0deg, var(--ph-line) 0 1.4deg, transparent 1.4deg 8deg),
+    repeating-conic-gradient(from 3deg, var(--ph-line) 0 0.7deg, transparent 0.7deg 5.5deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 14%, #000 62%);
+  mask-image: radial-gradient(circle, transparent 14%, #000 62%);
+  animation: ph-spin 28s linear infinite;
+}
+@keyframes ph-spin { to { transform: rotate(360deg); } }
+
+/* Loading: langit pastel bernuansa aksen. */
+.cover-ph--load {
+  --ph-line: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  background:
+    radial-gradient(circle at 50% 42%, #fff8 0%, transparent 55%),
+    linear-gradient(165deg,
+      color-mix(in srgb, #ffc2dc 38%, var(--color-paper-3)) 0%,
+      color-mix(in srgb, var(--color-accent) 16%, var(--color-paper-3)) 55%,
+      color-mix(in srgb, #9ad0ff 30%, var(--color-paper-3)) 100%);
+}
+.dark .cover-ph--load {
+  --ph-line: color-mix(in srgb, var(--color-accent-strong, var(--color-accent)) 38%, transparent);
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-accent) 30%, transparent) 0%, transparent 58%),
+    linear-gradient(165deg,
+      color-mix(in srgb, #c0408a 26%, var(--color-ink-3)) 0%,
+      var(--color-ink-3) 55%,
+      color-mix(in srgb, #3a7ab4 28%, var(--color-ink-3)) 100%);
+}
+
+/* Kilau bintang 4 sudut. */
+.cover-ph__spark {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: clamp(7px, 9cqmin, 16px);
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #fff7c2, #ffd166);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  filter: drop-shadow(0 0 3px #ffd166aa);
+  animation: ph-twinkle 1.8s ease-in-out infinite var(--d, 0s);
+  z-index: -1;
+}
+@keyframes ph-twinkle {
+  0%, 100% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1) rotate(45deg); opacity: 1; }
+}
+
+/* Kelopak sakura jatuh. */
+.cover-ph__petal {
+  position: absolute;
+  top: -8%;
+  left: var(--x);
+  width: clamp(5px, 5.5cqmin, 11px);
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #ffd6e8, #ff9cc4);
+  border-radius: 80% 0 80% 0;
+  opacity: 0.9;
+  z-index: -1;
+  animation: ph-fall 4.2s linear infinite var(--d, 0s);
+}
+@keyframes ph-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.95; }
+  100% { transform: translate(-30cqw, 115cqh) rotate(300deg); opacity: 0; }
+}
+
+/* Error: ledakan "shock lines" merah + wajah lemas. */
+.cover-ph--err {
+  --ph-line: color-mix(in srgb, var(--color-mark-manga) 26%, transparent);
+  animation: ph-shake 0.5s ease-out both;
+  background:
+    radial-gradient(circle at 50% 44%, #fff7 0%, transparent 52%),
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--color-mark-manga) 14%, var(--color-paper-3)) 0%,
+      var(--color-paper-3) 55%,
+      color-mix(in srgb, var(--color-accent) 12%, var(--color-paper-3)) 100%);
+}
+.dark .cover-ph--err {
+  --ph-line: color-mix(in srgb, var(--color-mark-manga) 34%, transparent);
+  background:
+    radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-mark-manga) 22%, transparent) 0%, transparent 56%),
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--color-mark-manga) 22%, var(--color-ink-3)) 0%,
+      var(--color-ink-3) 55%,
+      color-mix(in srgb, var(--color-accent) 18%, var(--color-ink-3)) 100%);
+}
+.cover-ph--err .cover-ph__speed { animation: none; }
+@keyframes ph-shake {
+  0% { transform: translateX(0); opacity: 0; }
+  20% { transform: translateX(-3%); opacity: 1; }
+  40% { transform: translateX(3%); }
+  60% { transform: translateX(-1.5%); }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ---- Karakter anime (SVG orisinal) + HUD + progress miring ------------- */
+.cover-ph {
+  --ph-hair: #2a3b63;
+  --ph-hair-hi: #5a74b8;
+  --ph-skin: #ffe4d4;
+  --ph-iris-a: #3ad6c0;
+  --ph-iris-b: #1b6fd1;
+}
+.dark .cover-ph {
+  --ph-hair: #8a9cf0;
+  --ph-hair-hi: #c4cfff;
+  --ph-skin: #ffe9dc;
+}
+.cover-ph--err {
+  --ph-iris-a: #ff8a7a;
+  --ph-iris-b: #c43d4b;
+}
+.cover-ph__avatar {
+  display: block;
+  width: clamp(34px, 44cqmin, 92px);
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-accent) 35%, transparent));
+  animation: ph-float 2.4s ease-in-out infinite;
+}
+.cover-ph--err .cover-ph__avatar {
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-mark-manga) 40%, transparent));
+  animation: ph-wobble 2.2s ease-in-out infinite;
+}
+@keyframes ph-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-9%) rotate(2deg); }
+}
+@keyframes ph-wobble {
+  0%, 100% { transform: rotate(-5deg) translateY(0); }
+  50% { transform: rotate(5deg) translateY(4%); }
+}
+.ph-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ph-blink 3.4s infinite;
+}
+@keyframes ph-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+.ph-spiral {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ph-spin 1.4s linear infinite;
+}
+.ph-spiral--r { animation-direction: reverse; }
+/* Bingkai HUD ala UI anime: sudut siku bercahaya. */
+.cover-ph__hud {
+  --c: color-mix(in srgb, var(--color-accent) 75%, transparent);
+  --l: 16%;
+  position: absolute;
+  inset: 5%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 2px var(--l) no-repeat;
+  filter: drop-shadow(0 0 4px var(--c));
+}
+.cover-ph--err .cover-ph__hud { --c: color-mix(in srgb, var(--color-mark-manga) 80%, transparent); }
+
+/* Kilatan cahaya diagonal melintas. */
+.cover-ph--load::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  transform: skewX(-18deg);
+  animation: ph-shine 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ph-shine {
+  0% { left: -60%; }
+  60%, 100% { left: 140%; }
+}
+
+/* Progress miring bergaya manga. */
+.cover-ph__bar {
+  position: relative;
+  display: block;
+  width: clamp(30px, 56cqw, 112px);
+  height: clamp(3px, 2.6cqmin, 6px);
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  transform: skewX(-22deg);
+}
+.cover-ph__bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent), #ff8fc0);
+  animation: ph-bar 1.15s cubic-bezier(.5,0,.5,1) infinite;
+}
+@keyframes ph-bar {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
+/* ---- Penyempurnaan tampilan terang & gelap (desain sama, warna lebih bersih) ---- */
+.cover-ph__speed {
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(circle, transparent 22%, #000 80%);
+  mask-image: radial-gradient(circle, transparent 22%, #000 80%);
+}
+/* Terang: pastel bersih, tanpa kesan abu-abu kusam. */
+.cover-ph--load {
+  background:
+    radial-gradient(circle at 50% 42%, #ffffffe6 0%, transparent 56%),
+    linear-gradient(165deg, #ffe4ef 0%, #e2f4ef 55%, #dcecff 100%);
+}
+.cover-ph--err {
+  background:
+    radial-gradient(circle at 50% 44%, #ffffffe6 0%, transparent 54%),
+    linear-gradient(160deg, #e2f4ef 0%, #f1f7f6 55%, #d6ece7 100%);
+}
+.cover-ph--load::after {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+}
+.cover-ph__label { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+/* Gelap: lebih dalam, cahaya lembut, kilau halus (tanpa sudut putih tajam). */
+.dark .cover-ph__speed { opacity: 0.45; }
+.dark .cover-ph--load {
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
+    linear-gradient(165deg, #2a1c36 0%, #111a1f 55%, #132638 100%);
+}
+.dark .cover-ph--err {
+  background:
+    radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, #10282a 0%, #111a1f 55%, #12302d 100%);
+}
+.dark .cover-ph--load::after {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+}
+.dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
+
+/* ---- Error: warna primary (teal) + bingkai viewfinder kamera ------------- */
+.cover-ph--err {
+  --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --ph-iris-a: #5fd6c0;
+  --ph-iris-b: #167866;
+}
+.dark .cover-ph--err {
+  --ph-line: color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
+  --ph-iris-a: #7fe3cf;
+  --ph-iris-b: #1c8f7a;
+}
+.cover-ph--err .cover-ph__avatar {
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
+}
+.cover-ph--err .cover-ph__hud,
+.dark .cover-ph--err .cover-ph__hud {
+  --c: var(--color-accent);
+  --l: 18%;
+  border-radius: 0;
+}
+.dark .cover-ph--err .cover-ph__hud { --c: var(--color-accent-strong); }
+/* Latar error: mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
+.cover-ph--err {
+  --ph-hair: #0f5f54;
+  --ph-hair-hi: #43bfa8;
+  background:
+    radial-gradient(70% 55% at 50% 46%, #ffffffd9 0%, transparent 70%),
+    radial-gradient(90% 60% at 0% 0%, #bfeade 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #a9dfd6 0%, transparent 62%),
+    linear-gradient(160deg, #eaf7f4 0%, #dff1ed 100%);
+}
+.dark .cover-ph--err {
+  --ph-hair: #5ed0b9;
+  --ph-hair-hi: #c2f5ea;
+  background:
+    radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 72%),
+    radial-gradient(90% 60% at 0% 0%, #15423c 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #0f3a3a 0%, transparent 62%),
+    linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
+}
+.cover-ph--err .cover-ph__speed { opacity: 0.32; }
+.dark .cover-ph--err .cover-ph__speed { opacity: 0.3; }
+
+/* Panel header PWA: area status bar WAJIB solid (tidak tembus ke halaman
+   terang/putih saat scroll) + penutup tetap di atas saat overscroll. */
+[data-app-header]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(env(safe-area-inset-top, 0px) + 16px);
+  background: var(--color-paper);
+  z-index: -1;
+}
+.dark [data-app-header]::before { background: var(--color-ink); }
+@media (min-width: 768px) {
+  [data-app-header]::before { height: env(safe-area-inset-top, 0px); }
+}
+[data-app-header] { isolation: isolate; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--color-paper);
+  z-index: 45;
+  pointer-events: none;
+}
+.dark body::before { background: var(--color-ink); }
+html { overscroll-behavior-y: none; }
+
+/* Label: baris katakana kecil + teks Indonesia. */
+.cover-ph__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+.cover-ph__jp {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  opacity: 0.7;
+}
+@container (max-width: 100px) {
+  .cover-ph__label { display: none; }
+  .cover-ph__petal:nth-of-type(n+3) { display: none; }
+}
+@container (max-height: 80px) {
+  .cover-ph__label { display: none; }
+}
+
+/* Halaman pembaca. */
+.reader-frame--loading { min-height: min(120vw, 78vh); }
+.reader-frame--loading-page { min-height: min(110vw, 70vh); }
+.cover-ph--reader { gap: 12px; }
+.cover-ph--reader-err {
+  position: relative;
+  min-height: 15rem;
+  padding: 2rem 1rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-ph,
+  .cover-ph * {
+    animation: none !important;
+  }
+  .cover-ph__petal { display: none; }
+  .cover-ph__spark { opacity: 0.9; transform: none; }
 }
 
 /* ---------------------------------------------------------------------- */

@@ -8,6 +8,7 @@ import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge, UpdateRow } from "@/components/cards";
 import { ErrorState, EmptyState } from "@/components/states";
+import { CoverImage } from "@/components/cover-image";
 import Link from "next/link";
 
 function DetailSkeleton() {
@@ -201,15 +202,8 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
     <article className="morph-in mx-auto flex w-full min-w-0 flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_440px]">
       {/* Header: cover + info */}
       <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
-        <div data-cover-slot className="mx-auto aspect-[3/4] w-32 shrink-0 overflow-hidden rounded-xl bg-paper-3 min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52 dark:bg-ink-3">
-          {detail.cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={detail.cover} alt={detail.title} loading="eager" fetchPriority="high" decoding="sync" onLoad={(e) => e.currentTarget.classList.add("blur-done")} className="blur-up block h-full w-full object-cover" />
-          ) : (
-            <div className="flex aspect-[3/4] items-center justify-center p-2 text-center text-xs text-muted dark:text-muted-dark">
-              Cover tidak tersedia
-            </div>
-          )}
+        <div data-cover-slot className="relative mx-auto aspect-[3/4] w-32 shrink-0 overflow-hidden rounded-xl bg-paper-3 min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52 dark:bg-ink-3">
+          <CoverImage src={detail.cover} alt={detail.title} title={detail.title} priority label="Cover tidak tersedia" className="block h-full w-full object-cover" />
         </div>
         <div className="min-w-0 flex-1">
           {/* Badge di atas judul (bukan inline) agar tidak mengambang

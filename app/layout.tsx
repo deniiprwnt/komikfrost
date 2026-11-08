@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
+              'try{var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",t==="light"?"#eef2f3":"#0c1114")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
           }}
         />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
