@@ -353,12 +353,15 @@ export default function ReaderPage({
   // Di mode "page", progres = posisi halaman (hal 1/N … N/N).
   useEffect(() => {
     if (!data) return;
-    const baseTitle = data.title.replace(/\s*chapter\s*.+$/i, "").trim() || data.title;
     // Cover diambil dari cache detail bila tersedia (hasil hover-prefetch
     // kartu) — tanpa request tambahan agar tidak memperlambat reader.
     const cachedDetail = peekApiCache<MangaDetail>(
       `/api/manga/${encodeURIComponent(data.mangaSlug)}`,
     );
+    // Bila title chapter hanya "Chapter N" (tanpa nama komik), pakai judul dari
+    // cache detail — jangan simpan "Chapter N" sebagai judul komik di riwayat.
+    const baseTitle =
+      data.title.replace(/\s*chapter\s*.+$/i, "").trim() || cachedDetail?.title || data.title;
     const cover = cachedDetail?.cover ?? "";
     const persist = (pct: number, page: number) => {
       saveHistory({
@@ -559,7 +562,7 @@ export default function ReaderPage({
       <div className="sticky top-[var(--header-h)] z-30 -mx-3 h-1 bg-line sm:-mx-4 dark:bg-line-dark">
         <div
           ref={progressRef}
-          className="h-full bg-accent transition-[width] duration-150"
+          className="reader-progress h-full bg-accent"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
@@ -629,7 +632,7 @@ export default function ReaderPage({
         <div
           role="status"
           aria-live="polite"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2"
+          className="fade-rise flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2"
         >
           <p className="min-w-0 flex-1 text-muted dark:text-muted-dark">
             {failed.size} dari {data.images.length} halaman gagal dimuat.
@@ -688,7 +691,7 @@ export default function ReaderPage({
       {/* Overlay tap: Prev / Daftar isi / Next — muncul saat gambar di-tap.
           Tab bar disembunyikan saat membaca, jadi cukup 1rem + safe-area dari bawah. */}
       {mode === "scroll" && showTapNav && (
-        <div className="fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-6">
+        <div className="float-in fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-6">
           <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} floating />
         </div>
       )}
@@ -697,7 +700,7 @@ export default function ReaderPage({
           agar tidak perlu scroll balik ke nav bawah. Link biasa (bukan
           auto-pindah): tetap user yang memutuskan. */}
       {showNextFloat && nextHref && (
-        <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-24">
+        <div className="float-in fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-24">
           <Link
             href={nextHref}
             className="mx-auto flex w-full max-w-3xl touch-manipulation items-center justify-center gap-1.5 rounded-2xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-xl active:scale-[0.99]"
@@ -713,7 +716,7 @@ export default function ReaderPage({
       {fabVisible && (
         <div
           ref={fabRef}
-          className={`fixed right-3 z-40 flex flex-col items-end gap-2 transition-[bottom] duration-300 ease-out sm:right-8 ${
+          className={`fab-in fixed right-3 z-40 flex flex-col items-end gap-2 transition-[bottom] duration-500 sm:right-8 ${
             mode === "scroll" && showTapNav
               ? "bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[6.75rem]"
               : showNextFloat
@@ -803,8 +806,8 @@ function PageMode({
             }
           />
         ) : (
+          <div key={cur} className="fade-soft">
           <ReaderPageImage
-            key={cur}
             src={src}
             alt={`${data.title} halaman ${cur + 1}`}
             index={cur}
@@ -813,6 +816,7 @@ function PageMode({
             onFail={() => setFailed((s) => new Set(s).add(cur))}
             imgClassName="block max-h-[75vh] w-full select-none object-contain"
           />
+          </div>
         )}
         {/* Zona tap: kiri 1/3 mundur, kanan 2/3 maju */}
         {!isFailed && (

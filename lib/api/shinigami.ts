@@ -542,6 +542,20 @@ function isPageFile(name: string): boolean {
 }
 
 /**
+ * Judul manga saja (tanpa daftar chapter). Dipakai reader untuk slug UUID murni
+ * yang tidak membawa judul; gagal = string kosong, reader tidak boleh ikut gagal.
+ */
+async function fetchShiniTitle(mangaId: string): Promise<string> {
+  try {
+    const id = mangaId.replace(/^\/+|\/+$/g, "");
+    const { data: m } = await fetchShini<ShiniManga>(`/manga/detail/${encodeURIComponent(id)}`, 3600);
+    return typeof m.title === "string" ? m.title.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Ambil satu chapter Shinigami berdasarkan NOMOR chapter.
  * Untuk flow merge (chapter_id SUDAH diketahui dari daftar gabungan),
  * pakai fetchShiniChapterById agar TIDAK me-list ulang.
@@ -556,7 +570,12 @@ export async function fetchShiniChapter(
   displaySlug: string,
   mangaTitle: string,
 ): Promise<ChapterData> {
-  const rows = await fetchShiniChaptersAll(mangaId);
+  // Judul kosong (slug UUID murni) → ambil sendiri, paralel dengan daftar chapter,
+  // agar title reader/riwayat berisi nama komik, bukan hanya "Chapter N".
+  const [rows, resolvedTitle] = await Promise.all([
+    fetchShiniChaptersAll(mangaId),
+    mangaTitle ? Promise.resolve(mangaTitle) : fetchShiniTitle(mangaId),
+  ]);
   const row = rows.find((r) => r.chapter_number === num);
   if (!row) {
     throw new KomikuError(
@@ -565,7 +584,7 @@ export async function fetchShiniChapter(
       404,
     );
   }
-  return fetchShiniChapterById(row.chapter_id, displaySlug, mangaTitle);
+  return fetchShiniChapterById(row.chapter_id, displaySlug, resolvedTitle);
 }
 
 /**
