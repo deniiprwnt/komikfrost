@@ -412,7 +412,7 @@ function TerbaruContent() {
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="mt-3 min-w-0 divide-y divide-line sm:mt-4 dark:divide-line-dark">
+          <div className="stagger mt-3 flex min-w-0 flex-col gap-3 sm:mt-4">
             {items.map((item) => (
               <KomikListCard key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
             ))}

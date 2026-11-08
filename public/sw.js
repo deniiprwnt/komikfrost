@@ -8,7 +8,7 @@
  * - Navigasi: network-first, jatuh ke /offline.html bila jaringan mati.
  */
 
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC_CACHE = `kf-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -24,6 +24,13 @@ const PRECACHE = [
   "/apple-touch-icon.png",
 ];
 
+// Dev (localhost): jangan sentuh /_next/* sama sekali. Nama chunk di dev
+// TIDAK ber-hash, jadi cache-first menyajikan bundel basi — export baru
+// (mis. <Sidebar />) belum ada di chunk lama sehingga React melempar
+// "Element type is invalid. Received a promise that resolves to undefined".
+const isDevHost =
+  self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -37,6 +44,9 @@ self.addEventListener("install", (event) => {
       );
       // Sengaja TIDAK skipWaiting: versi baru menunggu user menekan
       // "Muat ulang" agar halaman yang sedang dibaca tidak putus.
+      // Pengecualian dev: SW harus langsung aktif agar chunk dev basi
+      // (penyebab "promise that resolves to undefined") segera terbuang.
+      if (isDevHost) await self.skipWaiting();
     })(),
   );
 });
@@ -45,8 +55,11 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
+      // Dev: buang SEMUA cache — isinya chunk dev dari sesi sebelumnya.
       await Promise.all(
-        keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k)),
+        keys
+          .filter((k) => isDevHost || k !== STATIC_CACHE)
+          .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
     })(),
@@ -70,6 +83,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Lintas origin (CDN gambar Komiku) — biarkan browser/jaringan.
   if (url.origin !== self.location.origin) return;
+  // Dev: aset Next tidak di-cache (lihat isDevHost).
+  if (isDevHost && url.pathname.startsWith("/_next/")) return;
   // API: selalu jaringan, jangan pernah disentuh cache.
   if (url.pathname.startsWith("/api/")) return;
 

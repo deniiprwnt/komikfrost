@@ -18,7 +18,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto flex min-w-0 gap-2.5 border-b border-line py-3 last:border-0 sm:gap-3.5 sm:py-3.5 dark:border-line-dark"
+      className="cv-auto group flex min-w-0 gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-shadow duration-200 hover:border-accent/60 hover:shadow-premium sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2"
     >
       <Link
         href={`/komik/${item.slug}`}
@@ -107,9 +107,9 @@ export function KomikListCard({ item }: { item: MangaCard }) {
 /** Skeleton loading untuk daftar list kartu. */
 export function KomikListSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="divide-y divide-line dark:divide-line-dark">
+    <div className="flex flex-col gap-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex gap-2.5 py-3 sm:gap-3.5 sm:py-3.5">
+        <div key={i} className="flex gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2">
           <div className="shimmer h-[132px] w-[96px] shrink-0 rounded-lg sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px]" />
           <div className="min-w-0 flex-1 space-y-2 py-1">
             <div className="shimmer h-4 w-11/12 rounded" />

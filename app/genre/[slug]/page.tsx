@@ -240,7 +240,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="min-w-0 divide-y divide-line dark:divide-line-dark">
+          <div className="stagger flex min-w-0 flex-col gap-3">
             {items.map((item) => (
               <KomikListCard key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
             ))}

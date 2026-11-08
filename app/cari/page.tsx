@@ -241,7 +241,7 @@ function CariContent() {
       )}
       {!loading && !error && items && items.length > 0 && (
         <>
-          <div className="min-w-0 divide-y divide-line dark:divide-line-dark">
+          <div className="stagger flex min-w-0 flex-col gap-3">
             {items.map((item, idx) => (
               <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
                 {item.exactMatch === false &&

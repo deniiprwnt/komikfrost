@@ -95,7 +95,7 @@ export function Pwa() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] left-3 z-50 flex max-w-[calc(100vw-1.5rem)] items-center gap-3 rounded-xl border border-line bg-paper-2 px-3 py-2.5 shadow-lg md:bottom-6 dark:border-line-dark dark:bg-ink-2"
+      className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] left-3 z-50 flex max-w-[calc(100vw-1.5rem)] items-center gap-3 rounded-xl border border-line bg-paper-2 px-3 py-2.5 shadow-lg md:bottom-6 md:left-[calc(var(--sidebar-w)+1rem)] dark:border-line-dark dark:bg-ink-2"
     >
       <p className="min-w-0 text-[13px] font-semibold leading-snug text-fg dark:text-fg-dark">
         Versi baru KomikFrost siap.

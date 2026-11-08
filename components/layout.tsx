@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "./theme";
 import { SearchSuggest } from "./search-suggest";
 import { NavLink } from "./nav-link";
@@ -34,12 +34,177 @@ function Mark() {
   );
 }
 
+/** Tombol X untuk mengosongkan pencarian; fokus kembali ke input. */
+function ClearButton({ onClear, className = "" }: { onClear: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      aria-label="Hapus pencarian"
+      title="Hapus pencarian"
+      className={`absolute z-10 flex h-6 w-6 items-center justify-center rounded-full text-muted transition-colors hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark ${className}`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+}
+
+const NAV_GROUPS = [
+  { label: "Jelajah", items: NAV.slice(0, 4) },
+  { label: "Koleksi", items: NAV.slice(4) },
+] as const;
+
+const SIDEBAR_BREAKPOINT = "(max-width: 1199px)";
+
+/**
+ * Sidebar desktop (md ke atas): navigasi utama + pencarian + tema.
+ *
+ * Mode "penuh" (17rem) atau "rail" (ikon saja, 4.75rem). Rail dipakai
+ * otomatis di layar sempit (<1200px) dan saat membaca chapter; di layar
+ * lebar bisa diciutkan manual (disimpan di localStorage). Lebar sidebar
+ * dibagikan ke seluruh layout lewat `--sidebar-w` pada <html>, yang
+ * di-set SEBELUM paint oleh skrip di layout.tsx — jadi tanpa kedip.
+ * Pencarian & tema ada di header atas (lihat <Header />).
+ */
+export function Sidebar() {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [narrow, setNarrow] = useState(false);
+
+  const reading = pathname.startsWith("/baca/");
+  const rail = collapsed || narrow || reading;
+
+  // Baca preferensi + pantau lebar layar.
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("bk-sidebar") === "1");
+    } catch {}
+    const mq = window.matchMedia(SIDEBAR_BREAKPOINT);
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Bagikan lebar efektif ke layout (CSS var lewat atribut data).
+  useEffect(() => {
+    document.documentElement.dataset.sidebar = rail ? "rail" : "full";
+  }, [rail]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("bk-sidebar", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
+
+  const itemBase =
+    "sb-item group/item relative flex h-12 w-full items-center rounded-2xl px-2.5 text-sm font-semibold transition-colors";
+  const itemIdle =
+    "text-muted hover:bg-paper-3/70 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3/70 dark:hover:text-fg-dark";
+  const itemActive =
+    "sb-active font-bold text-fg dark:text-white";
+
+  return (
+    <aside
+      aria-label="Menu utama"
+      className="sb glass fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-line md:flex dark:border-line-dark"
+    >
+      {/* Logo */}
+      <div className="flex h-16 shrink-0 items-center px-5">
+        <NavLink href="/" className="group/logo flex min-w-0 items-center gap-3" aria-label="KomikFrost, ke beranda">
+          <Mark />
+          <span className="sb-wordmark truncate font-display text-xl font-extrabold tracking-tight text-fg dark:text-fg-dark">
+            Komik<span className="text-accent">Frost</span>
+          </span>
+        </NavLink>
+      </div>
+
+      {/* Navigasi */}
+      <nav className="sb-nav flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2" aria-label="Navigasi utama">
+        {NAV_GROUPS.map((g, gi) => (
+          <div key={g.label} className={`flex flex-col gap-1 ${gi > 0 ? "mt-3" : ""}`}>
+            {gi > 0 && <div className="sb-divider" aria-hidden="true" />}
+            <p className="sb-section-label">{g.label}</p>
+            {g.items.map((n) => {
+              const active = isActive(pathname, n.href);
+              const Icon = n.icon;
+              return (
+                <NavLink
+                  key={n.href}
+                  href={n.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`${itemBase} ${active ? itemActive : itemIdle}`}
+                >
+                  <span className="sb-ico"><Icon className="h-[18px] w-[18px]" /></span>
+                  <span className="sb-label ml-3">{n.label}</span>
+                  <span className="sb-tip" aria-hidden="true">{n.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* Kartu info */}
+      <div className="sb-foot mt-auto flex shrink-0 flex-col gap-2 p-3">
+        <div className="sb-promo">
+          <p className="text-[13px] font-extrabold leading-tight text-fg dark:text-fg-dark">Baca tanpa batas</p>
+          <p className="mt-1 text-[11.5px] leading-snug text-muted dark:text-muted-dark">
+            Komik terbaru dalam Bahasa Indonesia, update tiap hari.
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manga)" }}>Manga</span>
+            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhwa)" }}>Manhwa</span>
+            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhua)" }}>Manhua</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Handle ciut/perluas di tepi sidebar */}
+      {!narrow && !reading && (
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+          aria-pressed={collapsed}
+          className="sb-handle"
+        >
+          <IconChevronLeft className="sb-chev h-3.5 w-3.5" />
+        </button>
+      )}
+    </aside>
+  );
+}
+
+/** Header: desktop = pencarian di tengah + tema (logo & menu di <Sidebar />); mobile = logo, cari, tema. */
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const [q, setQ] = useState("");
   const [mobileSearch, setMobileSearch] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const mobileFormRef = useRef<HTMLFormElement>(null);
+
+  // Pintasan "/" untuk mencari (desktop, di luar kolom isian).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (window.innerWidth < 768) return;
+      e.preventDefault();
+      formRef.current?.querySelector("input")?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Teks pencarian lama jangan kebawa: tiap pindah halaman
   // (masuk /cari, detail, dsb.) input dikosongkan + bar mobile ditutup.
@@ -54,6 +219,11 @@ export function Header() {
     warmPrimaryNav(pathname);
   }, [pathname]);
 
+  const clearSearch = (form: HTMLFormElement | null) => {
+    setQ("");
+    form?.querySelector("input")?.focus();
+  };
+
   const submitSearch = () => {
     const kw = q.trim();
     if (!kw) return;
@@ -63,61 +233,53 @@ export function Header() {
   };
 
   return (
-    <header data-app-header className="sticky top-0 z-40 border-b border-line/50 glass pt-[calc(env(safe-area-inset-top,0px)+16px)] md:pt-[env(safe-area-inset-top,0px)] shadow-premium dark:border-line-dark/50">
-      <div className="mx-auto flex h-14 max-w-app items-stretch gap-2 md:h-16 px-3 sm:gap-4 sm:px-4 lg:px-6">
-        <NavLink href="/" className="group/logo flex min-w-0 shrink-0 items-center gap-2.5" aria-label="KomikFrost, ke beranda">
+    <header data-app-header className="sticky top-0 z-40 border-b border-line/50 glass pt-[calc(env(safe-area-inset-top,0px)+16px)] shadow-premium md:pt-[env(safe-area-inset-top,0px)] dark:border-line-dark/50">
+      <div className="mx-auto flex h-14 max-w-app items-stretch gap-2 px-3 sm:gap-4 sm:px-4 md:grid md:h-14 md:grid-cols-[minmax(2.5rem,1fr)_minmax(0,28rem)_minmax(2.5rem,1fr)] md:items-center md:gap-4 lg:px-6">
+        <NavLink href="/" className="group/logo flex min-w-0 shrink-0 items-center gap-2.5 md:hidden" aria-label="KomikFrost, ke beranda">
           <Mark />
           <span className="truncate font-display text-lg font-extrabold tracking-tight text-fg sm:text-xl dark:text-fg-dark">
             Komik<span className="text-accent">Frost</span>
           </span>
         </NavLink>
 
-        {/* Search + saran langsung — full width on desktop, hidden on mobile (bottom tab covers it) */}
+        {/* Desktop: pencarian di tengah (melebar halus saat fokus) + tema di kanan */}
+        <div className="hidden md:block" aria-hidden="true" />
         <form
-          className="search-wrap relative hidden min-w-0 max-w-md flex-1 items-center self-center lg:flex xl:max-w-xl"
+          ref={formRef}
+          role="search"
+          className="hdr-search search-wrap relative mx-auto hidden w-full min-w-0 items-center md:flex"
           onSubmit={(e) => {
             e.preventDefault();
             submitSearch();
           }}
         >
-          <IconSearch className="pointer-events-none absolute left-3.5 z-10 h-4 w-4 text-muted dark:text-muted-dark" />
+          <IconSearch className="pointer-events-none absolute left-3.5 z-10 h-[18px] w-[18px] text-muted dark:text-muted-dark" />
           <SearchSuggest
             value={q}
             onChange={setQ}
             onSubmit={submitSearch}
-            inputClassName="search-field h-10 w-full min-w-0 rounded-xl border border-line bg-paper-2 pl-10 pr-3 text-sm text-fg outline-none placeholder:text-muted dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+            inputClassName="search-field h-10 w-full min-w-0 rounded-xl border border-line bg-paper-2 pl-10 pr-12 text-sm text-fg outline-none placeholder:text-muted dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
           />
+          {!q && <kbd className="sb-kbd hdr-kbd pointer-events-none absolute right-3.5">/</kbd>}
+          {q && <ClearButton onClear={() => clearSearch(formRef.current)} className="right-2.5" />}
         </form>
+        <div className="hidden justify-end md:flex">
+          <button
+            onClick={toggle}
+            aria-label="Ganti tema"
+            title={theme === "dark" ? "Mode terang" : "Mode gelap"}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+          >
+            {theme === "dark" ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
+          </button>
+        </div>
 
-        {/* Desktop nav: pil dengan ikon; tab aktif diisi warna aksen lembut */}
-        <nav className="ml-auto hidden shrink-0 items-center gap-1 md:flex">
-          {NAV.map((n) => {
-            const active = isActive(pathname, n.href);
-            const Icon = n.icon;
-            return (
-              <NavLink
-                key={n.href}
-                href={n.href}
-                aria-current={active ? "page" : undefined}
-                className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-semibold transition-colors lg:px-3 lg:text-sm ${
-                  active
-                    ? "bg-accent-soft text-accent-strong dark:bg-accent-soft-dark dark:text-white"
-                    : "text-muted hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
-                }`}
-              >
-                <Icon className="hidden h-[17px] w-[17px] shrink-0 xl:block" />
-                {n.label}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 md:ml-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 md:hidden">
           <button
             onClick={() => setMobileSearch((v) => !v)}
             aria-label="Cari komik"
             aria-expanded={mobileSearch}
-            className="flex h-10 w-10 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg lg:hidden dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+            className="flex h-10 w-10 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
           >
             {mobileSearch ? (
               <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]">
@@ -130,7 +292,7 @@ export function Header() {
           <button
             onClick={toggle}
             aria-label="Ganti tema"
-            className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent md:h-10 md:w-10 dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+            className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
           >
             {theme === "dark" ? <IconSun className="h-[18px] w-[18px]" /> : <IconMoon className="h-[18px] w-[18px]" />}
           </button>
@@ -139,8 +301,9 @@ export function Header() {
       {/* Bar pencarian mobile — expand di bawah header, hasil dropdown
           langsung tanpa pindah halaman. */}
       {mobileSearch && (
-        <div className="mx-auto max-w-app px-3 pb-3 sm:px-4 lg:hidden">
+        <div className="mx-auto max-w-app px-3 pb-3 sm:px-4 md:hidden">
           <form
+            ref={mobileFormRef}
             className="search-wrap relative flex min-w-0 items-center"
             onSubmit={(e) => {
               e.preventDefault();
@@ -153,8 +316,9 @@ export function Header() {
               onChange={setQ}
               onSubmit={submitSearch}
               autoFocus
-              inputClassName="search-field h-11 w-full min-w-0 rounded-xl border border-line bg-paper-2 pl-9 pr-4 text-base text-fg outline-none placeholder:text-muted dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+              inputClassName="search-field h-11 w-full min-w-0 rounded-xl border border-line bg-paper-2 pl-9 pr-10 text-base text-fg outline-none placeholder:text-muted dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
             />
+            {q && <ClearButton onClear={() => clearSearch(mobileFormRef.current)} className="right-2" />}
           </form>
         </div>
       )}
@@ -181,16 +345,17 @@ export function Main({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Tab bar mobile: kapsul melayang, datar, 4 tujuan utama. Hanya tab
- * aktif yang menampilkan label — sisanya ikon saja, jadi bar tetap
- * ramping di layar 320px. Peringkat ada di beranda, Riwayat lewat
- * halaman Favorit; Cari = tombol di header.
+ * Dock navigasi mobile: kapsul kaca melayang dengan 5 tujuan utama.
+ * Indikator (pil aksen) meluncur mengikuti tab aktif, ikon aktif naik
+ * sedikit, label tampil di semua tab agar jelas. Dock selalu tampil.
+ * Riwayat ikut tab Favorit; Cari = tombol di header.
  */
 export function MobileTabBar() {
   const pathname = usePathname();
   const items = [
     { href: "/", label: "Beranda", icon: IconHome, match: ["/"] },
-    { href: "/terbaru", label: "Terbaru", icon: IconClock, match: ["/terbaru", "/populer"] },
+    { href: "/terbaru", label: "Terbaru", icon: IconClock, match: ["/terbaru"] },
+    { href: "/populer", label: "Peringkat", icon: IconFlame, match: ["/populer"] },
     { href: "/genre", label: "Genre", icon: IconTag, match: ["/genre"] },
     { href: "/favorit", label: "Favorit", icon: IconBookmark, match: ["/favorit", "/riwayat"] },
   ];
@@ -198,14 +363,23 @@ export function MobileTabBar() {
   // Sembunyikan saat membaca chapter — halaman baca butuh layar penuh.
   if (pathname.startsWith("/baca/")) return null;
 
+  const idx = items.findIndex((n) =>
+    n.match.some((m) => (m === "/" ? pathname === "/" : pathname.startsWith(m))),
+  );
+
   return (
     <nav
       aria-label="Navigasi utama"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:hidden"
+      className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:hidden"
     >
-      <div className="pointer-events-auto mx-auto flex h-14 max-w-[21rem] items-center gap-1 rounded-2xl border border-line glass p-1.5 glass dark:border-line-dark dark:bg-ink-2/90">
-        {items.map((n) => {
-          const active = n.match.some((m) => (m === "/" ? pathname === "/" : pathname.startsWith(m)));
+      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-[1.75rem] border border-line glass p-1.5 dark:border-line-dark">
+        <span
+          aria-hidden="true"
+          className="dock-pill"
+          style={{ transform: `translateX(${Math.max(idx, 0) * 100}%)`, opacity: idx < 0 ? 0 : 1 }}
+        />
+        {items.map((n, i) => {
+          const active = i === idx;
           const Icon = n.icon;
           return (
             <NavLink
@@ -213,14 +387,12 @@ export function MobileTabBar() {
               href={n.href}
               aria-label={n.label}
               aria-current={active ? "page" : undefined}
-              className={`flex h-full min-w-0 items-center justify-center gap-1.5 rounded-xl transition-[flex-grow,background-color,color] duration-200 ${
-                active
-                  ? "flex-[2.4] bg-accent px-2 text-white"
-                  : "flex-1 text-muted active:bg-paper-3 dark:text-muted-dark dark:active:bg-ink-3"
+              className={`dock-item relative z-10 flex h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl ${
+                active ? "text-accent-strong dark:text-white" : "text-muted dark:text-muted-dark"
               }`}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {active && <span className="tab-label truncate text-[13px] font-bold">{n.label}</span>}
+              <Icon className="dock-icon h-[22px] w-[22px] shrink-0" />
+              <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none tracking-tight">{n.label}</span>
             </NavLink>
           );
         })}
@@ -291,7 +463,7 @@ export function BackToTop() {
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Kembali ke atas"
-      className="fab-in group/fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
+      className="fab-in group/fab fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 transition-transform duration-300 group-hover/fab:-translate-y-0.5">
         <path
@@ -379,6 +551,14 @@ function IconHistory({ className }: IconProps) {
         strokeLinejoin="round"
       />
       <path d="M12 8v4.5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconChevronLeft({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="m15 5-7 7 7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

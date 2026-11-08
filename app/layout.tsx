@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme";
 import { BootSplash } from "@/components/boot-splash";
 import { RouteMemory } from "@/components/route-memory";
 import { Pwa } from "@/components/pwa";
-import { BackToTop, Footer, Header, Main, MobileTabBar } from "@/components/layout";
+import { BackToTop, Footer, Header, Main, MobileTabBar, Sidebar } from "@/components/layout";
 import "./globals.css";
 
 // Halaman bersifat statis (shell dari CDN) — data komik tetap live karena
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}',
+              'try{var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
           }}
         />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
@@ -99,9 +99,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <BootSplash />
           <RouteMemory />
           <Pwa />
-          <Header />
-          <Main>{children}</Main>
-          <Footer />
+          <Sidebar />
+          <div className="app-shell flex min-w-0 flex-1 flex-col">
+            <Header />
+            <Main>{children}</Main>
+            <Footer />
+          </div>
           <MobileTabBar />
           <BackToTop />
         </ThemeProvider>
