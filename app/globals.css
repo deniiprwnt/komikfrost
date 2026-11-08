@@ -37,10 +37,10 @@
   --color-muted-dark: #8fa0a7;
 
   /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
-  --color-accent: #337e76;
-  --color-accent-strong: #26675f;
-  --color-accent-soft: #dfedea;
-  --color-accent-soft-dark: #172f2d;
+  --color-accent: #1d3a3f;
+  --color-accent-strong: #122a2e;
+  --color-accent-soft: #dce8e9;
+  --color-accent-soft-dark: #17292c;
 
   /* Penanda tipe bacaan — hue sama, saturasi diredam. */
   --color-mark-manga: #bf4f48;
@@ -54,14 +54,19 @@
 
   --color-danger: #a8433b;
   --color-danger-dark: #e57368;
+
+  /* Semua utilitas `transition-*` Tailwind memakai durasi & kurva lembut
+     yang sama (sebelumnya 150ms ease-in-out bawaan — terasa patah). */
+  --default-transition-duration: 240ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Tema gelap: isi aksen tetap teal sedang (teks/ikon putih di atasnya
    tetap putih, mis. logo & tombol). Teks beraksen di atas gelap memakai
    teal yang lebih terang lewat aturan di bawah. */
 html.dark {
-  --color-accent: #2f7d75;
-  --color-accent-strong: #78b8ae;
+  --color-accent: #2a5257;
+  --color-accent-strong: #8fb8bb;
 }
 :root {
   --on-accent: #ffffff;
@@ -77,6 +82,13 @@ html.dark {
    menang atas hover:text-white; rule ini mengembalikan warna hover. */
 .dark .section-link:hover {
   color: var(--on-accent);
+}
+
+/* Tombol berlatar aksen: di tema gelap --color-accent-strong adalah tint terang
+   (untuk teks), jadi hover latar memakai aksen yang sedikit diangkat agar
+   teks putih tetap terbaca. */
+.dark .hover\:bg-accent-strong:hover {
+  background-color: #346268;
 }
 
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).
@@ -348,7 +360,7 @@ h1, h2, h3, p, dd {
     var(--color-paper-3) 70%
   );
   background-size: 200% 100%;
-  animation: shimmer-sweep 1.6s linear infinite;
+  animation: shimmer-sweep 2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .dark .shimmer {
   background-image: linear-gradient(
@@ -359,16 +371,19 @@ h1, h2, h3, p, dd {
   );
 }
 .blur-up {
-  filter: blur(12px);
-  transform: scale(1.06);
+  filter: blur(8px);
+  transform: scale(1.03);
+  opacity: 0.6;
   transition:
-    filter 0.7s var(--ease-out),
-    transform 0.9s var(--ease-out),
-    scale 0.5s var(--ease-out);
+    filter 0.6s var(--ease-out),
+    transform 0.8s var(--ease-out),
+    opacity 0.5s var(--ease-out),
+    scale 0.65s var(--ease-out);
 }
 .blur-up.blur-done {
   filter: none;
   transform: none;
+  opacity: 1;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -470,15 +485,13 @@ h1, h2, h3, p, dd {
 
 /* ---- Karakter anime (SVG orisinal) + HUD + progress miring ------------- */
 .cover-ph {
-  --ph-hair: #2b6b63;
-  --ph-hair-hi: #68b3a8;
+  --ph-hair: #2a4c51;
+  --ph-hair-hi: #6f9ea3;
   --ph-skin: #ffe4d4;
-  --ph-iris-a: #66bfb3;
+  --ph-iris-a: #7fb0b4;
   --ph-iris-b: #1b6fd1;
 }
 .dark .cover-ph {
-  --ph-hair: #7cc0b5;
-  --ph-hair-hi: #cfe8e3;
   --ph-skin: #ffe9dc;
 }
 .cover-ph--err {
@@ -556,12 +569,12 @@ h1, h2, h3, p, dd {
 .cover-ph--load {
   background:
     radial-gradient(circle at 50% 42%, #ffffffe6 0%, transparent 56%),
-    linear-gradient(165deg, #ffe4ef 0%, #e6f1ee 55%, #dcecff 100%);
+    linear-gradient(165deg, #ffe4ef 0%, #e8f0f1 55%, #dcecff 100%);
 }
 .cover-ph--err {
   background:
     radial-gradient(circle at 50% 44%, #ffffffe6 0%, transparent 54%),
-    linear-gradient(160deg, #e6f1ee 0%, #f1f7f6 55%, #dfedea 100%);
+    linear-gradient(160deg, #e8f0f1 0%, #f1f7f6 55%, #dce8e9 100%);
 }
 .cover-ph__label { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
 /* Gelap: lebih dalam, cahaya lembut, kilau halus (tanpa sudut putih tajam). */
@@ -574,20 +587,20 @@ h1, h2, h3, p, dd {
 .dark .cover-ph--err {
   background:
     radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
-    linear-gradient(160deg, #132a29 0%, #111a1f 55%, #162f2d 100%);
+    linear-gradient(160deg, #14292c 0%, #111a1f 55%, #172a2d 100%);
 }
 .dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 
 /* ---- Error: warna primary (teal) ------------- */
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
-  --ph-iris-a: #6fc2b7;
-  --ph-iris-b: #337e76;
+  --ph-iris-a: #7fb0b4;
+  --ph-iris-b: #1d3a3f;
 }
 .dark .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
-  --ph-iris-a: #8ccdc3;
-  --ph-iris-b: #3a8c82;
+  --ph-iris-a: #9cc3c6;
+  --ph-iris-b: #3d6a70;
 }
 .cover-ph--err .cover-ph__avatar {
   filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
@@ -595,22 +608,20 @@ h1, h2, h3, p, dd {
 /* Latar error & loading (sama): mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
 .cover-ph--err,
 .cover-ph--load {
-  --ph-hair: #2b6b63;
-  --ph-hair-hi: #68b3a8;
+  --ph-hair: #2a4c51;
+  --ph-hair-hi: #6f9ea3;
   background:
     radial-gradient(70% 55% at 50% 46%, #ffffffd9 0%, transparent 70%),
-    radial-gradient(90% 60% at 0% 0%, #cfe5e0 0%, transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, #bcdad4 0%, transparent 62%),
-    linear-gradient(160deg, #ecf4f2 0%, #e0eeeb 100%);
+    radial-gradient(90% 60% at 0% 0%, #d3e2e4 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #c3d6d9 0%, transparent 62%),
+    linear-gradient(160deg, #eef4f5 0%, #e2ecee 100%);
 }
 .dark .cover-ph--err,
 .dark .cover-ph--load {
-  --ph-hair: #7cc0b5;
-  --ph-hair-hi: #cfe8e3;
   background:
     radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 72%),
-    radial-gradient(90% 60% at 0% 0%, #1a3a37 0%, transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, #153536 0%, transparent 62%),
+    radial-gradient(90% 60% at 0% 0%, #1d3a3f 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #162f33 0%, transparent 62%),
     linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
 }
 .cover-ph--err .cover-ph__speed,
@@ -837,7 +848,7 @@ label.rounded-full {
   to { clip-path: inset(0 0 0 0); }
 }
 .hero-wipe {
-  animation: panel-wipe 520ms cubic-bezier(0.7, 0, 0.2, 1) both;
+  animation: panel-wipe 760ms cubic-bezier(0.65, 0, 0.15, 1) both;
 }
 
 /* Di rail horizontal, kartu tidak boleh dilewati render (content-visibility). */
@@ -861,14 +872,14 @@ label.rounded-full {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.select-pop { animation: select-pop-in 140ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.select-pop { animation: select-pop-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .select-pop.origin-bottom { animation-name: select-pop-in-up; }
 @keyframes select-pop-in-up {
   from { opacity: 0; transform: translateY(4px) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
-.select-sheet { animation: select-sheet-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.select-fade { animation: select-fade-in 180ms ease both; }
+.select-sheet { animation: select-sheet-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.select-fade { animation: select-fade-in 240ms ease both; }
 
 /* Baris filter: membungkus ke baris baru (tanpa geser horizontal). */
 .filter-row {
@@ -900,62 +911,41 @@ label.rounded-full {
 
 /* 1) Transisi antar halaman: konten naik + memudar masuk. */
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
 }
 .page-in {
-  animation: page-in 420ms var(--ease-out) backwards;
+  animation: page-in 460ms var(--ease-out) backwards;
 }
 
 /* 2) Kartu masuk. Browser modern: terungkap mengikuti scroll (CSS murni).
       Lainnya: masuk berjenjang saat halaman dibuka (--st per urutan). */
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
 .cv-auto,
 .cv-row {
-  animation: card-in 560ms var(--ease-out) backwards;
+  animation: card-in 520ms var(--ease-out) backwards;
   animation-delay: var(--st, 0ms);
 }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(2) { --st: 45ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(3) { --st: 90ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(4) { --st: 135ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(5) { --st: 180ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(6) { --st: 225ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(7) { --st: 270ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(8) { --st: 315ms; }
-:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(n + 9) { --st: 360ms; }
-
-@supports (animation-timeline: view()) {
-  @keyframes card-reveal {
-    from { opacity: 0; transform: translateY(28px) scale(0.97); }
-    to { opacity: 1; transform: none; }
-  }
-  .cv-auto,
-  .cv-row {
-    animation: card-reveal linear both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 45%;
-    animation-delay: 0s;
-  }
-  /* Rail horizontal: jangan ikut terungkap vertikal. */
-  .rail-snap .cv-auto {
-    animation: card-in 560ms var(--ease-out) backwards;
-    animation-timeline: auto;
-    animation-range: normal;
-    animation-delay: var(--st, 0ms);
-  }
-}
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(2) { --st: 40ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(3) { --st: 80ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(4) { --st: 120ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(5) { --st: 160ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(6) { --st: 200ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(7) { --st: 240ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(8) { --st: 280ms; }
+:is(.stagger, .grid-cards, .divide-y, .rail-snap) > :nth-child(n + 9) { --st: 320ms; }
 
 /* 3) Kartu cover: angkat halus saat hover, menekan saat disentuh.
       Pakai properti `translate`/`scale` agar tak bentrok dengan animasi masuk. */
 .cv-auto.group {
   transition:
-    translate 320ms var(--ease-out),
-    scale 200ms var(--ease-out),
-    border-color 200ms ease,
-    background-color 200ms ease;
+    translate 380ms var(--ease-out),
+    scale 240ms var(--ease-out),
+    border-color 260ms ease,
+    background-color 260ms ease;
 }
 @media (hover: hover) {
   .cv-auto.group:hover {
@@ -968,7 +958,7 @@ label.rounded-full {
 /* Kartu list & baris: tekan halus. */
 .cv-row,
 article.cv-auto:not(.group) {
-  transition: scale 200ms var(--ease-out);
+  transition: scale 240ms var(--ease-out), border-color 260ms ease, background-color 260ms ease;
 }
 .cv-row:active,
 article.cv-auto:not(.group):active {
@@ -1081,6 +1071,9 @@ article.cv-auto:not(.group):active {
 .search-wrap:focus-within > svg {
   color: var(--color-accent);
 }
+.dark .search-wrap:focus-within > svg {
+  color: var(--color-accent-strong);
+}
 @media (hover: hover) {
   .search-field:hover:not(:focus-visible) {
     border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-line));
@@ -1090,6 +1083,9 @@ article.cv-auto:not(.group):active {
   }
   .search-wrap:hover > svg {
     color: var(--color-accent);
+  }
+  .dark .search-wrap:hover > svg {
+    color: var(--color-accent-strong);
   }
 }
 .search-field::placeholder {
@@ -1147,7 +1143,7 @@ article.cv-auto:not(.group):active {
 .suggest-item[data-active] .suggest-title,
 .suggest-link:focus-visible .suggest-title { color: var(--color-accent-strong); }
 .dark .suggest-item[data-active] .suggest-title,
-.dark .suggest-link:focus-visible .suggest-title { color: var(--color-accent); }
+.dark .suggest-link:focus-visible .suggest-title { color: var(--color-accent-strong); }
 .suggest-item[data-active] .suggest-thumb {
   transform: scale(1.03);
 }
@@ -1414,6 +1410,7 @@ article.cv-auto:not(.group):active {
 .sb:hover .sb-handle,
 .sb-handle:focus-visible { opacity: 1; }
 .sb-handle:hover { color: var(--color-accent); border-color: var(--color-accent); transform: scale(1.1); }
+.dark .sb-handle:hover { color: var(--color-accent-strong); border-color: var(--color-accent-strong); }
 
 /* Kartu info bawah */
 .sb-promo {
@@ -1422,8 +1419,67 @@ article.cv-auto:not(.group):active {
   border: 1px solid var(--color-line);
   background-color: color-mix(in srgb, var(--color-accent) 6%, var(--color-paper-2));
   overflow: hidden;
-  max-height: 10rem;
+  max-height: 13rem;
   transition: opacity 200ms ease, max-height 300ms var(--ease-out), padding 300ms var(--ease-out);
+}
+.sb-promo__head { display: flex; align-items: center; gap: 0.6rem; }
+.sb-promo__ico {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-lg);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+.dark .sb-promo__ico {
+  color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-accent) 22%, var(--color-ink-2));
+}
+.sb-promo__live {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-fresh);
+}
+.dark .sb-promo__live { color: var(--color-fresh-dark); }
+.sb-promo__live i {
+  position: relative;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sb-promo__live i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-ping 2.2s var(--ease-out) infinite;
+}
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.55; }
+  80%, 100% { transform: scale(2.8); opacity: 0; }
+}
+.sb-promo__chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.375rem;
+  margin-top: 0.7rem;
+}
+.sb-promo__chips .sb-chip {
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.38rem 0.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-promo__live i::after { animation: none !important; }
 }
 .dark .sb-promo {
   border-color: var(--color-line-dark);
@@ -1579,4 +1635,99 @@ article.cv-auto:not(.group):active {
 }
 @media (prefers-reduced-motion: reduce) {
   .hdr-search { transition: none; }
+}
+
+/* ====================================================================== */
+/* Penghalusan animasi (v2): tambahan di atas sistem di atas.             */
+/* ====================================================================== */
+
+/* Zoom cover saat hover: lebih panjang supaya terasa meluncur, bukan loncat. */
+.group img.object-cover:not(.blur-up) {
+  transition-duration: 650ms;
+  transition-timing-function: var(--ease-out);
+}
+
+/* Elemen melayang (overlay tap-nav, tombol chapter berikut, banner gagal)
+   masuk naik + memudar, bukan muncul tiba-tiba. */
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.float-in {
+  animation: float-in 340ms var(--ease-out) backwards;
+}
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.fade-rise {
+  animation: fade-rise 360ms var(--ease-out) backwards;
+}
+@keyframes fade-only {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-soft {
+  animation: fade-only 280ms ease-out backwards;
+}
+
+/* Gambar halaman pembaca: memudar masuk saat selesai dimuat. */
+.reader-img {
+  opacity: 0;
+  transition: opacity 420ms var(--ease-out);
+}
+.reader-img.is-loaded {
+  opacity: 1;
+}
+
+/* Bar progress baca: bergerak lembut mengikuti scroll. */
+.reader-progress {
+  transition: width 220ms var(--ease-out);
+}
+
+/* Placeholder memudar (bukan hilang mendadak) saat gambar siap. */
+.cover-ph--load {
+  animation: fade-only 240ms ease-out both;
+}
+
+/* Skeleton → konten: area yang memuat langsung terlihat hidup. */
+.shimmer {
+  animation-name: shimmer-sweep, fade-only;
+  animation-duration: 2s, 300ms;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1), ease-out;
+  animation-iteration-count: infinite, 1;
+}
+
+/* Tautan & tombol umum: umpan balik tekan yang seragam. */
+@media (hover: hover) {
+  a:active:not(.sb-item):not(.dock-item),
+  button:active:not(:disabled):not(.dock-item) {
+    transition-duration: 120ms;
+  }
+}
+
+/* Fokus: cincin muncul lembut, bukan tiba-tiba. */
+:focus-visible {
+  transition: outline-offset 160ms var(--ease-out);
+}
+
+/* Gulir halus hanya bila pengguna tidak meminta gerak dikurangi. */
+@media (prefers-reduced-motion: reduce) {
+  .float-in,
+  .fade-rise,
+  .fade-soft,
+  .cover-ph--load,
+  .shimmer {
+    animation: none !important;
+  }
+  .reader-img {
+    opacity: 1;
+    transition: none;
+  }
+  .reader-progress {
+    transition: none;
+  }
+  .group img.object-cover:not(.blur-up) {
+    transition: none;
+  }
 }

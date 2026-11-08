@@ -6,9 +6,9 @@
       <stop offset="1" stop-color="#0a1417"/>
     </linearGradient>
     <radialGradient id="bloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(49 54) rotate(-90) scale(40)">
-      <stop offset="0" stop-color="#3a8c82" stop-opacity="0.5"/>
-      <stop offset="0.6" stop-color="#337e76" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#337e76" stop-opacity="0"/>
+      <stop offset="0" stop-color="#3d6a70" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#1d3a3f" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#1d3a3f" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="mark" x1="32" y1="16" x2="32" y2="48" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ffffff"/>

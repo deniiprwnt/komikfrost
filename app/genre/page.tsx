@@ -71,7 +71,7 @@ export default function GenreListPage() {
       />
       {picked.length > 0 && (
         <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-accent/40 bg-accent-soft/40 p-3 sm:p-4 dark:border-accent/30 dark:bg-accent-soft-dark/40">
-          <p className="truncate text-xs font-semibold text-accent-strong sm:text-sm dark:text-accent">
+          <p className="truncate text-xs font-semibold text-accent-strong sm:text-sm dark:text-accent-strong">
             Dipilih ({picked.length}/2): {pickedNames.join(" + ")}
           </p>
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">

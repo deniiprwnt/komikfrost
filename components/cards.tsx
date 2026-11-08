@@ -60,7 +60,7 @@ export function TypeBadge({
 
 /** Tanda sumber data — kecil seperti TypeBadge, satu warna per source. */
 const SOURCE_STYLE: Record<string, string> = {
-  shinigami: "bg-accent",
+  shinigami: "bg-[#337e76] dark:bg-[#2f7d75]",
   komiku: "bg-mark-manhwa",
   komikcast: "bg-mark-manga",
 };
@@ -160,7 +160,9 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
         />
         {/* z-10: <CoverImage> menaruh gambarnya di z-index 1, jadi badge
-            harus di atasnya agar tetap terlihat. */}
+            harus di atasnya agar tetap terlihat. Badge chapter melebihi tepi
+            kiri/bawah 1px (terpotong overflow-hidden) agar tetap menempel saat
+            gambar di-scale ketika hover. */}
         {item.type && (
           <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />
@@ -171,7 +173,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
         />
         {item.latestChapter && (
-          <span className="absolute bottom-0 left-0 z-10 max-w-full truncate bg-accent px-2 py-1 text-[11px] font-bold leading-none text-white">
+          <span className="absolute -bottom-px -left-px z-10 max-w-full truncate bg-accent pb-[5px] pl-[9px] pr-2 pt-1 text-[11px] font-bold leading-none text-white">
             {item.latestChapter.label}
           </span>
         )}

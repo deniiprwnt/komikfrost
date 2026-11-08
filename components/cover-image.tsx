@@ -259,7 +259,7 @@ export function ReaderPageImage({
         onLoad={() => setLoaded(true)}
         onError={(e) => fail(e.currentTarget)}
         onClick={onClick}
-        className={`relative z-[1] ${imgClassName}`}
+        className={`reader-img ${loaded ? "is-loaded" : ""} relative z-[1] ${imgClassName}`}
       />
     </div>
   );

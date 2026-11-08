@@ -148,11 +148,21 @@ export function Sidebar() {
       {/* Kartu info */}
       <div className="sb-foot mt-auto flex shrink-0 flex-col gap-2 p-3">
         <div className="sb-promo">
-          <p className="text-[13px] font-extrabold leading-tight text-fg dark:text-fg-dark">Baca tanpa batas</p>
-          <p className="mt-1 text-[11.5px] leading-snug text-muted dark:text-muted-dark">
-            Komik terbaru dalam Bahasa Indonesia, update tiap hari.
+          <div className="sb-promo__head">
+            <span className="sb-promo__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5v-15ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5v-15Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13px] font-extrabold leading-tight text-fg dark:text-fg-dark">Baca tanpa batas</p>
+              <p className="sb-promo__live"><i aria-hidden="true" />Update tiap hari</p>
+            </div>
+          </div>
+          <p className="mt-2.5 text-[11.5px] leading-snug text-muted dark:text-muted-dark">
+            Komik terbaru dalam Bahasa Indonesia, langsung di satu tempat.
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="sb-promo__chips">
             <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manga)" }}>Manga</span>
             <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhwa)" }}>Manhwa</span>
             <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhua)" }}>Manhua</span>
