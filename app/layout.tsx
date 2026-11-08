@@ -86,10 +86,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
-            tidak menunggu gambar pertama. */}
+            tidak menunggu gambar pertama. Gambar chapter tersebar di
+            beberapa subdomain (image2..image8), cover dari thumbnail, dan
+            host lain (Shinigami/Komikcast) yang diproxy lewat origin ini. */}
         <link rel="preconnect" href="https://img.komiku.org" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://thumbnail.komiku.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://api.komiku.org" />
+        <link rel="dns-prefetch" href="https://image2.komiku.to" />
+        <link rel="dns-prefetch" href="https://image3.komiku.to" />
+        <link rel="dns-prefetch" href="https://image4.komiku.to" />
+        <link rel="dns-prefetch" href="https://image5.komiku.to" />
+        <link rel="dns-prefetch" href="https://image6.komiku.to" />
+        <link rel="dns-prefetch" href="https://image7.komiku.to" />
+        <link rel="dns-prefetch" href="https://image8.komiku.to" />
+        <link rel="dns-prefetch" href="https://assets.shngm.id" />
+        <link rel="dns-prefetch" href="https://cdn.komikcast.top" />
         {/* Standar modern untuk mode standalone (Chrome/Edge/Android).
             Metadata appleWebApp hanya menghasilkan varian apple-*. */}
         <meta name="mobile-web-app-capable" content="yes" />

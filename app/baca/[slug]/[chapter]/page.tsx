@@ -845,6 +845,11 @@ function PageMode({
             key={cur}
             src={src}
             alt={`${data.title} halaman ${cur + 1}`}
+            // Halaman yang sedang dilihat dimuat segera (fetchPriority
+            // high). Tanpa ini, mode page menunggu antrean lazy-load yang
+            // dipicu oleh halaman sebelumnya.
+            loading={cur === 0 ? "eager" : "lazy"}
+            fetchPriority={cur === 0 ? "high" : "auto"}
             draggable={false}
             onError={(e) => {
               const el = e.currentTarget;
@@ -862,6 +867,7 @@ function PageMode({
               setFailed((s) => new Set(s).add(cur));
             }}
             data-pg={cur}
+            decoding="async"
             className="max-h-[75vh] w-full select-none object-contain"
           />
         )}

@@ -73,10 +73,14 @@ export async function GET(req: NextRequest) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   try {
+    // Gambar chapter bersifat abadi (URL berisi nama file unik). Gunakan
+    // cache HTTP Next/Data Cache 1 hari agar proxy bisa menyajikan dari
+    // cache server tanpa menyentuh upstream berulang kali - jauh lebih cepat
+    // dan menghemat bandwidth. `revalidate: 86400` = 24 jam.
     const upstream = await fetch(url.toString(), {
       headers: { "User-Agent": UA, Accept: "image/*,*/*;q=0.8", Referer: `${url.protocol}//${url.host}/` },
       signal: ctrl.signal,
-      cache: "no-store",
+      next: { revalidate: 86400 },
     });
     if (!upstream.ok || !upstream.body) {
       return Response.json(
