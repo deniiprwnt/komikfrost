@@ -419,43 +419,6 @@ h1, h2, h3, p, dd {
       color-mix(in srgb, #3a7ab4 28%, var(--color-ink-3)) 100%);
 }
 
-/* Kilau bintang 4 sudut. */
-.cover-ph__spark {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: clamp(7px, 9cqmin, 16px);
-  aspect-ratio: 1;
-  background: linear-gradient(135deg, #fff7c2, #ffd166);
-  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-  filter: drop-shadow(0 0 3px #ffd166aa);
-  animation: ph-twinkle 1.8s ease-in-out infinite var(--d, 0s);
-  z-index: -1;
-}
-@keyframes ph-twinkle {
-  0%, 100% { transform: scale(0.3) rotate(0deg); opacity: 0; }
-  50% { transform: scale(1) rotate(45deg); opacity: 1; }
-}
-
-/* Kelopak sakura jatuh. */
-.cover-ph__petal {
-  position: absolute;
-  top: -8%;
-  left: var(--x);
-  width: clamp(5px, 5.5cqmin, 11px);
-  aspect-ratio: 1;
-  background: linear-gradient(135deg, #ffd6e8, #ff9cc4);
-  border-radius: 80% 0 80% 0;
-  opacity: 0.9;
-  z-index: -1;
-  animation: ph-fall 4.2s linear infinite var(--d, 0s);
-}
-@keyframes ph-fall {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.95; }
-  100% { transform: translate(-30cqw, 115cqh) rotate(300deg); opacity: 0; }
-}
-
 /* Error: ledakan "shock lines" merah + wajah lemas. */
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-mark-manga) 26%, transparent);
@@ -538,27 +501,6 @@ h1, h2, h3, p, dd {
   animation: ph-spin 1.4s linear infinite;
 }
 .ph-spiral--r { animation-direction: reverse; }
-/* Bingkai HUD ala UI anime: sudut siku bercahaya. */
-.cover-ph__hud {
-  --c: color-mix(in srgb, var(--color-accent) 75%, transparent);
-  --l: 16%;
-  position: absolute;
-  inset: 5%;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--c), var(--c)) top left / var(--l) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) top left / 2px var(--l) no-repeat,
-    linear-gradient(var(--c), var(--c)) top right / var(--l) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) top right / 2px var(--l) no-repeat,
-    linear-gradient(var(--c), var(--c)) bottom left / var(--l) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) bottom left / 2px var(--l) no-repeat,
-    linear-gradient(var(--c), var(--c)) bottom right / var(--l) 2px no-repeat,
-    linear-gradient(var(--c), var(--c)) bottom right / 2px var(--l) no-repeat;
-  filter: drop-shadow(0 0 4px var(--c));
-}
-.cover-ph--err .cover-ph__hud { --c: color-mix(in srgb, var(--color-mark-manga) 80%, transparent); }
-
 /* Progress miring bergaya manga. */
 .cover-ph__bar {
   position: relative;
@@ -616,7 +558,7 @@ h1, h2, h3, p, dd {
 }
 .dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 
-/* ---- Error: warna primary (teal) + bingkai viewfinder kamera ------------- */
+/* ---- Error: warna primary (teal) ------------- */
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
   --ph-iris-a: #5fd6c0;
@@ -630,13 +572,6 @@ h1, h2, h3, p, dd {
 .cover-ph--err .cover-ph__avatar {
   filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
 }
-.cover-ph--err .cover-ph__hud,
-.dark .cover-ph--err .cover-ph__hud {
-  --c: var(--color-accent);
-  --l: 18%;
-  border-radius: 0;
-}
-.dark .cover-ph--err .cover-ph__hud { --c: var(--color-accent-strong); }
 /* Latar error & loading (sama): mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
 .cover-ph--err,
 .cover-ph--load {
@@ -711,7 +646,6 @@ html { overscroll-behavior-y: none; }
 }
 @container (max-width: 100px) {
   .cover-ph__label { display: none; }
-  .cover-ph__petal:nth-of-type(n+3) { display: none; }
 }
 @container (max-height: 80px) {
   .cover-ph__label { display: none; }
@@ -731,8 +665,6 @@ html { overscroll-behavior-y: none; }
   .cover-ph * {
     animation: none !important;
   }
-  .cover-ph__petal { display: none; }
-  .cover-ph__spark { opacity: 0.9; transform: none; }
 }
 
 /* ---------------------------------------------------------------------- */

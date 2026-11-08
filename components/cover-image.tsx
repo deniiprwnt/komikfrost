@@ -19,23 +19,10 @@ import { useCallback, useState } from "react";
  */
 
 
-/** Dekorasi bergaya anime: garis kecepatan, kilau bintang, kelopak sakura. */
+/** Dekorasi bergaya anime: garis kecepatan. */
 function Speed() {
   return <span className="cover-ph__speed" aria-hidden="true" />;
 }
-function Sparkles() {
-  return (
-    <>
-      <i className="cover-ph__spark" style={{ "--x": "14%", "--y": "16%", "--d": "0s" } as React.CSSProperties} />
-      <i className="cover-ph__spark" style={{ "--x": "76%", "--y": "26%", "--d": "0.6s" } as React.CSSProperties} />
-      <i className="cover-ph__spark" style={{ "--x": "64%", "--y": "74%", "--d": "1.1s" } as React.CSSProperties} />
-      <i className="cover-ph__petal" style={{ "--x": "82%", "--d": "0s" } as React.CSSProperties} />
-      <i className="cover-ph__petal" style={{ "--x": "52%", "--d": "1.4s" } as React.CSSProperties} />
-      <i className="cover-ph__petal" style={{ "--x": "98%", "--d": "2.6s" } as React.CSSProperties} />
-    </>
-  );
-}
-
 /**
  * Karakter anime orisinal (SVG, tanpa teks): rambut berponi, mata besar
  * berkilau yang berkedip, pipi merona. Varian "error": mata spiral pusing. Warna ikut tema lewat variabel CSS.
@@ -96,8 +83,6 @@ function AnimeLoading({ text }: { text?: string }) {
   return (
     <>
       <Speed />
-      <span className="cover-ph__hud" aria-hidden="true" />
-      <Sparkles />
       <AnimeFace variant="load" />
       <span className="cover-ph__bar" aria-hidden="true" />
       <span className="cover-ph__label cover-ph__label--always">
@@ -113,7 +98,6 @@ function AnimeError({ label }: { label: string }) {
   return (
     <>
       <Speed />
-      <span className="cover-ph__hud" aria-hidden="true" />
       <AnimeFace variant="err" />
       <span className="cover-ph__label">
         <span className="cover-ph__jp">画像なし</span>
@@ -294,7 +278,6 @@ export function ReaderPageError({
   return (
     <div className="cover-ph cover-ph--err cover-ph--reader-err" role="alert">
       <Speed />
-      <span className="cover-ph__hud" aria-hidden="true" />
       <AnimeFace variant="err" />
       <span className="cover-ph__label cover-ph__label--always">
         <span className="cover-ph__jp">画像なし</span>
