@@ -93,15 +93,17 @@ function ChapterNav({
 
   const base =
     "group relative flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[13px] font-semibold select-none transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out active:scale-[0.97] sm:h-12 sm:gap-2 sm:px-6 sm:text-sm";
-  const ghost = `${base} border border-line-dark bg-ink-3/70 text-fg-dark hover:border-accent/60 hover:bg-accent/10 hover:text-white`;
+  const ghost = `${base} border border-line bg-white text-fg hover:border-accent/60 hover:bg-accent-soft hover:text-accent-strong dark:border-line-dark dark:bg-ink-3/70 dark:text-fg-dark dark:hover:border-accent/60 dark:hover:bg-accent/10 dark:hover:text-white`;
   const primary = `${base} bg-accent text-white hover:bg-accent-strong`;
-  const off = `${base} cursor-not-allowed border border-line-dark/50 text-muted-dark/45 active:scale-100`;
+  const off = `${base} cursor-not-allowed border border-line/70 text-muted/50 active:scale-100 dark:border-line-dark/50 dark:text-muted-dark/45`;
 
   return (
     <nav
       aria-label="Navigasi chapter"
-      className={`mx-auto grid w-full min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5 rounded-2xl border border-line-dark bg-ink-2/90 p-1.5 backdrop-blur-md sm:gap-2 sm:p-2 ${
-        floating ? "max-w-md shadow-2xl shadow-black/50 sm:max-w-lg" : "max-w-md shadow-lg shadow-black/30 sm:max-w-lg"
+      className={`mx-auto grid w-full min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5 rounded-2xl border border-line bg-paper-2/90 p-1.5 backdrop-blur-md sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2/90 ${
+        floating
+          ? "max-w-md shadow-2xl shadow-black/15 sm:max-w-lg dark:shadow-black/50"
+          : "max-w-md shadow-lg shadow-black/10 sm:max-w-lg dark:shadow-black/30"
       }`}
     >
       {prevHref ? (
@@ -120,7 +122,7 @@ function ChapterNav({
         href={`/komik/${slug}`}
         aria-label="Daftar isi"
         title="Daftar isi"
-        className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl text-muted-dark transition-[background-color,color,transform] duration-200 hover:bg-ink-3 hover:text-fg-dark active:scale-95 sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
+        className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl text-muted transition-[background-color,color,transform] duration-200 hover:bg-paper-3 hover:text-fg active:scale-95 dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
       >
         <IconList className="h-[18px] w-[18px] shrink-0" />
         <span className="hidden sm:inline">Daftar isi</span>
@@ -717,7 +719,7 @@ export default function ReaderPage({
             }}
             aria-expanded={fabOpen}
             aria-label={fabOpen ? "Kembali ke atas" : "Buka navigasi chapter"}
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-line-dark bg-ink-2/95 text-fg-dark shadow-lg shadow-black/25 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent/60 active:scale-95"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-accent bg-accent text-white shadow-lg shadow-accent/30 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
           >
             <IconUp className="h-5 w-5" />
           </button>
