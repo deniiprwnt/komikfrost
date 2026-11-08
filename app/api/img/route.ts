@@ -13,7 +13,7 @@ import { guard } from "../_lib";
  *
  * Keamanan: hanya host upstream yang dikenal; path dibatasi ke gambar;
  * tanpa cookie/auth ke upstream; timeout 15 dtk; Content-Type dari
- * respons upstream yang tervalidasi; Cache-Control private 1 hari.
+ * respons upstream yang tervalidasi; Cache-Control private 7 hari.
  */
 export const dynamic = "force-dynamic";
 // Upstream gambar bisa lambat (abort 15 dtk di bawah) — jangan biarkan
@@ -39,6 +39,8 @@ const ALLOWED_HOSTS = new Set([
 ]);
 
 const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
+
+const IMG_CACHE_SECONDS = 604800;
 
 export async function GET(req: NextRequest) {
   // Bucket gambar terpisah dengan batas tinggi: satu chapter berisi puluhan
@@ -75,13 +77,13 @@ export async function GET(req: NextRequest) {
   req.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
   try {
     // Gambar chapter bersifat abadi (URL berisi nama file unik). Gunakan
-    // cache HTTP Next/Data Cache 1 hari agar proxy bisa menyajikan dari
+    // cache HTTP Next/Data Cache 7 hari agar proxy bisa menyajikan dari
     // cache server tanpa menyentuh upstream berulang kali - jauh lebih cepat
-    // dan menghemat bandwidth. `revalidate: 86400` = 24 jam.
+    // dan menghemat bandwidth. `IMG_CACHE_SECONDS` = 7 hari.
     const upstream = await fetch(url.toString(), {
       headers: { "User-Agent": UA, Accept: "image/*,*/*;q=0.8", Referer: `${url.protocol}//${url.host}/` },
       signal: ctrl.signal,
-      next: { revalidate: 86400 },
+      next: { revalidate: IMG_CACHE_SECONDS },
     });
     if (!upstream.ok || !upstream.body) {
       return Response.json(
@@ -102,7 +104,7 @@ export async function GET(req: NextRequest) {
         "Content-Type": ct,
         // Route ini di belakang gate → cache browser saja (private), jangan
         // biarkan CDN menyajikan gambar kepada request tanpa sesi.
-        "Cache-Control": "private, max-age=86400, stale-while-revalidate=86400",
+        "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
         "X-Content-Type-Options": "nosniff",
       },
     });

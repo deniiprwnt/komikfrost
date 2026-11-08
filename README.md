@@ -148,14 +148,16 @@ lib/
   browser idle, sehingga pindah menu terasa instan.
 - **Server cache** — `revalidate` per fetch untuk mengurangi beban sumber data.
 - **Gambar** — lazy loading + `decoding="async"`; sebagian melalui proxy
-  internal `/api/img` agar kompatibel dengan CDN sumber.
+  internal `/api/img` agar kompatibel dengan CDN sumber. Cache proxy 7 hari
+  (URL gambar chapter memakai nama file unik) dengan header `private`.
 - **Pagination** — 15 komik per halaman di Terbaru, Genre, dan Pencarian.
 
 ## Keamanan & privasi
 
 - `robots.txt`, metadata `noindex`, dan header `X-Robots-Tag`.
 - Gerbang password opsional dengan cookie HttpOnly dan SameSite=Lax.
-- Rate limit API 60 request/menit/IP.
+- Rate limit API 60 request/menit/IP; proxy gambar punya bucket terpisah
+  (600/menit) karena satu chapter berisi puluhan gambar.
 - Header hardening: `X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`, `Permissions-Policy`, dan CSP `frame-ancestors`.
 - Tidak ada kredensial pihak ketiga; hanya request GET ke halaman/API publik.
