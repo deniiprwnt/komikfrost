@@ -77,7 +77,14 @@ async function fetchJson<T>(url: string, revalidate = 30, fresh = false): Promis
       res.status,
     );
   }
-  return (await res.json()) as T;
+  // Upstream kadang 200 OK tapi body bukan JSON (halaman error HTML,
+  // challenge, dsb.). Bungkus sebagai KomikcastError agar handler route
+  // mengembalikan 502 "upstream", bukan 500 "terjadi kesalahan tak terduga".
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new KomikcastError("Respons sumber data tidak valid.", url, res.status);
+  }
 }
 
 /* ------------------------------------------------------------------ */

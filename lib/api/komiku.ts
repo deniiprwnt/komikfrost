@@ -53,6 +53,11 @@ export class KomikuError extends Error {
  * update sebenarnya lebih tua sebesar umur cache tersebut.
  */
 const upstreamAgeMs = new Map<string, number>();
+/** Batas entri: pemanggil yang tidak memakai takeUpstreamAge (detail,
+ *  reader, ranking, home, daftar genre) menaruh umur ke Map tanpa pernah
+ *  menghapusnya, sehingga Map tumbuh tanpa batas di proses panjang.
+ *  Cukup di-cap dan evict entri tertua (Map = urutan insert). */
+const UPSTREAM_AGE_MAX = 500;
 
 function takeUpstreamAge(url: string): number {
   const v = upstreamAgeMs.get(url) ?? 0;
@@ -100,6 +105,10 @@ async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<s
   }
   const ageSec = parseInt(res.headers.get("age") ?? "", 10);
   upstreamAgeMs.set(url, Number.isFinite(ageSec) && ageSec > 0 ? ageSec * 1000 : 0);
+  if (upstreamAgeMs.size > UPSTREAM_AGE_MAX) {
+    const oldest = upstreamAgeMs.keys().next().value;
+    if (oldest !== undefined) upstreamAgeMs.delete(oldest);
+  }
   return res.text();
 }
 
@@ -617,14 +626,19 @@ export async function fetchChapter(
     if (label === "prev" && href.includes("-chapter-")) prevUrl = prevUrl ?? href;
     if (label === "list" && href.startsWith("/manga/")) mangaUrl = mangaUrl || href;
   });
-  // Fallback: link chapter lain di halaman = chapter sebelumnya
+  // Fallback: link chapter lain di halaman = chapter sebelumnya.
+  // Wajib cek slug komik - anchor rekomendasi/sidebar bisa menunjuk komik
+  // LAIN dan dulu salah diterima sebagai "prev" (navigasi loncat ke judul
+  // yang salah).
   if (!prevUrl) {
+    const mangaPrefix = parsed.mangaSlug.toLowerCase();
     $("a[href*='-chapter-']").each((_, a) => {
       const href = toPath($(a).attr("href"));
-      if (href !== clean && href.includes("-chapter-")) {
-        prevUrl = href;
-        return false;
-      }
+      if (href === clean || !href.includes("-chapter-")) return;
+      const m = href.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)-chapter-/i);
+      if (!m || m[1].toLowerCase() !== mangaPrefix) return;
+      prevUrl = href;
+      return false;
     });
   }
   const mangaSlug = mangaSlugFromPath(mangaUrl) || parsed.mangaSlug;

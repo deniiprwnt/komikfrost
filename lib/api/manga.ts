@@ -38,6 +38,7 @@ import {
   mergeDetails,
   normalizeTitle,
   sortByFresh,
+  SOURCE_PRIORITY,
   type MergedMangaCard,
   type MergedMangaDetail,
 } from "./aggregator";
@@ -53,22 +54,42 @@ import type { MangaCard, MangaDetail, PagedResult } from "./types";
  * agar beban tetap ringan), paralel max 5, gagal = biarin kosong.
  * Hasil enrich ditempel + source badge dilengkapi (komiku ikut).
  */
-/** Batas waktu kerja tambahan agar respons tidak tertahan upstream. */
-function withTimeout(p: Promise<unknown>, ms: number): Promise<unknown> {
-  return Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+/** Batas waktu kerja tambahan agar respons tidak tertahan upstream.
+ *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
+ *  Promise.race yang membiarkan timer kecil terus menumpuk di event loop. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise<T | null>((resolve, reject) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
 }
 
 async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
-  const needy = cards.filter(
-    (c) =>
-      c.sources.length === 1 &&
-      c.sources[0] === "komikcast" &&
-      // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
-      // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
-      // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
-      (!c.genre || !c.synopsis) &&
-      c.sourceSlug?.komikcast,
-  );
+  // Batasi 5 kartu per panggilan - tiap kartu memicu 1-3 request berantai
+  // (brief Komikcast + search Komiku + detail Komiku). Tanpa batas, satu
+  // request pengguna bisa membakar 50+ request upstream dan menahan respons
+  // di ekor lambat. Pola sama dengan enrich di lib/api/search.ts.
+  const needy = cards
+    .filter(
+      (c) =>
+        c.sources.length === 1 &&
+        c.sources[0] === "komikcast" &&
+        // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
+        // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
+        // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
+        (!c.genre || !c.synopsis) &&
+        c.sourceSlug?.komikcast,
+    )
+    .slice(0, 5);
   if (needy.length === 0) return;
   await Promise.all(
     needy.map(async (c) => {
@@ -98,6 +119,9 @@ async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
         if (!c.sources.includes("komiku")) {
           c.sources.push("komiku");
           c.sourceSlug = { ...c.sourceSlug, komiku: hit.slug };
+          // Urutkan sesuai prioritas (shinigami -> komiku -> komikcast) agar
+          // badge "Sumber" di kartu menampilkan sumber prioritas tertinggi.
+          c.sources.sort((a, b) => SOURCE_PRIORITY.indexOf(a) - SOURCE_PRIORITY.indexOf(b));
         }
         // Kartu search Komiku tidak bawa sinopsis ("Update X lalu." bukan
         // narasi) → ambil dari halaman detailnya (1 request, gagal = biarin).
@@ -277,7 +301,9 @@ async function buildLatestPaged(
   // oleh mergeCards. Di sini cukup urutkan secara global berdasarkan waktu
   // terbaru (paling baru di atas). Pengacakan HANYA terjadi jika user
   // memilih dropdown "Acak" (orderby=rand).
-  const ordered = orderby === "rand" ? shuffle(merged) : sortByFresh(merged);
+  // `opts.random` (dari ?acak=1) kini benar-benar mengocok - dulu hanya
+  // masuk cache key tanpa efek, membuat query memecah cache tanpa hasil.
+  const ordered = orderby === "rand" || opts.random ? shuffle(merged) : sortByFresh(merged);
   // hasNextPage HANYA dari paginator sumber. Dulu memakai
   // `merged.length > limit`, padahal gabungan 3 sumber hampir selalu lebih
   // panjang dari limit walau ini halaman terakhir → tombol halaman berikut

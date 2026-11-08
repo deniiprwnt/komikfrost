@@ -67,10 +67,13 @@ function navHrefs(
   const toNum = (c: string) => parseFloat(c.replace(/-(\d+)$/, ".$1"));
   const cur = toNum(chapter);
   const prevHref = data?.prevUrl ? chapterPathToRoute(data.prevUrl) : null;
+  // Hanya tebak +1 untuk chapter BULAT. Chapter desimal (mis. 11-9) tanpa
+  // nextUrl dari server dibiarkan null - dulu jatuh ke `String(11.9 + 1)
+  // .replace(".", "-") = "12-9"` yang salah (bukan 11-10 maupun 12).
   const nextHref = data?.nextUrl
     ? chapterPathToRoute(data.nextUrl)
-    : !data?.prevUrl && Number.isFinite(cur)
-      ? `/baca/${slug}/${String(cur + 1).replace(".", "-")}`
+    : !data?.prevUrl && Number.isFinite(cur) && Number.isInteger(cur)
+      ? `/baca/${slug}/${cur + 1}`
       : null;
   return { prevHref, nextHref };
 }

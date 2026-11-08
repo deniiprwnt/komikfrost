@@ -112,8 +112,12 @@ async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false)
     const here = window.location.pathname + window.location.search;
     if (!here.startsWith("/masuk")) {
       window.location.href = `/masuk?next=${encodeURIComponent(here)}`;
-      // Beri waktu navigasi berjalan sebelum promise ditolak.
-      await new Promise(() => {});
+      // Beri waktu navigasi berjalan sebelum promise ditolak. Timeout
+      // sebagai jaring pengaman: bila navigasi gagal (CSP, iframe, dsb.),
+      // jangan biarkan UI macet selamanya menunggu promise abadi.
+      await new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Mengalihkan ke halaman masuk...")), 5000),
+      );
     }
   }
   if (!res.ok || !json || json.error) {

@@ -8,7 +8,10 @@ import { prefetchApi } from "./client";
  * besar yang terasa seperti reload halaman.
  */
 const NAV_API: Record<string, string[]> = {
-  "/": ["/api/home"],
+  // Beranda memakai DUA endpoint (section "popular"/"recommended" lewat
+  // /api/home, section "Terbaru" lewat /api/latest?limit=16). Tanpa limit=16
+  // prefetch menu tidak pernah menghangatkan section Terbaru beranda.
+  "/": ["/api/home", "/api/latest?page=1&orderby=modified&limit=16"],
   "/terbaru": ["/api/latest?page=1&orderby=modified"],
   "/populer": ["/api/popular?period=harian"],
   "/genre": ["/api/genres"],

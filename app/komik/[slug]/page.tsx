@@ -69,15 +69,19 @@ interface GenrePayload {
 /** Komik Serupa (se-genre): 1 request ringan, gagal diam-diam tanpa merusak detail. */
 function useSimilar(detail: MangaDetail | null) {
   const [items, setItems] = useState<MangaCard[] | null>(null);
+  // Dependensi primitif, BUKAN objek `detail` - dulu setiap kali load()
+  // sukses (`detail` = objek baru) efek jalan ulang dan memicu 1 request
+  // /api/genre walau slug/genre tidak berubah.
+  const firstGenre = detail?.genres[0]?.slug;
+  const currentSlug = detail?.slug;
   useEffect(() => {
     setItems(null);
-    const first = detail?.genres[0]?.slug;
-    if (!first || !detail) return;
+    if (!firstGenre || !currentSlug) return;
     let cancelled = false;
-    apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(first)}`)
+    apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(firstGenre)}`)
       .then((res) => {
         if (!cancelled) {
-          setItems(res.items.filter((it) => it.slug !== detail.slug).slice(0, 12));
+          setItems(res.items.filter((it) => it.slug !== currentSlug).slice(0, 12));
         }
       })
       .catch(() => {
@@ -86,7 +90,7 @@ function useSimilar(detail: MangaDetail | null) {
     return () => {
       cancelled = true;
     };
-  }, [detail]);
+  }, [firstGenre, currentSlug]);
   return items;
 }
 

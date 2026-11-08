@@ -69,8 +69,20 @@ export function rateLimited(req: Request, limit = LIMIT, bucket = "api"): boolea
   // Sapu entri kedaluwarsa: Map ini dulu hanya di-reset saat IP yang SAMA
   // datang lagi, sehingga entri IP sekali-pakai menumpuk selamanya
   // (kebocoran memori di proses yang hidup lama).
-  if (hits.size > 5_000) {
+  if (hits.size > 1_000) {
     for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
+    // Masih melebihi batas keras (serangan IP acak yang belum kedaluwarsa)?
+    // Pangkas entri tertua (Map = urutan insert) agar Map tidak tumbuh
+    // tanpa batas sampai jendela reset berikutnya.
+    if (hits.size > 5_000) {
+      const iter = hits.keys();
+      const overflow = hits.size - 5_000;
+      for (let i = 0; i < overflow; i++) {
+        const k = iter.next().value;
+        if (k === undefined) break;
+        hits.delete(k);
+      }
+    }
   }
   const rec = hits.get(key);
   if (!rec || now > rec.reset) {

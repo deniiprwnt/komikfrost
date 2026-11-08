@@ -12,12 +12,23 @@ import type { MergedMangaCard } from "./aggregator";
 /** Ukuran halaman per halaman UI: 15 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
 const SHINI_PAGE_SIZE = 15;
 
-/** Batasi waktu kerja tambahan (enrich) agar respons tidak tertahan upstream. */
+/** Batasi waktu kerja tambahan (enrich) agar respons tidak tertahan upstream.
+ *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
+ *  Promise.race yang membiarkan timer kecil terus menumpuk di event loop. */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    p,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
+  return new Promise<T | null>((resolve, reject) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
 }
 
 /**
