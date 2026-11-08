@@ -189,9 +189,8 @@ export default function ReaderPage({
   // Tombol kembali-ke-atas — muncul setelah user scroll cukup jauh.
   const [showTop, setShowTop] = useState(false);
   // Speed-dial bawah: tombol panah → klik membuka Prev/Next, panah naik.
-  const [fabOpen, setFabOpen] = useState(false);
-  // Sembunyikan speed-dial setelah tombol panah men-scroll ke atas: tanpa
-  // ini tombol tetap terlihat selama animasi smooth-scroll (terasa nyangkut).
+  // Sembunyikan tombol setelah diklik: tanpa ini tombol tetap terlihat
+  // selama animasi smooth-scroll (terasa nyangkut).
   const [fabSuppressed, setFabSuppressed] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
 
@@ -483,35 +482,11 @@ export default function ReaderPage({
     };
   }, []);
 
-  // Mode halaman: speed-dial adalah navigasi utama, tapi setelah panah
-  // ditekan (scroll ke atas) ia ikut disembunyikan sampai user berpindah
-  // halaman lagi (pageIdx berubah) atau menggulir.
+  // Tombol kembali-ke-atas melayang: mode scroll tampil setelah gulir,
+  // mode page selalu tampil kecuali baru saja ditekan (fabSuppressed).
   const fabVisible =
     mode === "page" ? !fabSuppressed : showTop && !fabSuppressed;
-
-  // Tutup speed-dial: tap di luar, tombol Esc, tombol disembunyikan, atau
-  // overlay tap-nav tampil (slot bawah yang sama).
-  // HARUS di atas return kondisional: hook setelah early return bikin
-  // React error #310 (jumlah hook berubah antar render).
-  useEffect(() => {
-    if (!fabOpen) return;
-    const onDown = (e: PointerEvent) => {
-      if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFabOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [fabOpen]);
-  useEffect(() => {
-    if (!fabVisible || showTapNav) setFabOpen(false);
-  }, [fabVisible, showTapNav]);
-  // Setelah tombol panah men-scroll ke atas, speed-dial disembunyikan.
+  // Setelah tombol panah men-scroll ke atas, tombol disembunyikan.
   // Munculkan lagi saat user benar-benar menggulir (wheel/touchmove) atau
   // berpindah halaman di mode halaman (pageIdx berubah) - bukan sekadar tap
   // pada tombol yang barusan disembunyikan itu sendiri.
@@ -556,7 +531,7 @@ export default function ReaderPage({
     });
   };
 
-  const { prevHref, nextHref } = navHrefs(data, data.mangaSlug, chapter);
+  const { nextHref } = navHrefs(data, data.mangaSlug, chapter);
   // Dekat akhir konten: nav permanen di alur halaman sudah terlihat.
   const nearEnd =
     mode === "page" ? pageIdx >= data.images.length - 1 : progress >= 0.97;
@@ -723,10 +698,8 @@ export default function ReaderPage({
         </div>
       )}
 
-      {/* Speed-dial bawah. Tertutup: hanya tombol panah di dasar layar.
-          Diklik: Prev & Next muncul di dasar, panah naik sedikit; klik
-          panah lagi = kembali ke atas. Naik otomatis bila nav chapter
-          melayang/permanen sedang tampil agar tidak bertumpuk. */}
+      {/* Tombol kembali-ke-atas melayang. Klik = langsung gulir ke atas,
+          lalu tombol disembunyikan agar tidak nyangkut selama animasi. */}
       {fabVisible && (
         <div
           ref={fabRef}
@@ -743,73 +716,14 @@ export default function ReaderPage({
           <button
             type="button"
             onClick={() => {
-              if (fabOpen) {
-                setFabOpen(false);
-                // Sembunyikan seluruh speed-dial seketika agar tidak
-                // nyangkut selama animasi smooth-scroll.
-                setFabSuppressed(true);
-                scrollTop();
-              } else {
-                setFabOpen(true);
-              }
+              setFabSuppressed(true);
+              scrollTop();
             }}
-            aria-expanded={fabOpen}
-            aria-label={fabOpen ? "Kembali ke atas" : "Buka navigasi chapter"}
+            aria-label="Kembali ke atas"
             className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-accent bg-accent text-white shadow-lg shadow-accent/30 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
           >
             <IconUp className="h-5 w-5" />
           </button>
-
-          {/* Baris Prev/Next: tinggi 0 → penuh, mendorong panah ke atas. */}
-          <div
-            className={`grid w-full justify-items-end transition-[grid-template-rows,opacity] duration-300 ease-out ${
-              fabOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
-            }`}
-            aria-hidden={!fabOpen}
-          >
-            <div className="overflow-hidden">
-              <div className="flex gap-2 pb-px">
-                {prevHref ? (
-                  <Link
-                    href={prevHref}
-                    onClick={() => setFabOpen(false)}
-                    tabIndex={fabOpen ? 0 : -1}
-                    className="flex h-11 touch-manipulation items-center gap-1.5 rounded-xl border border-line-dark bg-ink-2/95 pl-3 pr-4 text-[13px] font-semibold text-fg-dark shadow-lg shadow-black/25 backdrop-blur active:scale-95"
-                  >
-                    <IconChevron dir="left" className="h-4 w-4 shrink-0" />
-                    Prev
-                  </Link>
-                ) : (
-                  <span
-                    aria-disabled="true"
-                    className="flex h-11 items-center gap-1.5 rounded-xl border border-line-dark/50 bg-ink-2/80 pl-3 pr-4 text-[13px] font-semibold text-muted-dark/45"
-                  >
-                    <IconChevron dir="left" className="h-4 w-4 shrink-0" />
-                    Prev
-                  </span>
-                )}
-                {nextHref ? (
-                  <Link
-                    href={nextHref}
-                    onClick={() => setFabOpen(false)}
-                    tabIndex={fabOpen ? 0 : -1}
-                    className="flex h-11 touch-manipulation items-center gap-1.5 rounded-xl bg-accent pl-4 pr-3 text-[13px] font-semibold text-white shadow-lg shadow-black/25 active:scale-95"
-                  >
-                    Next
-                    <IconChevron dir="right" className="h-4 w-4 shrink-0" />
-                  </Link>
-                ) : (
-                  <span
-                    aria-disabled="true"
-                    className="flex h-11 items-center gap-1.5 rounded-xl border border-line-dark/50 bg-ink-2/80 pl-4 pr-3 text-[13px] font-semibold text-muted-dark/45"
-                  >
-                    Next
-                    <IconChevron dir="right" className="h-4 w-4 shrink-0" />
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
