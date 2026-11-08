@@ -175,21 +175,14 @@ function toCard(s: KcSeries): MangaCard {
         url: `/${s.latest_chapter.slug}/`,
       }
     : undefined;
-  // Tebakan chapter AWAL (pola sama seperti kartu Shinigami). Nomor pertama
-  // dihitung dari latest_chapter − chapter_count_available bila keduanya
-  // ada (katalog sering mulai dari tengah, mis. latest 57 dari 5 bab → 53);
-  // fallback Chapter 1. Reader tetap resolve via daftar gabungan (nomor
-  // asli dipakai; tebakan meleset = sumber itu dilewati, bukan error).
+  // Tebakan chapter AWAL: SELALU Chapter 1 (pola sama dengan kartu Shinigami).
+  // Dulu dihitung dari latest_chapter - chapter_count_available, tapi field
+  // tersebut sering berisi jumlah katalog parsial (mis. hanya bab yang baru
+  // diunggah) sehingga kartu menampilkan "Awal: Chapter 28" alih-alih
+  // Chapter 1. Reader tetap resolve via daftar gabungan (nomor asli dipakai;
+  // tebakan meleset = sumber itu dilewati, bukan error).
   const first: ChapterRef | undefined = s.latest_chapter
-    ? (() => {
-        const latestNum = s.latest_chapter?.number;
-        const cnt = parseInt(String(s.chapter_count_available ?? ""), 10);
-        const firstNum =
-          Number.isFinite(latestNum) && Number.isFinite(cnt) && cnt > 0 && cnt <= latestNum
-            ? Math.max(1, latestNum - cnt + 1)
-            : 1;
-        return { label: `Chapter ${firstNum}`, url: `/${s.slug}-chapter-${firstNum}-bahasa-indonesia/` };
-      })()
+    ? { label: "Chapter 1", url: `/${s.slug}-chapter-1-bahasa-indonesia/` }
     : undefined;
   const genreOne = (s.genres ?? []).find((g) => g?.name || g?.slug);
   const ts = s.updated_at ? Date.parse(s.updated_at) : NaN;
