@@ -40,15 +40,22 @@ export function TypeBadge({
   type,
   className = "",
   flush = false,
+  wide = false,
 }: {
   type?: string;
   className?: string;
   /** Menempel di sudut cover: kotak tanpa lengkung, ukuran sama dengan SourceBadge. */
   flush?: boolean;
+  /** Badge mengambang di luar cover (mis. baris peringkat): lebih lebar & lega. */
+  wide?: boolean;
 }) {
   if (!type) return null;
   const color = TYPE_STYLE[type.toLowerCase()] ?? "bg-muted";
-  const shape = flush ? "rounded-none px-2 py-1 text-[9px]" : "rounded-sm px-1.5 py-0.5 text-[10px]";
+  const shape = flush
+    ? "rounded-none px-2 py-1 text-[9px]"
+    : wide
+      ? "min-w-[3.75rem] rounded-sm px-2.5 py-1 text-center text-[10px] sm:min-w-[4rem]"
+      : "rounded-sm px-1.5 py-0.5 text-[10px]";
   return (
     <span
       className={`inline-block max-w-full shrink-0 truncate font-extrabold uppercase leading-tight tracking-wide text-white ${shape} ${color} ${className}`}
@@ -75,9 +82,12 @@ const SOURCE_SHORT: Record<string, string> = {
 export function SourceBadge({
   sources,
   className = "",
+  wide = false,
 }: {
   sources?: string[];
   className?: string;
+  /** Badge mengambang di luar cover (mis. kartu list): sedikit lebih lebar & lega. */
+  wide?: boolean;
 }) {
   if (!sources || sources.length === 0) return null;
   return (
@@ -88,7 +98,9 @@ export function SourceBadge({
         return (
           <span
             key={s}
-            className={`inline-block shrink-0 truncate rounded-sm px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-tight tracking-wide text-white ${color}`}
+            className={`inline-block shrink-0 truncate rounded-sm text-[10px] font-extrabold uppercase leading-tight tracking-wide text-white ${
+              wide ? "min-w-[3.75rem] px-2.5 py-1 text-center sm:min-w-[4rem]" : "px-1.5 py-0.5"
+            } ${color}`}
           >
             {SOURCE_SHORT[key] ?? s}
           </span>
@@ -408,7 +420,7 @@ export function RankRow({ item }: { item: MangaCard }) {
                 {String(item.views).replace(/\s*views?$/i, "")}
               </span>
             )}
-            {type && <TypeBadge type={type} className="ml-auto rounded-sm px-1.5 py-0.5" />}
+            {type && <TypeBadge type={type} wide className="ml-auto" />}
           </p>
         )}
         {item.latestChapter && (

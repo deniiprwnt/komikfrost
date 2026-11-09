@@ -7,7 +7,8 @@ import { apiGet, peekApiCache, prefetchApi } from "@/lib/client";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
-import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
+import { SectionHead, ErrorState, EmptyState } from "@/components/states";
+import { RankListSkeleton, PopulerSkeleton } from "@/components/skeletons";
 import { RankRow } from "@/components/cards";
 
 const PERIODS = [
@@ -113,7 +114,7 @@ function PopulerContent() {
           );
         })}
       </div>
-      {!items && !error && <ListSkeleton count={10} />}
+      {!items && !error && <RankListSkeleton count={10} />}
       {error && <ErrorState message={error} onRetry={() => load()} />}
       {items && items.length === 0 && (
         <EmptyState message="Belum ada data peringkat dari sumber data." />
@@ -131,7 +132,7 @@ function PopulerContent() {
 
 export default function PopulerPage() {
   return (
-    <Suspense fallback={<ListSkeleton count={10} />}>
+    <Suspense fallback={<PopulerSkeleton />}>
       <PopulerContent />
     </Suspense>
   );

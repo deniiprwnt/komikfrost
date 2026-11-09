@@ -6,16 +6,7 @@ import { apiGet, peekApiCache } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import type { GenreRef } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
-
-function GenreSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-1.5 min-[420px]:gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-      {Array.from({ length: 24 }).map((_, i) => (
-        <div key={i} className="shimmer h-12 rounded-xl" />
-      ))}
-    </div>
-  );
-}
+import { GenreGridSkeleton } from "@/components/skeletons";
 
 export default function GenreListPage() {
   usePageTitle("Daftar Genre");
@@ -95,7 +86,7 @@ export default function GenreListPage() {
           </div>
         </div>
       )}
-      {!genres && !error && <GenreSkeleton />}
+      {!genres && !error && <GenreGridSkeleton />}
       {error && <ErrorState message={error} onRetry={load} />}
       {genres && filtered.length === 0 && (
         <EmptyState

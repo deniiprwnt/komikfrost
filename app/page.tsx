@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { timeAgo, useHistory } from "@/lib/history";
 import type { MangaCard } from "@/lib/api/types";
-import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
+import { SectionHead, ErrorState, EmptyState } from "@/components/states";
+import { RankListSkeleton, LatestGridSkeleton, RailSkeleton } from "@/components/skeletons";
 import { MangaGridCard, RankRow } from "@/components/cards";
 import { CoverImage } from "@/components/cover-image";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
@@ -290,7 +291,11 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        {!popular.data && !popular.error && <ListSkeleton count={6} />}
+        {!popular.data && !popular.error && (
+          <div className="mt-3">
+            <RankListSkeleton count={10} />
+          </div>
+        )}
         {popular.error && <ErrorState message={popular.error} onRetry={() => popular.load(true)} />}
         {popular.data && popular.data.length === 0 && (
           <EmptyState message="Belum ada data peringkat dari sumber data." />
@@ -350,7 +355,7 @@ export default function HomePage() {
       {/* Update terbaru — grid seragam: 12 judul (16 di layar sangat lebar) */}
       <section className="min-w-0">
         <SectionHead title="Update terbaru" href="/terbaru" />
-        {!latest.data && !latest.error && <ListSkeleton count={8} />}
+        {!latest.data && !latest.error && <LatestGridSkeleton />}
         {latest.error && <ErrorState message={latest.error} onRetry={() => latest.load(true)} />}
         {latest.data && latest.data.length === 0 && !latest.error && (
           <EmptyState message="Belum ada update dari sumber data." />
@@ -387,7 +392,7 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="min-w-0">
-          {!recommended.data && !recommended.error && <ListSkeleton count={4} />}
+          {!recommended.data && !recommended.error && <RailSkeleton />}
           {recommended.error && <ErrorState message={recommended.error} onRetry={() => recommended.load(true)} />}
           {recommended.data && recommended.data.length === 0 && !recommended.error && (
             <EmptyState message="Belum ada rekomendasi dari sumber data." />

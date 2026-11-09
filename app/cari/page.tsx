@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
-import { SectionHead, GridSkeleton, ErrorState, EmptyState } from "@/components/states";
+import { SectionHead, ErrorState, EmptyState } from "@/components/states";
+import { CariRouteSkeleton } from "@/components/route-skeletons";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
 import { Pagination } from "@/components/pagination";
 import { SearchSuggest } from "@/components/search-suggest";
@@ -281,7 +282,7 @@ function CariContent() {
 
 export default function CariPage() {
   return (
-    <Suspense fallback={<GridSkeleton count={9} />}>
+    <Suspense fallback={<CariRouteSkeleton />}>
       <CariContent />
     </Suspense>
   );

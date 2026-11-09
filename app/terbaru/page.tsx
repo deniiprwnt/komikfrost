@@ -10,7 +10,8 @@ import type { GenreRef, MangaCard } from "@/lib/api/types";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
 import { Pagination } from "@/components/pagination";
 import { Select } from "@/components/select";
-import { SectionHead, ListSkeleton, ErrorState, EmptyState } from "@/components/states";
+import { SectionHead, ErrorState, EmptyState } from "@/components/states";
+import { TerbaruSkeleton } from "@/components/skeletons";
 
 interface LatestPayload {
   items: MangaCard[];
@@ -439,7 +440,11 @@ function TerbaruContent() {
           />
         </div>
 
-      {loading && <KomikListSkeleton count={8} />}
+      {loading && (
+        <div className="mt-3 sm:mt-4">
+          <KomikListSkeleton count={8} />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={() => loadPage(page)} />}
       {!loading && !error && items.length === 0 && (
         <EmptyState className="mt-3 sm:mt-4" message="Tidak ada komik dari sumber data untuk filter ini." />
@@ -463,7 +468,7 @@ function TerbaruContent() {
 
 export default function TerbaruPage() {
   return (
-    <Suspense fallback={<ListSkeleton count={8} />}>
+    <Suspense fallback={<TerbaruSkeleton />}>
       <TerbaruContent />
     </Suspense>
   );

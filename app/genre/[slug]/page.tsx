@@ -6,6 +6,7 @@ import { apiGet, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
+import { GenreDetailRouteSkeleton } from "@/components/route-skeletons";
 import { Pagination } from "@/components/pagination";
 import { Select } from "@/components/select";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -255,7 +256,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
 export default function GenreDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   return (
-    <Suspense fallback={<KomikListSkeleton count={8} />}>
+    <Suspense fallback={<GenreDetailRouteSkeleton />}>
       <GenreDetailContent slug={slug} />
     </Suspense>
   );

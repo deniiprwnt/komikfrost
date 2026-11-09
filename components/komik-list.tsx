@@ -57,7 +57,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
               {[item.genre, updated].filter(Boolean).join(" · ")}
             </p>
-            <SourceBadge sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
+            <SourceBadge wide sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
           </div>
         )}
         {item.synopsis && (
