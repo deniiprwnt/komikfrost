@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   // Jangan bocorkan "X-Powered-By: Next.js" ke browser.
   poweredByHeader: false,
+  // `/500` tidak boleh jadi route app: Next memakai path itu untuk export
+  // 500.html bawaannya, dan bentrokan membuat build gagal (ENOENT rename
+  // .next/export/500.html). Rewrite mempertahankan URL /500 untuk pratinjau.
+  async rewrites() {
+    return [{ source: "/500", destination: "/galat-500" }];
+  },
   // Header hardening global (halaman + /api/* + aset statis).
   // CSP sengaja minimal (frame-ancestors saja) — script-src ketat butuh
   // nonce per-request dan akan merusak inline script Next.

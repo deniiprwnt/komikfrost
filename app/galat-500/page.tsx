@@ -5,7 +5,14 @@ import { Burst } from "@/components/scene-props";
 
 export const metadata: Metadata = { title: "500 · Terjadi kesalahan" };
 
-/** 500 — halaman statis yang sama dengan app/error.tsx, untuk redirect/rewrite & pratinjau. */
+/**
+ * 500 — halaman statis yang sama dengan app/error.tsx, untuk pratinjau desain.
+ *
+ * Sengaja BUKAN route /500: Next memakai kunci path "/500" untuk export
+ * 500.html bawaan, dan route app di /500 membuat langkah rename build gagal
+ * (ENOENT .next/export/500.html). URL /500 tetap dilayani lewat rewrite di
+ * next.config.ts.
+ */
 export default function ServerErrorPage() {
   return (
     <StatusScreen
