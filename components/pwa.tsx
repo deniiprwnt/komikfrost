@@ -55,8 +55,11 @@ export function Pwa() {
       }
     };
 
-    if (document.readyState === "complete") void register();
-    else window.addEventListener("load", register, { once: true });
+    // Daftarkan segera (bukan menunggu window "load"): service worker
+    // harus sempat memasang & meng-cache /offline.html sebelum pengguna
+    // kehilangan jaringan. Pendaftaran sangat ringan, jadi tidak berebut
+    // bandwidth dengan render pertama.
+    void register();
 
     // Cek pembaruan saat PWA dibuka lagi dari latar belakang.
     const onVisible = () => {
@@ -70,7 +73,6 @@ export function Pwa() {
 
     return () => {
       disposed = true;
-      window.removeEventListener("load", register);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
