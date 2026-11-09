@@ -228,9 +228,9 @@ function FlameRow({ xs, by, hs = [24, 17], w = 9 }: { xs: number[]; by: number; 
   );
 }
 
-const WING_OUTER = "M68 160 C58 174 52 198 48 228 Q60 233 72 230 Q86 227 99 231 Q107 233 112 232";
-const PANEL_L = "M64 157 Q76 151 90 160 L87 226 Q72 231 56 228 L55 186 Z";
-const PANEL_R = "M156 157 Q144 151 130 160 L133 226 Q148 231 164 228 L165 186 Z";
+const WING_OUTER = "M68 160 C55 178 44 206 45 238 Q55 245 66 241 Q78 237 90 241";
+const PANEL_L = "M62 157 Q75 150 88 160 C93 190 79 212 85 235 Q76 243 66 239.500 Q56 236 48 241.500 C40 224 45 200 46 182 C47 170 55 161 62 157 Z";
+const PANEL_R = "M158 157 Q145 150 132 160 C127 190 141 212 135 235 Q144 243 154 239.500 Q164 236 172 241.500 C180 224 175 200 174 182 C173 170 165 161 158 157 Z";
 
 function CapeWing({ side }: { side: "l" | "r" }) {
   const xs = [55, 68, 81, 94, 106];
@@ -241,13 +241,13 @@ function CapeWing({ side }: { side: "l" | "r" }) {
       <g transform={mirror}>
         <path d={`${outer} L100 166 Z`} fill={HAORI} />
         <g clipPath="url(#yk-wing-clip)">
-          <path d="M80 166 C68 180 62 198 58 229 Q70 225 80 229 Q84 196 94 172 Z" fill={HAORI_SHADE} />
-          <path d="M70 176 Q64 196 60 221 M90 182 Q86 198 84 223" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
+          <path d="M80 166 C66 180 56 206 52 236 Q66 234 80 237 Q82 196 94 172 Z" fill={HAORI_SHADE} />
+          <path d="M68 176 Q58 200 54 226 M88 182 Q82 204 80 228" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
         </g>
         {/* motif api teal dekoratif di tepi bawah */}
         <g clipPath="url(#yk-wing-clip)">
-          <path d="M40 228 L112 229 L112 245 L40 245 Z" fill={FLAME} />
-          <FlameRow xs={xs} by={228.500} hs={[11, 8]} w={6.5} />
+          <path d="M36 234.500 L112 234.500 L112 252 L36 252 Z" fill={FLAME} />
+          <FlameRow xs={xs} by={235} hs={[8, 6]} w={6.5} />
         </g>
         <path d={outer} fill="none" stroke={INK} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
       </g>
@@ -476,25 +476,25 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           <path d="M96 174 C94 192 100 203 110 204 C120 203 126 192 124 174 Z" fill={CREAM} />
 
           {/* lengan belakang (pose) */}
-          {(mood === "happy" || mood === "guard") && <Arm d="M80 178 Q62 172 54 152" anim="yk-wave" />}
-          {mood === "lost" && <Arm d="M80 180 Q66 192 68 204" anim="yk-sway-l" />}
-          {mood === "puzzled" && <Arm d="M80 180 Q66 192 68 204" anim="yk-sway-l" />}
+          {(mood === "happy" || mood === "guard") && <Arm d="M70 174 Q50 172 38 150" anim="yk-wave" />}
+          {mood === "lost" && <Arm d="M70 176 Q62 190 63 204" anim="yk-sway-l" />}
+          {mood === "puzzled" && <Arm d="M70 176 Q62 190 63 204" anim="yk-sway-l" />}
           {mood === "tired" && (
             <>
-              <Arm d="M80 178 Q62 188 62 204" anim="yk-sway-l" />
-              <Arm d="M140 178 Q158 188 158 204" anim="yk-sway-r" />
+              <Arm d="M70 176 Q60 190 61 204" anim="yk-sway-l" />
+              <Arm d="M150 176 Q160 190 159 204" anim="yk-sway-r" />
             </>
           )}
           {mood === "dizzy" && (
             <>
-              <Arm d="M80 176 Q56 170 48 146" anim="yk-flail-l" />
-              <Arm d="M140 176 Q164 170 172 146" anim="yk-flail-r" />
+              <Arm d="M70 174 Q54 170 46 146" anim="yk-flail-l" />
+              <Arm d="M150 174 Q166 170 174 146" anim="yk-flail-r" />
             </>
           )}
           {mood === "faint" && (
             <>
-              <Arm d="M80 178 Q62 196 56 210" anim="yk-sway-l" />
-              <Arm d="M140 178 Q158 196 164 210" anim="yk-sway-r" />
+              <Arm d="M70 176 Q60 196 56 210" anim="yk-sway-l" />
+              <Arm d="M150 176 Q160 196 164 210" anim="yk-sway-r" />
             </>
           )}
 
@@ -677,49 +677,48 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             <path d="M63 159 Q74 152 88 159 L84 171 Q72 175 60 168 Z" fill={HAORI_LIGHT} strokeWidth={3.2} />
             <path d="M157 159 Q146 152 132 159 L136 171 Q148 175 160 168 Z" fill={HAORI_LIGHT} strokeWidth={3.2} />
             <path d="M66 162 Q74 157 82 161 M138 161 Q146 157 154 162" fill="none" stroke="#cfc8bc" strokeWidth={1.8} strokeLinecap="round" />
-            <path d="M70 182 L67 200 M150 182 L153 200" fill="none" stroke={HAORI_LINE} strokeWidth={1.8} strokeDasharray="2 3" opacity={0.6} />
             <path d="M63 167 Q73 173 85 168 M157 167 Q147 173 135 168" fill="none" stroke={HAORI_LINE} strokeWidth={1.6} strokeLinecap="round" opacity={0.6} />
           </g>
-          <g clipPath="url(#yk-panel-l)"><path d="M50 222 L92 222 L92 237 L50 237 Z" fill={FLAME} /><FlameRow xs={[63, 77]} by={222.500} hs={[9, 6]} w={6.5} /></g>
-          <g clipPath="url(#yk-panel-r)"><path d="M128 222 L170 222 L170 237 L128 237 Z" fill={FLAME} /><FlameRow xs={[143, 157]} by={222.500} hs={[9, 6]} w={6.5} /></g>
+          <g clipPath="url(#yk-panel-l)"><path d="M40 234.500 L88 234.500 L88 250 L40 250 Z" fill={FLAME} /><FlameRow xs={[55.500, 65.500, 75.500]} by={235} hs={[9, 13, 8]} w={5.600} /></g>
+          <g clipPath="url(#yk-panel-r)"><path d="M132 234.500 L180 234.500 L180 250 L132 250 Z" fill={FLAME} /><FlameRow xs={[144.500, 154.500, 164.500]} by={235} hs={[8, 13, 9]} w={5.600} /></g>
 
 
           {/* properti & lengan depan (di atas kepala) */}
           {mood === "happy" && (
-            <Hold at={[140, 178]} anim="yk-hold">
-              <g transform="translate(186 134) rotate(12)">
+            <Hold at={[152, 174]} anim="yk-hold">
+              <g transform="translate(198 134) rotate(12)">
                 <rect x={-19} y={-25} width={38} height={50} rx={4} fill="#eaf6f4" stroke={INK} strokeWidth={4} />
                 <rect x={-19} y={-25} width={34} height={50} rx={4} fill="#0b6b66" stroke={INK} strokeWidth={4} />
                 <path d="M-11 -13 H-5 L-8 0 L-5 13 H-11 Z M1 -13 H9 V13 H1 L-3 0 Z" fill="#fff" />
                 <Star x={12} y={-23} s={0.95} />
               </g>
-              <Arm d="M140 178 Q166 178 178 156" />
+              <Arm d="M152 174 Q174 174 190 156" />
             </Hold>
           )}
           {mood === "lost" && (
-            <Hold at={[140, 178]} anim="yk-search">
-              <g fill="none" strokeLinecap="round">
+            <Hold at={[152, 174]} anim="yk-search">
+              <g fill="none" strokeLinecap="round" transform="translate(11 0)">
                 <path d="M186 140 L177 158" stroke={INK} strokeWidth={10} />
                 <path d="M186 140 L177 158" stroke="#9a6a3a" strokeWidth={5} />
                 <circle cx={198} cy={120} r={20} fill="#bfe0f5" fillOpacity={0.85} stroke={INK} strokeWidth={5.5} />
                 <path d="M187 112 Q190 103 200 101" stroke="#fff" strokeWidth={4} />
               </g>
-              <Arm d="M140 178 Q168 178 179 160" />
+              <Arm d="M152 174 Q174 174 190 160" />
             </Hold>
           )}
           {mood === "puzzled" && (
-            <Hold at={[140, 178]} anim="yk-hold">
-              <g transform="translate(176 150) rotate(14)">
+            <Hold at={[152, 174]} anim="yk-hold">
+              <g transform="translate(190 150) rotate(14)">
                 <path d="M-18 -22 L16 -26 L22 4 L-14 10 Z" fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
                 <path d="M-10 -14 L8 -16 M-9 -6 L12 -9 M-9 2 L4 0" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
                 <text x={4} y={-3} fontSize={26} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#e5483f" stroke={INK} strokeWidth={3} paintOrder="stroke" textAnchor="middle">?!</text>
               </g>
-              <Arm d="M140 178 Q164 180 174 160" />
+              <Arm d="M152 174 Q174 176 188 160" />
             </Hold>
           )}
           {mood === "guard" && (
-            <Hold at={[140, 178]} anim="yk-hold">
-              <g transform="translate(184 132) rotate(10)">
+            <Hold at={[152, 174]} anim="yk-hold">
+              <g transform="translate(196 132) rotate(10)">
                 <g className="yk-card">
                   <rect x={-23} y={-16} width={46} height={32} rx={5} fill="#fff" stroke={INK} strokeWidth={4} />
                   <path d="M-21 -14 H21 V-8 H-21 Z" fill={FUR} />
@@ -727,7 +726,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                   <path d="M-3 0 H16 M-3 7 H11" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.55} />
                 </g>
               </g>
-              <Arm d="M140 178 Q166 178 178 156" />
+              <Arm d="M152 174 Q174 174 190 156" />
             </Hold>
           )}
           {mood === "stern" && (
