@@ -177,21 +177,6 @@ function Headband() {
   );
 }
 
-/** Simpul + dua ujung kain yang berkibar di belakang kepala (kanan). */
-function HeadbandTails() {
-  return (
-    <g className="yk-fox-tail" style={{ transformOrigin: "166px 68px" }} stroke={INK} strokeWidth={4} strokeLinejoin="round">
-      <path d="M172 61 C186 50 198 58 216 44 L216 60 C200 70 188 64 172 70 Z" fill={CLOTH} />
-      <path d="M172 67 C188 72 198 86 209 104 L195 99 C187 89 180 81 172 76 Z" fill={CLOTH} />
-      <path d="M180 58 C190 56 199 59 210 52" fill="none" stroke={CLOTH_LIGHT} strokeWidth={2.400} strokeLinecap="round" />
-      <path d="M186 77 C190 85 195 91 200 97" fill="none" stroke={CLOTH_LIGHT} strokeWidth={2.200} strokeLinecap="round" />
-      <rect x={160} y={58} width={16} height={18} rx={4} fill={CLOTH} />
-      <path d="M163 62 H173 M163 68 H173" stroke={CLOTH_LIGHT} strokeWidth={2} strokeLinecap="round" />
-      <path d="M162 73 H174" stroke={CLOTH_DARK} strokeWidth={2} strokeLinecap="round" />
-    </g>
-  );
-}
-
 /** Kerah syal biru berbentuk V (lambang spiral di tengah), di atas rompi & di bawah bahu jubah. */
 function Collar() {
   const d = 17;
@@ -385,30 +370,22 @@ function FoxTails() {
 function Legs() {
   return (
     <g>
-      {[89, 131].map((x, i) => (
-        <g key={x} transform={`translate(${x} 238)${i ? " scale(-1 1)" : ""}`}>
+      {[93.500, 126.500].map((x, i) => (
+        <g key={x} transform={`translate(${x} 238) scale(${i ? "-0.9" : "0.9"} 1)`}>
           <g className={i ? "yk-foot yk-foot-r" : "yk-foot"}>
             {/* celana: tabung pendek yang menyambung ke bawah jubah */}
             <path d="M-11 -24 H11 L12.500 0.500 Q0 5 -12.500 0.500 Z" fill={NAVY} stroke={INK} strokeWidth={3.600} strokeLinejoin="round" />
             <path d="M-6 -22 V-4" stroke={NAVY_LIGHT} strokeWidth={3} strokeLinecap="round" opacity={0.8} />
             <path d="M-12 -2.500 Q0 1.500 12 -2.500" fill="none" stroke="#fff" strokeWidth={2.400} strokeLinecap="round" />
             <path d="M-12.200 -7.500 Q0 -4 12.200 -7.500" fill="none" stroke="#fff" strokeWidth={2.400} strokeLinecap="round" opacity={0.9} />
-            {/* telapak: siluet menyatu, garis tepi hanya di luar */}
-            <g fill={INK} stroke={INK} strokeWidth={6.400} strokeLinejoin="round">
-              <ellipse cx={0} cy={9} rx={14.500} ry={8.400} />
-              <circle cx={-8.600} cy={15.400} r={5.400} />
-              <circle cx={0} cy={17.400} r={5.800} />
-              <circle cx={8.600} cy={15.400} r={5.400} />
-            </g>
-            <g fill={FUR}>
-              <ellipse cx={0} cy={9} rx={14.500} ry={8.400} />
-              <circle cx={-8.600} cy={15.400} r={5.400} />
-              <circle cx={0} cy={17.400} r={5.800} />
-              <circle cx={8.600} cy={15.400} r={5.400} />
-            </g>
-            <path d="M7 8.400 C12.600 9.400 14.800 13 13 17 C11.600 20 8 21 5.400 20.400 C9 19 10.600 14 8 9.400 Z" fill={FUR_SHADE} opacity={0.65} />
-            <path d="M-11 5.400 Q-4 2.600 5 3.400" fill="none" stroke={FUR_LIGHT} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
-            <path d="M-4.400 13.400 L-4.400 17.600 M4.400 13.400 L4.400 17.600" stroke={INK} strokeWidth={1.800} strokeLinecap="round" />
+            {/* sepatu sandal shinobi: biru tua, ujung terbelah ala tabi, sol gelap */}
+            <path d="M-13.500 1.500 Q-15.500 11 -16 18.500 Q-16.500 25.500 -8 26 L8 26 Q16.500 25.500 16 18.500 Q15.500 11 13.500 1.500 Z" fill={NAVY} stroke={INK} strokeWidth={3.600} strokeLinejoin="round" />
+            <path d="M-14.600 15.500 Q0 10 14.600 15.500 Q16 18 15.600 20.500 Q0 24 -15.600 20.500 Q-16 18 -14.600 15.500 Z" fill={NAVY_LIGHT} />
+            <path d="M-15.800 20.600 Q0 24.400 15.800 20.600 Q16.800 26 8 26.500 L-8 26.500 Q-16.800 26 -15.800 20.600 Z" fill="#171d47" />
+            <path d="M-16 20.800 Q0 24.600 16 20.800" fill="none" stroke={INK} strokeWidth={1.800} strokeLinecap="round" />
+            <path d="M0 14.800 V23" stroke={INK} strokeWidth={1.800} strokeLinecap="round" />
+            <path d="M-12 4.500 Q0 8.500 12 4.500" fill="none" stroke="#fff" strokeWidth={2.200} strokeLinecap="round" opacity={0.9} />
+            <path d="M-11 12.500 Q-6 10.500 -2 11.500" fill="none" stroke="#fff" strokeWidth={1.600} strokeLinecap="round" opacity={0.45} />
           </g>
         </g>
       ))}
@@ -497,8 +474,6 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <Arm d="M150 176 Q160 196 164 210" anim="yk-sway-r" />
             </>
           )}
-
-          <g className="yk-follow"><HeadbandTails /></g>
 
           <g className="yk-follow">
           {/* jambul */}
