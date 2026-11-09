@@ -1,31 +1,37 @@
 import Link from "next/link";
+import { StatusScreen, bsGhost, bsPrimary, IconHome } from "@/components/bare-screen";
+import { MissingPages } from "@/components/scene-props";
 
-/**
- * Halaman 404 global — tampil saat URL tidak cocok route mana pun
- * (mis. slug salah ketik). Tanpa data, tanpa fetch.
- */
+/** 404 — URL tidak cocok route mana pun. Layar penuh, tanpa chrome. */
 export default function NotFound() {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-3 px-4 py-14 text-center sm:py-20">
-      <p
-        aria-hidden="true"
-        className="font-display text-6xl font-extrabold text-accent sm:text-7xl"
-      >
-        404
-      </p>
-      <h1 className="font-display text-lg font-extrabold text-fg sm:text-xl dark:text-fg-dark">
-        Halaman tidak ketemu
-      </h1>
-      <p className="max-w-sm text-sm text-muted dark:text-muted-dark">
-        Alamatnya salah atau halamannya sudah tidak ada. Balik ke beranda dan
-        cari judulnya dari sana.
-      </p>
-      <Link
-        href="/"
-        className="mt-1 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-      >
-        Kembali ke beranda
-      </Link>
-    </div>
+    <StatusScreen
+      code="404"
+      tone="blue"
+      mood="lost"
+      label="Halaman tidak ditemukan"
+      jp="ページが見つかりません"
+      sfx={{ jp: "キョロキョロ", romaji: "kyoro kyoro" }}
+      bubble="Lho… halamannya mana?"
+      title="Chapter ini hilang dari rak"
+      description="Alamatnya salah ketik atau halamannya sudah dipindahkan. Balik ke beranda dan temukan bacaanmu dari sana."
+      scene={<MissingPages />}
+      actions={
+        <>
+          <Link href="/" className={bsPrimary}>
+            <IconHome />
+            Kembali ke beranda
+          </Link>
+          <Link href="/terbaru" className={bsGhost}>
+            Lihat yang terbaru
+          </Link>
+        </>
+      }
+      links={[
+        { href: "/populer", label: "Peringkat" },
+        { href: "/genre", label: "Genre" },
+        { href: "/favorit", label: "Favorit" },
+      ]}
+    />
   );
 }

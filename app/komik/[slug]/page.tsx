@@ -361,9 +361,24 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
         {detail.chapters.length === 0 && (
           <EmptyState message="Belum ada chapter untuk komik ini di sumber data." />
         )}
-        {chapters.length === 0 && detail.chapters.length > 0 && (
-          <EmptyState message={`Tidak ada chapter yang cocok dengan "${filter}".`} />
+        {ordered.length === 0 && detail.chapters.length > 0 && (
+          <div className="rounded-xl border border-line bg-paper dark:border-line-dark dark:bg-ink">
+            <EmptyState
+              className="!py-8 sm:!py-10"
+              message={`Tidak ada chapter yang cocok dengan "${filter}".`}
+            />
+            <div className="flex justify-center pb-6">
+              <button
+                type="button"
+                onClick={() => setFilter("")}
+                className="rounded-lg border border-line bg-paper-2 px-4 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink-2"
+              >
+                Hapus pencarian
+              </button>
+            </div>
+          </div>
         )}
+        {ordered.length > 0 && (
         <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] lg:min-h-48 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
           {ordered.map((c) => {
             return (
@@ -380,6 +395,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             );
           })}
         </div>
+        )}
       </section>
 
       {/* Komik Serupa — 12 judul se-genre utama (tanpa judul saat ini),

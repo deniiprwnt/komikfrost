@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { StatusScreen, bsGhost, bsPrimary, IconHome, IconRefresh } from "@/components/bare-screen";
+import { Burst } from "@/components/scene-props";
 
 /**
- * Fallback error global — tampil saat sebuah route crash saat render.
+ * Fallback error global (500) — tampil saat sebuah route crash saat render.
  * `reset()` mencoba render ulang segmen yang gagal tanpa reload penuh.
  */
 export default function Error({
@@ -20,30 +22,30 @@ export default function Error({
   }, [error]);
 
   return (
-    <div
-      role="alert"
-      className="flex min-w-0 flex-col items-center gap-3 rounded-2xl border border-danger/25 bg-danger/5 px-4 py-14 text-center sm:py-20 dark:border-danger-dark/30 dark:bg-danger-dark/10"
-    >
-      <h1 className="font-display text-lg font-extrabold text-fg sm:text-xl dark:text-fg-dark">
-        Halaman gagal dimuat
-      </h1>
-      <p className="max-w-sm text-sm text-muted dark:text-muted-dark">
-        Coba muat ulang halamannya. Kalau masih gagal, kembali ke beranda.
-      </p>
-      <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-        <button
-          onClick={() => reset()}
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Coba lagi
-        </button>
-        <Link
-          href="/"
-          className="rounded-lg border border-line px-5 py-2.5 text-sm font-semibold text-fg dark:border-line-dark dark:text-fg-dark"
-        >
-          Beranda
-        </Link>
-      </div>
-    </div>
+    <StatusScreen
+      code="500"
+      tone="red"
+      mood="dizzy"
+      label="Terjadi kesalahan"
+      jp="サーバーエラー"
+      sfx={{ jp: "ボンッ！", romaji: "bon!" }}
+      bubble="Ada yang korslet…"
+      title="Ada yang tidak beres"
+      description="Halaman gagal dimuat karena kesalahan di sisi kami. Coba muat ulang; kalau masih gagal, kembali ke beranda."
+      scene={<Burst />}
+      actions={
+        <>
+          <button type="button" onClick={() => reset()} className={bsPrimary}>
+            <IconRefresh />
+            Coba lagi
+          </button>
+          <Link href="/" className={bsGhost}>
+            <IconHome />
+            Beranda
+          </Link>
+        </>
+      }
+      note={error.digest ? `ref: ${error.digest}` : undefined}
+    />
   );
 }

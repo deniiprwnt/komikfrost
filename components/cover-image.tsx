@@ -6,8 +6,8 @@ import { useCallback, useState } from "react";
  * Gambar cover dengan placeholder modern — pengganti <img> polos.
  *
  * - Loading : langit pastel + garis kecepatan manga, kilau bintang, kelopak sakura,
- *             wajah kaomoji memantul + teks katakana (bukan kotak kosong).
- * - Error / tanpa src : ledakan garis kejut merah, wajah kaomoji lemas,
+ *             maskot kelinci Yuki memantul + teks katakana (bukan kotak kosong).
+ * - Error / tanpa src : ledakan garis kejut merah, Yuki lemas bermata spiral,
  *   huruf awal judul sebagai watermark, dan label (label otomatis disembunyikan
  *   pada thumbnail kecil lewat container query, jadi tetap rapi di semua ukuran).
  * - Gambar dimuat progresif (blur-up) DI ATAS placeholder, dan tidak pernah
@@ -24,56 +24,61 @@ function Speed() {
   return <span className="cover-ph__speed" aria-hidden="true" />;
 }
 /**
- * Karakter anime orisinal (SVG, tanpa teks): rambut berponi, mata besar
- * berkilau yang berkedip, pipi merona. Varian "error": mata spiral pusing. Warna ikut tema lewat variabel CSS.
+ * Yuki (maskot kelinci salju) versi ringkas untuk placeholder gambar.
+ * Tanpa <defs>/ID — aman dirender puluhan kali di satu halaman (grid cover).
+ * Varian "err": telinga terkulai + mata spiral pusing.
  */
 function AnimeFace({ variant }: { variant: "load" | "err" }) {
-  const id = variant === "load" ? "ph-iris-l" : "ph-iris-e";
+  const INK = "#0d1518";
+  const err = variant === "err";
+  const ear = (
+    <>
+      <path d="M21 28C13 22 11 9 16 2c8 4 13 14 13 27z" fill="#fff" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M21 24c-4-5-5-11-3-15 4 3 7 9 7 16z" fill="#7fe3d6" />
+    </>
+  );
+  const eye = (cx: number) => (
+    <g className="ph-eye">
+      <ellipse cx={cx} cy="38" rx="4.2" ry="5.6" fill={INK} />
+      <ellipse cx={cx} cy="39" rx="3.1" ry="4.3" fill="#1fb3a8" />
+      <ellipse cx={cx} cy="38.4" rx="1.7" ry="2.7" fill={INK} />
+      <circle cx={cx - 1.2} cy="36" r="1.4" fill="#fff" />
+    </g>
+  );
   return (
-    <svg className="cover-ph__avatar" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--ph-iris-a)" />
-          <stop offset="1" stopColor="var(--ph-iris-b)" />
-        </linearGradient>
-      </defs>
-      {/* rambut belakang */}
-      <path d="M9 38C7 16 22 6 33 6s26 9 22 32c-1 7-3 12-6 15l-3-12H18l-3 12c-3-3-5-8-6-15z" fill="var(--ph-hair)" />
+    <svg className="cover-ph__avatar" viewBox="0 0 64 68" aria-hidden="true">
+      {/* telinga */}
+      <g transform={err ? "rotate(-38 24 30)" : "rotate(-4 24 30)"}>{ear}</g>
+      <g transform="translate(64 0) scale(-1 1)">
+        <g transform={err ? "rotate(-38 24 30)" : "rotate(-4 24 30)"}>{ear}</g>
+      </g>
+      {/* kepala + bayangan */}
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#cfe5e2" />
+      <ellipse cx="30" cy="38" rx="23.4" ry="17.6" fill="#fff" />
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.4" />
       {/* wajah */}
-      <ellipse cx="32" cy="38" rx="19" ry="18" fill="var(--ph-skin)" />
-      {/* poni */}
-      <path d="M12 36C11 17 26 10 34 10c12 0 21 9 18 26-3-8-8-12-14-13-1 5-6 9-12 8-4-1-7-4-9-1-2 2-3 4-5 6z" fill="var(--ph-hair)" />
-      <path d="M22 14c5-3 12-3 17 0" stroke="var(--ph-hair-hi)" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity=".75" />
-      {/* aho (ahoge) */}
-      <path d="M33 8c-1-5 2-8 6-8-2 2-2 5-1 8z" fill="var(--ph-hair)" />
-      {variant === "load" ? (
-        <>
-          <g className="ph-eye">
-            <ellipse cx="24" cy="39" rx="4.6" ry="6" fill="#1a1e33" />
-            <ellipse cx="24" cy="40" rx="3.5" ry="5" fill={`url(#${id})`} />
-            <circle cx="22.4" cy="37" r="1.7" fill="#fff" />
-            <circle cx="25.6" cy="42" r="0.9" fill="#fff" />
-          </g>
-          <g className="ph-eye">
-            <ellipse cx="40" cy="39" rx="4.6" ry="6" fill="#1a1e33" />
-            <ellipse cx="40" cy="40" rx="3.5" ry="5" fill={`url(#${id})`} />
-            <circle cx="38.4" cy="37" r="1.7" fill="#fff" />
-            <circle cx="41.6" cy="42" r="0.9" fill="#fff" />
-          </g>
-          <path d="M29 48.5q3 3 6 0" stroke="#c4566e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-        </>
+      {err ? (
+        <g fill="#fff" stroke={INK} strokeWidth="1.8">
+          <circle cx="22" cy="38" r="5.4" />
+          <circle cx="42" cy="38" r="5.4" />
+          <path className="ph-spiral" d="M22 38m-.8 0a.8.8 0 1 1 1.6 0a1.8 1.8 0 1 1-3.6 0a2.9 2.9 0 1 1 5.8 0" fill="none" strokeLinecap="round" />
+          <path className="ph-spiral ph-spiral--r" d="M42 38m-.8 0a.8.8 0 1 1 1.6 0a1.8 1.8 0 1 1-3.6 0a2.9 2.9 0 1 1 5.8 0" fill="none" strokeLinecap="round" />
+        </g>
       ) : (
         <>
-          <g stroke="#1a1e33" strokeWidth="1.5" strokeLinecap="round" fill="none">
-            <path className="ph-spiral" d="M24 39m-1 0a1 1 0 1 1 2 0a3 3 0 1 1-4-2.8a5 5 0 1 1 6 6" />
-            <path className="ph-spiral ph-spiral--r" d="M40 39m-1 0a1 1 0 1 1 2 0a3 3 0 1 1-4-2.8a5 5 0 1 1 6 6" />
-          </g>
-          <path d="M28 49q2-2 4 0t4 0" stroke="#c4566e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          {eye(22)}
+          {eye(42)}
         </>
       )}
-      {/* pipi merona */}
-      <ellipse cx="17.500" cy="46" rx="3.600" ry="2" fill="#ff8fa8" opacity=".55" />
-      <ellipse cx="46.500" cy="46" rx="3.600" ry="2" fill="#ff8fa8" opacity=".55" />
+      <ellipse cx="14.500" cy="46" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      <ellipse cx="49.500" cy="46" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      {err ? (
+        <path d="M27 49q2.500-2.500 5 0t5 0" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
+      ) : (
+        <path d="M29 47.500q3 3 6 0" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
+      )}
+      {/* syal */}
+      <path d="M16 54C25 62 39 62 48 54l1.500 6c-9 7-24 7-35 0z" fill="#118079" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
     </svg>
   );
 }

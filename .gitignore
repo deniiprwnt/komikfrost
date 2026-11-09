@@ -23,5 +23,8 @@ Thumbs.db
 # Arsip lokal (tidak ikut push)
 Komik.zip
 
+# Artefak pratinjau desain (screenshot, script shoot lokal)
+.preview/
+
 # Artefak run e2e (trace, screenshot, report lokal)
 .e2e/
