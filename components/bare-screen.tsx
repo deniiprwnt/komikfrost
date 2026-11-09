@@ -30,7 +30,7 @@ export function BareScreen({
       className={`bs bs-t-${tone}${shock ? " bs-shock" : ""} fixed inset-0 z-[300] overflow-y-auto overflow-x-hidden`}
     >
       <div aria-hidden="true" className="bs-tone-page" />
-      <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
+      <div className="bs-inner relative z-10 flex min-h-full items-center justify-center px-4 py-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
         {children}
       </div>
     </div>

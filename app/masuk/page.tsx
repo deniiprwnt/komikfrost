@@ -64,8 +64,8 @@ function MasukForm() {
         />
 
         <section className="mg-form">
-          <div className="mb-6 flex items-center gap-3">
-            <BrandMark className="h-11 w-11" />
+          <div className="mb-3 flex items-center gap-3 min-[860px]:mb-6">
+            <BrandMark className="h-9 w-9 min-[860px]:h-11 min-[860px]:w-11" />
             <span className="font-display text-xl font-extrabold">
               Komik<span className="text-accent">Frost</span>
             </span>
@@ -74,7 +74,7 @@ function MasukForm() {
           <h1 className="mg-title">Selamat datang</h1>
           <p className="mg-desc">Situs pribadi. Masukkan kata sandi untuk melanjutkan membaca.</p>
 
-          <form onSubmit={submit} className="mt-7 flex w-full min-w-0 flex-col gap-4">
+          <form onSubmit={submit} className="mt-4 flex w-full min-w-0 flex-col gap-3 min-[860px]:mt-7 min-[860px]:gap-4">
             <div key={shake} className={shake ? "mg-shake" : undefined}>
               <label htmlFor="pw" className="mg-label">
                 Kata sandi
@@ -137,7 +137,7 @@ function MasukForm() {
               </p>
             )}
 
-            <button type="submit" disabled={loading || !pw} className="mg-btn mg-btn-primary mt-1 !h-[3.25rem] w-full">
+            <button type="submit" disabled={loading || !pw} className="mg-btn mg-btn-primary mt-1 !h-[3rem] w-full min-[860px]:!h-[3.25rem]">
               {loading ? (
                 <>
                   <svg viewBox="0 0 24 24" fill="none" className="mg-spin h-4 w-4" aria-hidden="true">

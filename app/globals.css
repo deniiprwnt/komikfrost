@@ -1854,18 +1854,10 @@ html.dark .mg-btn:hover { border-color: var(--color-accent-strong); color: var(-
 .mg-btn:active { transform: scale(.97); }
 .mg-btn:focus-visible, .mg-chip:focus-visible, .mg-brand:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 45%, transparent); outline-offset: 3px; }
 .mg-btn-primary {
-  color: #fff; border-color: transparent;
-  background: linear-gradient(145deg, #1a9a92 0%, #0b6b66 55%, #064e4a 100%);
-  box-shadow: 0 12px 28px -12px rgba(17, 128, 121, .95), inset 0 1px 0 rgba(255, 255, 255, .22);
+  color: #fff; border-color: transparent; background: var(--color-accent);
 }
-.mg-btn-primary:hover { color: #fff; border-color: transparent; filter: brightness(1.1); }
-html.dark .mg-btn-primary:hover { color: #fff; }
-.mg-btn-primary::after {
-  content: ""; position: absolute; inset: 0; transform: translateX(-120%);
-  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .22) 50%, transparent 70%);
-  transition: transform .7s cubic-bezier(.22, 1, .36, 1);
-}
-.mg-btn-primary:hover:not(:disabled)::after { transform: translateX(120%); }
+.mg-btn-primary:hover { color: #fff; border-color: transparent; background: var(--color-accent-strong); }
+html.dark .mg-btn-primary:hover { color: #fff; background: #1a9a92; }
 .mg-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ---- Panel ilustrasi ----------------------------------------------------- */
@@ -1978,6 +1970,31 @@ html.dark .mg-caps { color: var(--color-gold); }
 .mg-fine { margin: 1.3rem 0 0; font-size: .78rem; color: var(--mu); }
 .mg-spin { animation: mg-spin .8s linear infinite; }
 
+/* ---- Mobile: satu layar penuh, tanpa scroll ------------------------------ */
+@media (max-width: 859px) {
+  .bs { overflow: hidden !important; }
+  .bs-inner { height: 100%; min-height: 0; padding: max(.75rem, env(safe-area-inset-top)) 1rem max(.75rem, env(safe-area-inset-bottom)); }
+  .mg-wrap { gap: .6rem; }
+  .mg-brand { font-size: .95rem; }
+  .mg-card { border-radius: 22px; }
+  .mg-card > .mg-scene {
+    width: min(calc(100% - 20px), max(9.5rem, calc((100dvh - var(--bs-rest, 26rem)) / .86)));
+    margin: 10px auto 0; border-radius: 16px;
+  }
+  .mg-body, .mg-form { padding: 1rem 1.1rem 1.15rem; }
+  .mg-kicker { margin-bottom: .7rem; }
+  .mg-title { font-size: clamp(1.45rem, 6.4vw, 1.8rem); }
+  .mg-desc { margin-top: .55rem; font-size: .88rem; line-height: 1.5; max-width: none; }
+  .mg-meter { margin-top: .9rem; max-width: none; }
+  .mg-actions { flex-direction: row; flex-wrap: nowrap; gap: .55rem; margin-top: 1.1rem; }
+  .mg-actions > .mg-btn { flex: 1 1 0; min-width: 0; height: 2.85rem; padding: 0 .8rem; }
+  .mg-links, .mg-foot { display: none; }
+  .mg-note { margin-top: .7rem; }
+  .mg-input { height: 3rem; }
+  .mg-fine { margin-top: .8rem; }
+  .mg-card:has(.mg-form, .mg-note) { --bs-rest: 28.5rem; }
+}
+
 /* ---- Gerak -------------------------------------------------------------- */
 .mg-in { animation: mg-in .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--d, 0ms); }
 .mg-shake { animation: mg-shake .42s cubic-bezier(.36, .07, .19, .97) both; }
@@ -2024,5 +2041,4 @@ html.dark .mg-caps { color: var(--color-gold); }
   .mg-in, .mg-sfx, .mg-bubble, .mg-burst, .mg-focus, .mg-float, .mg-steam, .mg-shake, .mg-spin, .mg-padlock,
   .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
   .mg-steam { opacity: .6; }
-  .mg-btn-primary::after { display: none; }
 }

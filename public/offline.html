@@ -161,18 +161,10 @@ html.dark .mg-btn:hover { border-color: var(--color-accent-strong); color: var(-
 .mg-btn:active { transform: scale(.97); }
 .mg-btn:focus-visible, .mg-brand:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 45%, transparent); outline-offset: 3px; }
 .mg-btn-primary {
-  color: #fff; border-color: transparent;
-  background: linear-gradient(145deg, #1a9a92 0%, #0b6b66 55%, #064e4a 100%);
-  box-shadow: 0 12px 28px -12px rgba(17, 128, 121, .95), inset 0 1px 0 rgba(255, 255, 255, .22);
+  color: #fff; border-color: transparent; background: var(--color-accent);
 }
-.mg-btn-primary:hover { color: #fff; border-color: transparent; filter: brightness(1.1); }
-html.dark .mg-btn-primary:hover { color: #fff; }
-.mg-btn-primary::after {
-  content: ""; position: absolute; inset: 0; transform: translateX(-120%);
-  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .22) 50%, transparent 70%);
-  transition: transform .7s cubic-bezier(.22, 1, .36, 1);
-}
-.mg-btn-primary:hover:not(:disabled)::after { transform: translateX(120%); }
+.mg-btn-primary:hover { color: #fff; border-color: transparent; background: var(--color-accent-strong); }
+html.dark .mg-btn-primary:hover { color: #fff; background: #1a9a92; }
 .mg-btn:disabled { opacity: .5; cursor: not-allowed; }
 .mg-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
 
@@ -244,6 +236,31 @@ html.dark .mg-btn-primary:hover { color: #fff; }
 .mg-meter-bar i[data-on="1"] { background: var(--t); }
 .mg-meter-msg { margin: .55rem 0 0; font-size: .78rem; color: var(--mu); }
 
+/* ---- Mobile: satu layar penuh, tanpa scroll ------------------------------ */
+@media (max-width: 859px) {
+  .bs { overflow: hidden !important; }
+  .bs-inner { height: 100%; min-height: 0; padding: max(.75rem, env(safe-area-inset-top)) 1rem max(.75rem, env(safe-area-inset-bottom)); }
+  .mg-wrap { gap: .6rem; }
+  .mg-brand { font-size: .95rem; }
+  .mg-card { border-radius: 22px; }
+  .mg-card > .mg-scene {
+    width: min(calc(100% - 20px), max(9.5rem, calc((100dvh - var(--bs-rest, 26rem)) / .86)));
+    margin: 10px auto 0; border-radius: 16px;
+  }
+  .mg-body, .mg-form { padding: 1rem 1.1rem 1.15rem; }
+  .mg-kicker { margin-bottom: .7rem; }
+  .mg-title { font-size: clamp(1.45rem, 6.4vw, 1.8rem); }
+  .mg-desc { margin-top: .55rem; font-size: .88rem; line-height: 1.5; max-width: none; }
+  .mg-meter { margin-top: .9rem; max-width: none; }
+  .mg-actions { flex-direction: row; flex-wrap: nowrap; gap: .55rem; margin-top: 1.1rem; }
+  .mg-actions > .mg-btn { flex: 1 1 0; min-width: 0; height: 2.85rem; padding: 0 .8rem; }
+  .mg-links, .mg-foot { display: none; }
+  .mg-note { margin-top: .7rem; }
+  .mg-input { height: 3rem; }
+  .mg-fine { margin-top: .8rem; }
+  .mg-card:has(.mg-form, .mg-note) { --bs-rest: 28.5rem; }
+}
+
 /* ---- Gerak -------------------------------------------------------------- */
 .mg-in { animation: mg-in .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--d, 0ms); }
 .mg-spin { animation: mg-spin .8s linear infinite; }
@@ -272,7 +289,6 @@ html.dark .mg-btn-primary:hover { color: #fff; }
 @media (prefers-reduced-motion: reduce) {
   .mg-in, .mg-sfx, .mg-bubble, .mg-focus, .mg-signal, .mg-spin, .mg-shake,
   .yk-bob, .yk-blink, .yk-tail, .yk-drip, .yk-qmark { animation: none !important; }
-  .mg-btn-primary::after { display: none; }
 }
 </style>
 </head>
@@ -450,10 +466,6 @@ html.dark .mg-btn-primary:hover { color: #fff; }
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8.5a.5.5 0 0 1-.5.5H15v-6H9v6H4.5a.5.5 0 0 1-.5-.5V11Z" /></svg>
               Ke beranda
             </a>
-          </div>
-
-          <div class="mg-foot">
-            <p class="mg-note">Halaman ini disimpan di perangkatmu oleh service worker.</p>
           </div>
         </div>
       </div>
