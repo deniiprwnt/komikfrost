@@ -240,10 +240,21 @@ function CapeWing({ side }: { side: "l" | "r" }) {
   );
 }
 
+/** Punggung jubah: menyambung dari bahu sampai tepi bawah (sejajar hem sayap), supaya celah antar kaki tidak kosong. */
+const BACK_PANEL = "M70 160 L150 160 L151 237 Q140 243 130 239.500 Q120 236 110 241 Q100 246 90 239.500 Q80 236 69 237 Z";
+const BACK_HEM = "M151 237 Q140 243 130 239.500 Q120 236 110 241 Q100 246 90 239.500 Q80 236 69 237";
+
 function Cape() {
   return (
     <g>
-      <path d="M70 160 L150 160 L148 213 L72 213 Z" fill={HAORI_SHADE} />
+      <path d={BACK_PANEL} fill={HAORI_SHADE} />
+      <path d="M99 170 Q96 205 98 230 M121 170 Q124 205 122 230" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.45} />
+      {/* motif api teal dekoratif di hem punggung, sama dengan sayap */}
+      <g clipPath="url(#yk-back-clip)">
+        <path d="M66 234.500 L154 234.500 L154 252 L66 252 Z" fill={FLAME} />
+        <FlameRow xs={[100, 110, 120]} by={235} hs={[8, 6]} w={6} />
+      </g>
+      <path d={BACK_HEM} fill="none" stroke={INK} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
       <CapeWing side="l" />
       <CapeWing side="r" />
     </g>
@@ -422,6 +433,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
         <clipPath id="yk-wing-clip">
           <path d={`${WING_OUTER} L100 166 Z`} />
         </clipPath>
+        <clipPath id="yk-back-clip"><path d={BACK_PANEL} /></clipPath>
         <clipPath id="yk-panel-l"><path d={PANEL_L} /></clipPath>
         <clipPath id="yk-panel-r"><path d={PANEL_R} /></clipPath>
         <clipPath id="yk-ear">
