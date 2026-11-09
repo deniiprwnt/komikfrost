@@ -1910,7 +1910,7 @@ html.dark .mg-btn-primary:hover { color: #fff; background: #1a9a92; }
 }
 
 .mg-yuki { left: 50%; bottom: 3cqw; width: 52cqw; translate: -50% 0; z-index: 3; }
-.mg-yuki svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 2cqw 3cqw rgba(0, 0, 0, .28)); }
+.mg-yuki > svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 2cqw 3cqw rgba(0, 0, 0, .28)); }
 
 /* SFX katakana: huruf berkontur, miring — aksen, bukan teriakan. */
 .mg-sfx { right: 6cqw; top: 6cqw; z-index: 4; text-align: right; rotate: -6deg; animation: mg-slam .5s cubic-bezier(.2, 1.5, .4, 1) .3s both; }
