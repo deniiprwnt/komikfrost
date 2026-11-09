@@ -17,7 +17,7 @@ import { useEffect } from "react";
  * penanda (previous -> last, current -> pathname).
  */
 export function RouteMemory() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   useEffect(() => {
     try {
       const cur = sessionStorage.getItem("bk-current-path");

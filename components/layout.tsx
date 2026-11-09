@@ -63,7 +63,7 @@ const SIDEBAR_BREAKPOINT = "(max-width: 1199px)";
  * Pencarian & tema ada di header atas (lihat <Header />).
  */
 export function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [collapsed, setCollapsed] = useState(false);
   const [narrow, setNarrow] = useState(false);
 
@@ -188,7 +188,7 @@ export function Sidebar() {
 
 /** Header: desktop = pencarian di tengah + tema (logo & menu di <Sidebar />); mobile = logo, cari, tema. */
 export function Header() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const [q, setQ] = useState("");
@@ -332,7 +332,7 @@ export function Header() {
 
 /** Wrapper for page content — trims bottom padding while reading, where the tab bar is hidden. */
 export function Main({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const reading = pathname.startsWith("/baca/");
   return (
     <main
@@ -355,7 +355,7 @@ export function Main({ children }: { children: React.ReactNode }) {
  * Riwayat ikut tab Favorit; Cari = tombol di header.
  */
 export function MobileTabBar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const items = [
     { href: "/", label: "Beranda", icon: IconHome, match: ["/"] },
     { href: "/terbaru", label: "Terbaru", icon: IconClock, match: ["/terbaru"] },
@@ -431,7 +431,7 @@ export function Footer() {
  * berubah (tetap tampil seperti semula).
  */
 export function BackToTop() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

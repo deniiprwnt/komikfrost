@@ -17,7 +17,7 @@ interface SearchPayload {
 }
 
 /** Halaman dari URL (?page=N). Default 1. */
-function parsePage(raw: string | null): number {
+function parsePage(raw: string | null | undefined): number {
   const n = parseInt(raw || "", 10);
   if (!Number.isFinite(n) || n < 1 || n > 50) return 1;
   return n;
@@ -26,10 +26,10 @@ function parsePage(raw: string | null): number {
 function CariContent() {
   const sp = useSearchParams();
   const router = useRouter();
-  const q = (sp.get("q") || "").trim();
+  const q = (sp?.get("q") || "").trim();
   usePageTitle(q ? `Cari: ${q}` : "Pencarian");
   const [draft, setDraft] = useState(q);
-  const [page, setPage] = useState<number>(() => parsePage(sp.get("page")));
+  const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
   const [items, setItems] = useState<MangaCard[] | null>(null);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,7 +149,7 @@ function CariContent() {
     bootedRef.current = true;
     appliedQRef.current = q;
     const ctrl = new AbortController();
-    void loadPage(q, parsePage(sp.get("page")), ctrl.signal);
+    void loadPage(q, parsePage(sp?.get("page")), ctrl.signal);
     // Reset penanda saat cleanup: StrictMode dev melepas & menjalankan ulang
     // efek, jadi run kedua harus tetap memuat data.
     return () => {

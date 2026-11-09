@@ -19,7 +19,7 @@ const PERIODS = [
 
 function PopulerContent() {
   const sp = useSearchParams();
-  const raw = sp.get("period") || "harian";
+  const raw = sp?.get("period") || "harian";
   const period = PERIODS.some((p) => p.v === raw) ? raw : "harian";
   usePageTitle(
     `Peringkat ${PERIODS.find((p) => p.v === period)?.label ?? "Harian"}`,

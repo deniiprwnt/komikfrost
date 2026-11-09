@@ -32,7 +32,7 @@ const TIPES = [
 ] as const;
 
 /** Halaman dari URL (?page=N). Default 1. */
-function parsePage(raw: string | null): number {
+function parsePage(raw: string | null | undefined): number {
   const n = parseInt(raw || "", 10);
   if (!Number.isFinite(n) || n < 1 || n > 50) return 1;
   return n;
@@ -45,19 +45,19 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // jadi membacanya di useState membuat markup server & klien berbeda
   // (hydration mismatch). Nilai tersimpan diterapkan setelah mount.
   const [orderby, setOrderby] = useState<Orderby>(() => {
-    const fromUrl = sp.get("orderby") as Orderby | null;
+    const fromUrl = sp?.get("orderby") as Orderby | null;
     return fromUrl && ORDERBYS.some((o) => o.v === fromUrl) ? fromUrl : "modified";
   });
-  const [tipe, setTipe] = useState(() => sp.get("tipe") ?? "");
+  const [tipe, setTipe] = useState(() => sp?.get("tipe") ?? "");
 
   // Setelah mount: pulihkan filter terakhir (hanya bila URL tidak menentukan).
   useEffect(() => {
     try {
-      if (!sp.get("orderby")) {
+      if (!sp?.get("orderby")) {
         const saved = sessionStorage.getItem(`bk-genre-${slug}-orderby`) as Orderby | null;
         if (saved && ORDERBYS.some((o) => o.v === saved)) setOrderby(saved);
       }
-      if (sp.get("tipe") === null) {
+      if (sp?.get("tipe") === null) {
         const savedTipe = sessionStorage.getItem(`bk-genre-${slug}-tipe`);
         if (savedTipe) setTipe(savedTipe);
       }
@@ -73,7 +73,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // sehingga refresh maupun kembali dari komik langsung membuka halaman
   // yang sama. Keluar lalu masuk lagi tanpa ?page= otomatis mulai dari
   // halaman 1.
-  const [page, setPage] = useState<number>(() => parsePage(sp.get("page")));
+  const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
   const [items, setItems] = useState<MangaCard[]>([]);
   const [hasNext, setHasNext] = useState(false);
 
@@ -160,7 +160,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
     // dipanggil invalidateApi() TANPA argumen = cache.clear(): seluruh
     // cache klien (/api/home, detail komik, genre) ikut terhapus.
     seenRef.current.delete(filtersKey);
-    void loadPage(parsePage(sp.get("page")));
+    void loadPage(parsePage(sp?.get("page")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

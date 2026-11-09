@@ -30,7 +30,7 @@ function parseOrderby(raw: string | null): Orderby {
 }
 
 /** Halaman dari URL (?page=N). Default 1. */
-function parsePage(raw: string | null): number {
+function parsePage(raw: string | null | undefined): number {
   const n = parseInt(raw || "", 10);
   if (!Number.isFinite(n) || n < 1 || n > 50) return 1;
   return n;
@@ -54,18 +54,18 @@ const STATUSES = [
  *  (default) — bukan memakai filter kunjungan sebelumnya. Filter hanya
  *  bertahan via URL (?orderby=&tipe=&...), mis. saat kembali dari komik
  *  atau refresh yang URL-nya sudah memuat parameter. */
-function initParam(sp: URLSearchParams, key: string): string {
-  return sp.get(key) ?? "";
+function initParam(sp: URLSearchParams | null, key: string): string {
+  return sp?.get(key) ?? "";
 }
 
 /**
  * Path API untuk halaman + filter yang sedang ada di URL. Dipakai untuk
  * cache awal/prefetch menu — harus sama persis dengan `buildQs` di bawah.
  */
-function latestApiPath(sp: URLSearchParams, page: number): string {
+function latestApiPath(sp: URLSearchParams | null, page: number): string {
   const qs = new URLSearchParams({
     page: String(page),
-    orderby: parseOrderby(sp.get("orderby")),
+    orderby: parseOrderby(sp?.get("orderby") ?? null),
   });
   const tipe = initParam(sp, "tipe");
   const status = initParam(sp, "status");
@@ -83,7 +83,7 @@ function TerbaruContent() {
   const sp = useSearchParams();
   usePageTitle("Komik Terbaru");
 
-  const [orderby, setOrderby] = useState<Orderby>(() => parseOrderby(sp.get("orderby")));
+  const [orderby, setOrderby] = useState<Orderby>(() => parseOrderby(sp?.get("orderby") ?? null));
   const [tipe, setTipe] = useState(() => initParam(sp, "tipe"));
   const [status, setStatus] = useState(() => initParam(sp, "status"));
   // Multi-pilih genre: 2 slot (genre + genre2) — HANYA dari URL (deep-link
@@ -97,11 +97,11 @@ function TerbaruContent() {
   // sehingga refresh maupun kembali dari komik langsung membuka halaman
   // yang sama. Keluar lalu masuk lagi lewat link /terbaru (tanpa ?page=)
   // otomatis mulai dari halaman 1.
-  const [page, setPage] = useState<number>(() => parsePage(sp.get("page")));
+  const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
   // Cache prefetch menu (hover/idle) dipakai sebagai isi awal — halaman
   // tujuan langsung tampil, bukan skeleton yang terasa seperti reload.
   const [boot] = useState(() =>
-    peekApiCacheStale<LatestPayload>(latestApiPath(sp, parsePage(sp.get("page")))),
+    peekApiCacheStale<LatestPayload>(latestApiPath(sp, parsePage(sp?.get("page")))),
   );
   const [items, setItems] = useState<MangaCard[]>(() => boot?.items ?? []);
   const [hasNext, setHasNext] = useState(() => boot?.hasNextPage ?? false);
@@ -293,7 +293,7 @@ function TerbaruContent() {
     if (bootedRef.current) return;
     bootedRef.current = true;
     appliedFiltersRef.current = filtersKey;
-    void loadPage(parsePage(sp.get("page")));
+    void loadPage(parsePage(sp?.get("page")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -301,10 +301,10 @@ function TerbaruContent() {
   // terjadi, mis. klik menu "Terbaru" saat filter sedang aktif): sinkronkan
   // state dengan URL supaya filter lama tidak bocor. Bila filters berubah,
   // effect [filtersKey] di bawah yang memuat ulang halaman 1.
-  const spKey = sp.toString();
+  const spKey = sp?.toString() ?? "";
   useEffect(() => {
     if (!bootedRef.current) return;
-    const nextOrderby = parseOrderby(sp.get("orderby"));
+    const nextOrderby = parseOrderby(sp?.get("orderby") ?? null);
     const nextTipe = initParam(sp, "tipe");
     const nextStatus = initParam(sp, "status");
     const nextGenre1 = initParam(sp, "genre");

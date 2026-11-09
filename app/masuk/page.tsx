@@ -14,7 +14,7 @@ function MasukForm() {
   const sp = useSearchParams();
   // Hanya path internal yang diizinkan — tolak URL absolut ("https://…")
   // dan protocol-relative ("//evil") agar ?next= tidak jadi open-redirect.
-  const rawNext = sp.get("next") || "/";
+  const rawNext = sp?.get("next") || "/";
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
