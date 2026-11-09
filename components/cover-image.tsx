@@ -24,23 +24,26 @@ function Speed() {
   return <span className="cover-ph__speed" aria-hidden="true" />;
 }
 /**
- * Yuki (maskot kelinci salju) versi ringkas untuk placeholder gambar.
+ * Yuki (maskot rubah teal) versi ringkas untuk placeholder gambar.
  * Tanpa <defs>/ID — aman dirender puluhan kali di satu halaman (grid cover).
  * Varian "err": telinga terkulai + mata spiral pusing.
  */
 function AnimeFace({ variant }: { variant: "load" | "err" }) {
   const INK = "#0d1518";
+  const FUR = "#1a9a92";
   const err = variant === "err";
   const ear = (
     <>
-      <path d="M21 28C13 22 11 9 16 2c8 4 13 14 13 27z" fill="#fff" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
-      <path d="M21 24c-4-5-5-11-3-15 4 3 7 9 7 16z" fill="#7fe3d6" />
+      <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill={FUR} />
+      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0a2f2d" />
+      <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#eaf6f4" />
+      <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" stroke={INK} strokeWidth="2.200" strokeLinejoin="round" />
     </>
   );
   const eye = (cx: number) => (
     <g className="ph-eye">
       <ellipse cx={cx} cy="38" rx="4.2" ry="5.6" fill={INK} />
-      <ellipse cx={cx} cy="39" rx="3.1" ry="4.3" fill="#1fb3a8" />
+      <ellipse cx={cx} cy="39" rx="3.1" ry="4.3" fill="#62d6c8" />
       <ellipse cx={cx} cy="38.4" rx="1.7" ry="2.7" fill={INK} />
       <circle cx={cx - 1.2} cy="36" r="1.4" fill="#fff" />
     </g>
@@ -52,17 +55,21 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
       <g transform="translate(64 0) scale(-1 1)">
         <g transform={err ? "rotate(-38 24 30)" : "rotate(-4 24 30)"}>{ear}</g>
       </g>
-      {/* kepala + bayangan */}
-      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#cfe5e2" />
-      <ellipse cx="30" cy="38" rx="23.4" ry="17.6" fill="#fff" />
-      <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.4" />
+      {/* rumbai pipi */}
+      <path d="M11 41 4.500 43.500 10 47 6.500 51 15 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M53 41 59.500 43.500 54 47 57.500 51 49 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      {/* kepala + muka krem */}
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#0b6b66" />
+      <ellipse cx="30" cy="38" rx="23.400" ry="17.600" fill={FUR} />
+      <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill="#eaf6f4" />
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.400" />
       {/* wajah */}
       {err ? (
-        <g fill="#fff" stroke={INK} strokeWidth="1.8">
-          <circle cx="22" cy="38" r="5.4" />
-          <circle cx="42" cy="38" r="5.4" />
-          <path className="ph-spiral" d="M22 38m-.8 0a.8.8 0 1 1 1.6 0a1.8 1.8 0 1 1-3.6 0a2.9 2.9 0 1 1 5.8 0" fill="none" strokeLinecap="round" />
-          <path className="ph-spiral ph-spiral--r" d="M42 38m-.8 0a.8.8 0 1 1 1.6 0a1.8 1.8 0 1 1-3.6 0a2.9 2.9 0 1 1 5.8 0" fill="none" strokeLinecap="round" />
+        <g fill="#fff" stroke={INK} strokeWidth="1.800">
+          <circle cx="22" cy="38" r="5.400" />
+          <circle cx="42" cy="38" r="5.400" />
+          <path className="ph-spiral" d="M22 38m-.8 0a.8.8 0 1 1 1.600 0a1.800 1.800 0 1 1-3.600 0a2.900 2.900 0 1 1 5.800 0" fill="none" strokeLinecap="round" />
+          <path className="ph-spiral ph-spiral--r" d="M42 38m-.8 0a.8.8 0 1 1 1.600 0a1.800 1.800 0 1 1-3.600 0a2.900 2.900 0 1 1 5.800 0" fill="none" strokeLinecap="round" />
         </g>
       ) : (
         <>
@@ -70,15 +77,16 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
           {eye(42)}
         </>
       )}
-      <ellipse cx="14.500" cy="46" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
-      <ellipse cx="49.500" cy="46" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      <ellipse cx="14.500" cy="47" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      <ellipse cx="49.500" cy="47" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      <path d="M29.500 43Q32 41.500 34.500 43Q33.500 46 32 46.500Q30.500 46 29.500 43Z" fill={INK} />
       {err ? (
-        <path d="M27 49q2.500-2.500 5 0t5 0" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M27 53q2.500-2.500 5 0t5 0" fill="none" stroke={INK} strokeWidth="1.800" strokeLinecap="round" />
       ) : (
-        <path d="M29 47.500q3 3 6 0" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M32 48.500v1.500M32 50q-3 3.500-6 .5M32 50q3 3.500 6 .5" fill="none" stroke={INK} strokeWidth="1.600" strokeLinecap="round" />
       )}
       {/* syal */}
-      <path d="M16 54C25 62 39 62 48 54l1.500 6c-9 7-24 7-35 0z" fill="#118079" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M16 54C25 62 39 62 48 54l1.500 6c-9 7-24 7-35 0z" fill="#a6ece2" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -1,8 +1,8 @@
 /**
- * Yuki — maskot KomikFrost: kelinci salju (yuki-usagi) bertelinga daun,
- * bersyal teal. Digambar sebagai SVG murni: garis tinta tebal, warna datar
- * + satu lapis bayangan cel. Satu komponen, enam ekspresi — dipakai oleh
- * halaman masuk dan semua layar error.
+ * Yuki — maskot KomikFrost: rubah teal (warna primer KomikFrost) berpipi putih kehijauan, berekor lebat berujung
+ * putih, bersyal teal tua. Digambar sebagai SVG murni: garis tinta tebal, warna
+ * datar + satu lapis bayangan cel. Satu komponen, tujuh ekspresi — dipakai
+ * oleh halaman masuk dan semua layar error.
  *
  * Tanpa hook → aman dari server maupun client component. ID <clipPath>
  * statis (`yk-*`): pasang SATU maskot per halaman.
@@ -11,30 +11,35 @@ export type Mood = "happy" | "lost" | "stern" | "tired" | "dizzy" | "faint" | "p
 
 const INK = "#0d1518";
 const SNOW = "#ffffff";
-const SHADE = "#cfe5e2";
-const LEAF = "#7fe3d6";
-const SCARF = "#118079";
+const FUR = "#1a9a92";
+const FUR_LIGHT = "#3cc0b4";
+const FUR_SHADE = "#0b6b66";
+const CREAM = "#eaf6f4";
+const CREAM_SHADE = "#bfdedb";
+const SOCK = "#0a2f2d";
+const SCARF = "#a6ece2";
 const MOUTH = "#5a1f2b";
 
-/** Lengan: kapsul bergaris tinta (garis tebal tinta + garis putih di atasnya). */
+/** Lengan: kapsul bergaris tinta (garis tebal tinta + garis bulu oranye di atasnya). */
 function Arm({ d }: { d: string }) {
   return (
     <g fill="none" strokeLinecap="round">
       <path d={d} stroke={INK} strokeWidth={17} />
-      <path d={d} stroke={SNOW} strokeWidth={9.5} />
+      <path d={d} stroke={FUR} strokeWidth={9.5} />
     </g>
   );
 }
 
-/** Telinga daun; sisi kanan = cermin sisi kiri. `deg` memutar dari pangkalnya. */
+/** Telinga rubah (runcing, ujung gelap); sisi kanan = cermin sisi kiri. `deg` memutar dari pangkalnya. */
 function Ear({ deg, side }: { deg: number; side: "l" | "r" }) {
   const t = side === "l" ? undefined : "translate(220 0) scale(-1 1)";
   return (
     <g transform={t}>
       <g transform={`rotate(${deg} 90 80)`}>
-        <path d="M80 80 C60 62 54 28 68 6 C90 20 102 52 100 82 Z" fill={SNOW} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
-        <path d="M83 74 C72 58 69 36 73 21 C86 33 92 54 92 74 Z" fill={LEAF} />
-        <path d="M81 72 C78 56 76 40 73 24" fill="none" stroke={INK} strokeWidth={2.2} strokeLinecap="round" opacity={0.55} />
+        <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" fill={FUR} />
+        <path d="M64 8 C76 12 88 22 96 34 L58 46 C56 32 58 20 64 8 Z" fill={SOCK} clipPath="url(#yk-ear)" />
+        <path d="M66 80 C60 62 62 46 68 32 C86 42 98 58 100 78 Z" fill={CREAM} />
+        <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" fill="none" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
       </g>
     </g>
   );
@@ -47,13 +52,23 @@ function Eye({ x, y, lx = 0, ly = 0, blink = true }: { x: number; y: number; lx?
      <g className={blink ? "yk-blink" : undefined}>
       <ellipse rx={12.5} ry={16.5} fill={INK} />
       <g transform={`translate(${lx} ${ly})`}>
-        <ellipse cy={2.5} rx={9.2} ry={12.6} fill="#1fb3a8" />
+        <ellipse cy={2.5} rx={9.2} ry={12.6} fill="#62d6c8" />
         <ellipse cy={5} rx={9.2} ry={8.6} fill="#0b6b66" opacity={0.55} />
         <ellipse cy={1} rx={5} ry={7.6} fill={INK} />
         <circle cx={-3.6} cy={-5.2} r={4.3} fill="#fff" />
         <circle cx={3.8} cy={5.4} r={2} fill="#fff" />
       </g>
      </g>
+    </g>
+  );
+}
+
+/** Hidung rubah: segitiga bulat kecil + kilau. `x` menggeser (mis. saat menoleh). */
+function Nose({ x = 0 }: { x?: number }) {
+  return (
+    <g transform={`translate(${x} -3)`}>
+      <path d="M102 124 Q110 120 118 124 Q115 133 110 134 Q105 133 102 124 Z" fill={INK} stroke={INK} strokeWidth={2} strokeLinejoin="round" />
+      <ellipse cx={107.5} cy={124.4} rx={2.6} ry={1.2} fill="#fff" opacity={0.75} />
     </g>
   );
 }
@@ -131,6 +146,9 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
         <clipPath id="yk-head">
           <ellipse cx={110} cy={108} rx={72} ry={58} />
         </clipPath>
+        <clipPath id="yk-ear">
+          <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" />
+        </clipPath>
       </defs>
 
       {/* tanah */}
@@ -139,16 +157,25 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
       <g transform={mood === "faint" ? "rotate(-11 110 210)" : undefined}>
         <g className={mood === "faint" ? "yk-limp" : "yk-bob"}>
           {/* kaki */}
-          <ellipse cx={92} cy={208} rx={15} ry={8} fill={SNOW} stroke={INK} strokeWidth={4.5} />
-          <ellipse cx={128} cy={208} rx={15} ry={8} fill={SNOW} stroke={INK} strokeWidth={4.5} />
+          <ellipse cx={92} cy={208} rx={15} ry={8} fill={SOCK} stroke={INK} strokeWidth={4.5} />
+          <ellipse cx={128} cy={208} rx={15} ry={8} fill={SOCK} stroke={INK} strokeWidth={4.5} />
+
+          {/* ekor lebat berujung putih */}
+          <g className="yk-fox-tail">
+            <path d="M126 206 C154 222 202 214 214 176 C218 158 210 146 200 142 C198 166 176 186 136 184 Z" fill={FUR} />
+            <path d="M214 176 C218 158 210 146 200 142 C199 154 196 164 190 171 C202 169 211 171 214 176 Z" fill={CREAM} />
+            <path d="M126 206 C154 222 202 214 214 176 C218 158 210 146 200 142 C198 166 176 186 136 184 Z" fill="none" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+            <path d="M190 171 C202 169 211 171 214 176" fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+          </g>
 
           {/* telinga */}
           <Ear deg={eL} side="l" />
           <Ear deg={eR} side="r" />
 
           {/* badan */}
-          <path d="M78 156 C72 186 88 206 110 206 C132 206 148 186 142 156 Z" fill={SNOW} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
-          <path d="M126 170 C132 190 124 202 110 204 C128 204 144 190 140 164 Z" fill={SHADE} />
+          <path d="M78 156 C72 186 88 206 110 206 C132 206 148 186 142 156 Z" fill={FUR} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+          <path d="M126 170 C132 190 124 202 110 204 C128 204 144 190 140 164 Z" fill={FUR_SHADE} />
+          <path d="M96 174 C94 192 100 203 110 204 C120 203 126 192 124 174 Z" fill={CREAM} />
 
           {/* lengan belakang (pose) */}
           {mood === "happy" && <Arm d="M80 178 Q62 172 54 152" />}
@@ -173,9 +200,23 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             </>
           )}
 
+          {/* jambul */}
+          <path d="M96 56 Q100 34 112 46 Q118 34 126 58 Z" fill={FUR} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+
+          {/* rumbai pipi */}
+          <g id="yk-fluff">
+            <path d="M44 116 L22 124 L40 134 L28 148 L58 148 Z" fill={CREAM} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+            <path d="M176 116 L198 124 L180 134 L192 148 L162 148 Z" fill={CREAM} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+          </g>
+
           {/* kepala */}
-          <ellipse cx={110} cy={108} rx={72} ry={58} fill={SHADE} />
-          <ellipse cx={103} cy={101} rx={71} ry={55} fill={SNOW} clipPath="url(#yk-head)" />
+          <ellipse cx={110} cy={108} rx={72} ry={58} fill={FUR_SHADE} />
+          <ellipse cx={103} cy={101} rx={71} ry={55} fill={FUR} clipPath="url(#yk-head)" />
+          <ellipse cx={96} cy={84} rx={46} ry={26} fill={FUR_LIGHT} opacity={0.55} clipPath="url(#yk-head)" />
+          <g clipPath="url(#yk-head)">
+            <path d="M30 122 Q62 116 86 132 Q98 140 110 140 Q122 140 134 132 Q158 116 190 122 L190 180 L30 180 Z" fill={CREAM_SHADE} />
+            <path d="M28 120 Q60 114 84 130 Q98 138 108 138 Q120 138 132 130 Q156 114 186 120 L186 180 L28 180 Z" fill={CREAM} />
+          </g>
           <ellipse cx={110} cy={108} rx={72} ry={58} fill="none" stroke={INK} strokeWidth={4.5} />
 
           {/* pipi */}
@@ -187,15 +228,17 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             <>
               <Eye x={80} y={112} />
               <Eye x={140} y={112} />
-              <path d="M99 130 Q110 150 121 130 Z" fill={MOUTH} stroke={INK} strokeWidth={3.6} strokeLinejoin="round" />
-              <ellipse cx={110} cy={141} rx={5.5} ry={3} fill="#ff8a93" />
+              <Nose />
+              <path d="M101 142 Q110 160 119 142 Z" fill={MOUTH} stroke={INK} strokeWidth={3.6} strokeLinejoin="round" />
+              <ellipse cx={110} cy={153} rx={5.5} ry={3} fill="#ff8a93" />
             </>
           )}
           {mood === "lost" && (
             <>
               <Eye x={80} y={112} lx={-3.5} ly={-2.5} />
               <Eye x={140} y={112} lx={-3.5} ly={-2.5} />
-              <ellipse cx={108} cy={136} rx={4.8} ry={6} fill={MOUTH} stroke={INK} strokeWidth={3.2} />
+              <Nose x={-2} />
+              <ellipse cx={108} cy={146} rx={4.8} ry={6} fill={MOUTH} stroke={INK} strokeWidth={3.2} />
               <Drop x={176} y={82} className="yk-drip" />
               <g className="yk-qmark">
                 <text x={190} y={62} fontSize={44} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#2f6fae" stroke={INK} strokeWidth={4} paintOrder="stroke" textAnchor="middle">
@@ -210,7 +253,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <Eye x={140} y={112} lx={3} ly={3} />
               <path d="M62 90 Q76 84 96 92" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
               <path d="M126 86 Q142 78 158 88" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
-              <path d="M96 140 q5 -7 10 0 t10 0 t10 0" fill="none" stroke={INK} strokeWidth={4.2} strokeLinecap="round" />
+              <Nose />
+              <path d="M96 149 q5 -7 10 0 t10 0 t10 0" fill="none" stroke={INK} strokeWidth={4.2} strokeLinecap="round" />
               <Drop x={44} y={90} className="yk-drip" />
             </>
           )}
@@ -219,18 +263,20 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <Eye x={80} y={114} blink={false} />
               <Eye x={140} y={114} blink={false} />
               {/* kelopak turun miring = tatapan tajam */}
-              <path d="M62 92 L98 106 L98 80 L62 80 Z" fill={SNOW} />
-              <path d="M158 92 L122 106 L122 80 L158 80 Z" fill={SNOW} />
+              <path d="M62 92 L98 106 L98 80 L62 80 Z" fill="#2eaea5" />
+              <path d="M158 92 L122 106 L122 80 L158 80 Z" fill="#2eaea5" />
               <path d="M62 91 L99 106 M158 91 L121 106" stroke={INK} strokeWidth={5.5} strokeLinecap="round" />
-              <path d="M99 140 Q110 130 121 140" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
+              <Nose />
+              <path d="M99 150 Q110 140 121 150" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
               <Vein x={168} y={70} />
             </>
           )}
           {mood === "tired" && (
             <>
               <path d="M66 100 L90 112 L66 124 M154 100 L130 112 L154 124" fill="none" stroke={INK} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M97 132 Q110 126 123 132 Q121 150 110 150 Q99 150 97 132 Z" fill={MOUTH} stroke={INK} strokeWidth={3.8} strokeLinejoin="round" />
-              <ellipse cx={110} cy={146} rx={6.5} ry={3.6} fill="#ff8a93" />
+              <Nose />
+              <path d="M98 143 Q110 137 122 143 Q120 158 110 158 Q100 158 98 143 Z" fill={MOUTH} stroke={INK} strokeWidth={3.8} strokeLinejoin="round" />
+              <ellipse cx={110} cy={154} rx={6.5} ry={3.6} fill="#ff8a93" />
               <Drop x={44} y={96} className="yk-drip" />
               <Drop x={178} y={104} className="yk-drip yk-drip2" />
               <Drop x={160} y={58} className="yk-drip yk-drip3" />
@@ -240,7 +286,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             <>
               <Spiral x={80} y={112} />
               <Spiral x={140} y={112} />
-              <path d="M94 140 q4 -8 8 0 t8 0 t8 0 t8 0" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
+              <Nose />
+              <path d="M94 150 q4 -8 8 0 t8 0 t8 0 t8 0" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
               {/* jelaga */}
               <ellipse cx={110} cy={74} rx={26} ry={9} fill={INK} opacity={0.14} />
               <ellipse cx={150} cy={84} rx={10} ry={5} fill={INK} opacity={0.12} />
@@ -249,14 +296,15 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           {mood === "faint" && (
             <>
               <path d="M68 100 L92 124 M92 100 L68 124 M128 100 L152 124 M152 100 L128 124" stroke={INK} strokeWidth={5.5} strokeLinecap="round" />
-              <ellipse cx={110} cy={140} rx={7.5} ry={9.5} fill={MOUTH} stroke={INK} strokeWidth={3.6} />
-              <ellipse cx={110} cy={146} rx={4.6} ry={3.4} fill="#ff8a93" />
+              <Nose />
+              <ellipse cx={110} cy={150} rx={7.5} ry={9.5} fill={MOUTH} stroke={INK} strokeWidth={3.6} />
+              <ellipse cx={110} cy={156} rx={4.6} ry={3.4} fill="#ff8a93" />
             </>
           )}
 
           {/* syal */}
           <path d="M72 160 C94 180 126 180 148 160 L152 176 C128 196 92 196 68 176 Z" fill={SCARF} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
-          <path d="M76 168 C96 184 124 184 144 168" fill="none" stroke={LEAF} strokeWidth={2.4} strokeLinecap="round" opacity={0.7} strokeDasharray="1 9" />
+          <path d="M76 168 C96 184 124 184 144 168" fill="none" stroke="#0b6b66" strokeWidth={2.4} strokeLinecap="round" opacity={0.7} strokeDasharray="1 9" />
           <path className="yk-tail" d="M130 184 L140 210 L156 202 L150 178 Z" fill={SCARF} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
 
           {/* properti & lengan depan (di atas kepala) */}
