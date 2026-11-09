@@ -8,7 +8,7 @@
  * - Navigasi: network-first, jatuh ke /offline.html bila jaringan mati.
  */
 
-const VERSION = "v6";
+const VERSION = "v7";
 const STATIC_CACHE = `kf-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -41,6 +41,36 @@ const isDevHost = (() => {
   return false;
 })();
 
+// Ambil /offline.html terbaru dari jaringan (lewati HTTP cache) lalu simpan.
+// `allCaches` = tulis juga ke cache versi lama milik SW yang masih aktif.
+let offlineCheckedAt = 0;
+async function refreshOfflinePage(allCaches) {
+  try {
+    const res = await fetch(new Request(OFFLINE_URL, { cache: "reload" }));
+    if (!res || res.status !== 200) return;
+    const names = new Set([STATIC_CACHE]);
+    if (allCaches) {
+      for (const k of await caches.keys()) {
+        if (k.startsWith("kf-static-")) names.add(k);
+      }
+    }
+    await Promise.all(
+      [...names].map(async (k) => (await caches.open(k)).put(OFFLINE_URL, res.clone())),
+    );
+  } catch {
+    // Offline / gagal: biarkan salinan yang sudah ada.
+  }
+}
+
+// Setelah navigasi online yang berhasil, periksa ulang halaman offline
+// (maks. sekali per 6 jam) supaya perubahan desainnya tidak tertinggal.
+function maybeRefreshOfflinePage() {
+  const now = Date.now();
+  if (now - offlineCheckedAt < 6 * 60 * 60 * 1000) return Promise.resolve();
+  offlineCheckedAt = now;
+  return refreshOfflinePage(false);
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -52,6 +82,11 @@ self.addEventListener("install", (event) => {
           cache.add(new Request(url, { cache: "reload" })).catch(() => {}),
         ),
       );
+      // Segarkan /offline.html di SEMUA cache kf-static-* yang sudah ada.
+      // SW lama masih memegang kendali sampai user menekan "Muat ulang";
+      // tanpa ini ia terus menyajikan halaman offline versi lama dari
+      // cache-nya sendiri meski halaman barunya sudah ter-deploy.
+      await refreshOfflinePage(true);
       // Sengaja TIDAK skipWaiting: versi baru menunggu user menekan
       // "Muat ulang" agar halaman yang sedang dibaca tidak putus.
       // Pengecualian dev: SW harus langsung aktif agar chunk dev basi
@@ -65,12 +100,18 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      // Dev: buang SEMUA cache — isinya chunk dev dari sesi sebelumnya.
+      // Buang cache versi lama (di dev maupun produksi).
       await Promise.all(
-        keys
-          .filter((k) => isDevHost || k !== STATIC_CACHE)
-          .map((k) => caches.delete(k)),
+        keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k)),
       );
+      // Dev: buang chunk /_next/ basi, tapi pertahankan /offline.html & ikon —
+      // menghapus seluruh cache membuat fallback offline hilang (jadi teks polos).
+      if (isDevHost) {
+        const cache = await caches.open(STATIC_CACHE);
+        for (const r of await cache.keys()) {
+          if (new URL(r.url).pathname.startsWith("/_next/")) await cache.delete(r);
+        }
+      }
       await self.clients.claim();
     })(),
   );
@@ -103,7 +144,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          return await fetch(req);
+          const res = await fetch(req);
+          try {
+            event.waitUntil(maybeRefreshOfflinePage());
+          } catch {
+            // waitUntil tak boleh membuat navigasi online gagal.
+          }
+          return res;
         } catch {
           const cache = await caches.open(STATIC_CACHE);
           const offline = await cache.match(OFFLINE_URL);
