@@ -1,5 +1,5 @@
 /**
- * Yuki — maskot KomikFrost: rubah teal (warna primer KomikFrost) berpipi putih kehijauan, berjubah Hokage putih bermotif api teal, berekor lebat berujung
+ * Yuki — maskot KomikFrost: rubah teal (warna primer KomikFrost) berpipi putih kehijauan, berjubah Hokage putih bermotif api merah, berekor lebat berujung
  * putih, bersyal teal tua. Digambar sebagai SVG murni: garis tinta tebal, warna
  * datar + satu lapis bayangan cel. Satu komponen, tujuh ekspresi — dipakai
  * oleh halaman masuk dan semua layar error.
@@ -36,13 +36,13 @@ function Arm({ d, anim }: { d: string; anim?: string }) {
   const deg = (Math.atan2(ey - cy, ex - cx) * 180) / Math.PI;
   return (
     <g className={anim} style={anim ? { transformOrigin: `${n[0]}px ${n[1]}px` } : undefined}>
-      {/* lengan jubah ala Akatsuki: lengan baju lebar berwarna putih, ujungnya melebar dengan pita api teal */}
+      {/* lengan jubah ala Akatsuki: lengan baju lebar berwarna putih, ujungnya melebar dengan pita api merah */}
       <path d={d} fill="none" stroke={INK} strokeWidth={24} strokeLinecap="round" strokeLinejoin="round" />
       <path d={d} fill="none" stroke={HAORI} strokeWidth={18.5} strokeLinecap="round" strokeLinejoin="round" />
       <path d={d} fill="none" stroke={HAORI_SHADE} strokeWidth={5} strokeLinecap="round" opacity={0.85} transform="translate(1.6 3)" />
       <path d={d} fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" opacity={0.9} transform="translate(-3.4 -3.4)" />
       <g transform={`translate(${ex} ${ey}) rotate(${deg})`}>
-        {/* ujung lengan melebar + pita api dekoratif teal */}
+        {/* ujung lengan melebar + pita api dekoratif merah */}
         <g transform="translate(-5.5 0)">
         <path d="M-21 -10.4 L-3 -13.6 Q1.2 0 -3 13.6 L-21 10.4 Z" fill={HAORI} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
         <path d="M-9 -12.2 L-3 -13.6 Q1.2 0 -3 13.6 L-9 12.2 Q-6.6 0 -9 -12.2 Z" fill={FLAME} />
@@ -188,13 +188,13 @@ function Collar() {
   );
 }
 
-/** Jubah Hokage Keempat (haori Yondaime): PUTIH, dengan motif api TEAL di tepi bawah — murni dekorasi (datar, tidak menyala/berkelip). */
+/** Jubah Hokage Keempat (haori Yondaime): PUTIH, dengan motif api MERAH di tepi bawah — murni dekorasi (datar, tidak menyala/berkelip). */
 const HAORI = "#f6f3ee";
 const HAORI_LIGHT = "#ffffff";
 const HAORI_SHADE = "#ddd7cc";
 const HAORI_LINE = "#b9b1a4";
-const FLAME = "#1a9a92";
-const FLAME_IN = "#0b6b66";
+const FLAME = "#d6262b"; // merah Hokage
+const FLAME_IN = "#8f1519";
 
 /** Motif lidah api dekoratif di tepi bawah jubah: datar, tanpa animasi, bukan api sungguhan. */
 function FlameRow({ xs, by, hs = [24, 17], w = 9 }: { xs: number[]; by: number; hs?: number[]; w?: number; delay?: number }) {
@@ -229,7 +229,7 @@ function CapeWing({ side }: { side: "l" | "r" }) {
           <path d="M80 166 C66 180 56 206 52 236 Q66 234 80 237 Q82 196 94 172 Z" fill={HAORI_SHADE} />
           <path d="M68 176 Q58 200 54 226 M88 182 Q82 204 80 228" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
         </g>
-        {/* motif api teal dekoratif di tepi bawah */}
+        {/* motif api merah dekoratif di tepi bawah */}
         <g clipPath="url(#yk-wing-clip)">
           <path d="M36 234.500 L112 234.500 L112 252 L36 252 Z" fill={FLAME} />
           <FlameRow xs={xs} by={235} hs={[8, 6]} w={6.5} />
@@ -249,7 +249,7 @@ function Cape() {
     <g>
       <path d={BACK_PANEL} fill={HAORI_SHADE} />
       <path d="M99 170 Q96 205 98 230 M121 170 Q124 205 122 230" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.45} />
-      {/* motif api teal dekoratif di hem punggung, sama dengan sayap */}
+      {/* motif api merah dekoratif di hem punggung, sama dengan sayap */}
       <g clipPath="url(#yk-back-clip)">
         <path d="M66 234.500 L154 234.500 L154 252 L66 252 Z" fill={FLAME} />
         <FlameRow xs={[100, 110, 120]} by={235} hs={[8, 6]} w={6} />
@@ -682,15 +682,15 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             </Hold>
           )}
           {mood === "lost" && (
-            <Hold at={[152, 174]} anim="yk-search">
+            <g className="yk-aim"><Hold at={[152, 174]} anim="yk-search">
               <g fill="none" strokeLinecap="round" transform="translate(11 0)">
                 <path d="M186 140 L177 158" stroke={INK} strokeWidth={10} />
                 <path d="M186 140 L177 158" stroke="#9a6a3a" strokeWidth={5} />
                 <circle cx={198} cy={120} r={20} fill="#bfe0f5" fillOpacity={0.85} stroke={INK} strokeWidth={5.5} />
-                <path d="M187 112 Q190 103 200 101" stroke="#fff" strokeWidth={4} />
+                <g transform="translate(198 120)"><g className="yk-glint"><path d="M-9 -6 Q-6.5 -11.5 0 -12.5" stroke="#fff" strokeWidth={3.5} /></g></g>
               </g>
               <Arm d="M152 174 Q174 174 190 160" />
-            </Hold>
+            </Hold></g>
           )}
           {mood === "puzzled" && (
             <Hold at={[152, 174]} anim="yk-hold">
