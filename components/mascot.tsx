@@ -514,7 +514,6 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <Eye x={140} y={112} shine="sparkle" />
               <Nose />
               <path d="M100 141 Q110 162 120 141 Z" fill={MOUTH} stroke={INK} strokeWidth={3.6} strokeLinejoin="round" />
-              <ellipse cx={110} cy={154} rx={5.5} ry={3} fill="#ff8a93" />
               <path d="M102 142.500 L106.500 142.500 L104.200 148 Z M113.500 142.500 L118 142.500 L115.800 148 Z" fill="#fff" stroke={INK} strokeWidth={1.4} strokeLinejoin="round" />
               <Sparkle x={26} y={78} s={1} className="yk-twinkle" />
               <Sparkle x={196} y={36} s={0.75} fill="#a6ece2" className="yk-twinkle" delay={0.6} />
@@ -683,7 +682,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           )}
           {mood === "puzzled" && (
             <Hold at={[152, 174]} anim="yk-hold">
-              <g transform="translate(190 150) rotate(14)">
+              <g transform="translate(192 132) rotate(14)">
                 <path d="M-18 -22 L16 -26 L22 4 L-14 10 Z" fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
                 <path d="M-10 -14 L8 -16 M-9 -6 L12 -9 M-9 2 L4 0" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
                 <text x={4} y={-3} fontSize={26} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#e5483f" stroke={INK} strokeWidth={3} paintOrder="stroke" textAnchor="middle">?!</text>
