@@ -2081,6 +2081,8 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 /* Kepala, telinga & mata mengikuti --px/--py (diisi SceneMotion). */
 .yk-follow { transform-origin: 110px 160px; transform: translate(calc(var(--px, 0) * 2px), calc(var(--py, 0) * 1.2px)) rotate(calc(var(--px, 0) * .8deg)); }
 .yk-look { transform: translate(calc(var(--px, 0) * 2px), calc(var(--py, 0) * 1px)); }
+.yk-aim { transform-origin: 152px 174px; transform: translate(calc(var(--px, 0) * 4px), calc(var(--py, 0) * 2.5px)) rotate(calc(var(--px, 0) * 6deg)); transition: transform .12s linear; }
+.yk-glint { transform: translate(calc(var(--px, 0) * -2.4px), calc(var(--py, 0) * -1.8px)); transition: transform .12s linear; }
 .yk-shadow { transform-box: fill-box; transform-origin: center; animation: yk-shadow 3.6s ease-in-out infinite; }
 .yk-vein { transform-box: fill-box; transform-origin: center; animation: yk-vein 1.8s ease-in-out infinite; }
 .yk-card { transform-box: fill-box; transform-origin: 50% 100%; animation: yk-card 3.4s ease-in-out infinite; }
