@@ -8,7 +8,7 @@
  * - Navigasi: network-first, jatuh ke /offline.html bila jaringan mati.
  */
 
-const VERSION = "v5";
+const VERSION = "v6";
 const STATIC_CACHE = `kf-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -28,7 +28,7 @@ const PRECACHE = [
 // TIDAK ber-hash, jadi cache-first menyajikan bundel basi — export baru
 // (mis. <Sidebar />) belum ada di chunk lama sehingga React melempar
 // "Element type is invalid. Received a promise that resolves to undefined".
-// Dev = localhost/loopback ATAU IP privat (LAN) â€” nama chunk Next dev tidak
+// Dev = localhost/loopback ATAU IP privat (LAN) — nama chunk Next dev tidak
 // ber-hash, cache-first menyajikan bundel basi. Port sengaja TIDAK dipakai
 // sebagai penanda: self-hosting produksi di port non-standar tetap harus
 // menyimpan cache.
