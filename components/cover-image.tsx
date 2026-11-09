@@ -1,5 +1,7 @@
 "use client";
 
+import { KonohaMark } from "@/components/konoha-mark";
+import { UzumakiMark } from "@/components/uzumaki-mark";
 import { useCallback, useState } from "react";
 
 /**
@@ -42,19 +44,17 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
   );
   const eye = (cx: number) => (
     <g className="ph-eye">
-      <ellipse cx={cx} cy="38" rx="4.2" ry="5.6" fill={INK} />
-      <ellipse cx={cx} cy="39" rx="3.1" ry="4.3" fill="#62d6c8" />
-      <ellipse cx={cx} cy="38.4" rx="1.7" ry="2.7" fill={INK} />
-      <circle cx={cx - 1.2} cy="36" r="1.4" fill="#fff" />
+      <ellipse cx={cx} cy="38" rx="3.900" ry="5" fill={INK} />
+      <ellipse cx={cx} cy="39" rx="2.800" ry="3.400" fill="#16363a" />
+      <circle cx={cx - 1.400} cy="36.400" r="1.250" fill="#fff" />
+      <circle cx={cx + 1.400} cy="40.600" r=".6" fill="#fff" opacity=".9" />
     </g>
   );
   return (
     <svg className="cover-ph__avatar" viewBox="0 0 64 68" aria-hidden="true">
-      {/* telinga */}
-      <g transform={err ? "rotate(-38 24 30)" : "rotate(-4 24 30)"}>{ear}</g>
-      <g transform="translate(64 0) scale(-1 1)">
-        <g transform={err ? "rotate(-38 24 30)" : "rotate(-4 24 30)"}>{ear}</g>
-      </g>
+      {/* telinga: sudut dan proporsi konsisten pada loading maupun error */}
+      <g>{ear}</g>
+      <g transform="translate(64 0) scale(-1 1)">{ear}</g>
       {/* rumbai pipi */}
       <path d="M11 41 4.500 43.500 10 47 6.500 51 15 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
       <path d="M53 41 59.500 43.500 54 47 57.500 51 49 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
@@ -81,12 +81,32 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
       <ellipse cx="49.500" cy="47" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
       <path d="M29.500 43Q32 41.500 34.500 43Q33.500 46 32 46.500Q30.500 46 29.500 43Z" fill={INK} />
       {err ? (
-        <path d="M27 53q2.500-2.500 5 0t5 0" fill="none" stroke={INK} strokeWidth="1.800" strokeLinecap="round" />
+        <path
+          d="M27.2 52.4 C28.3 50.4 29.7 50.4 31 52.3 C32 53.9 33 53.9 34 52.3 C35.3 50.4 36.7 50.4 37.8 52.4"
+          fill="none"
+          stroke={INK}
+          strokeWidth="2.35"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       ) : (
         <path d="M32 48.500v1.500M32 50q-3 3.500-6 .5M32 50q3 3.500 6 .5" fill="none" stroke={INK} strokeWidth="1.600" strokeLinecap="round" />
       )}
+      {/* ikat kepala melengkung mengikuti dahi; pelat dan empat baut tetap proporsional */}
+      <path d="M9 27 Q32 15.5 55 27 L54.5 32 Q32 22 9.5 32 Z" fill="#0b4f4b" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M11 27 Q32 18 53 27" fill="none" stroke="#17807a" strokeWidth="1.1" opacity=".8" />
+      <rect x="21" y="20.2" width="22" height="11" rx="2.4" fill="#cdd7de" stroke={INK} strokeWidth="1.6" />
+      <rect x="22.6" y="21.5" width="18.8" height="8.4" rx="1.4" fill="none" stroke="#8d9ea9" strokeWidth=".65" />
+      <KonohaMark x={27} y={22} w={10} h={7.2} color="#26343c" />
+      <g fill="#74848f" stroke="#e8f0f3" strokeWidth=".35">
+        <circle cx="23.8" cy="23.1" r=".85" />
+        <circle cx="40.2" cy="23.1" r=".85" />
+        <circle cx="23.8" cy="28.3" r=".85" />
+        <circle cx="40.2" cy="28.3" r=".85" />
+      </g>
       {/* syal */}
       <path d="M16 54C25 62 39 62 48 54l1.500 6c-9 7-24 7-35 0z" fill="#a6ece2" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
+          <UzumakiMark x={28.400} y={60.400} w={7.200} h={7.200} />
     </svg>
   );
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { BrandMark } from "@/components/brand-mark";
 import { Yuki, type Mood } from "@/components/mascot";
 
 /**
@@ -118,14 +117,6 @@ export function StatusScreen({
   return (
     <BareScreen tone={tone} shock={shock}>
       <main role="main" className="mg-wrap">
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/" className="mg-brand mg-in" aria-label="KomikFrost — ke beranda">
-          <BrandMark className="h-8 w-8" />
-          <span>
-            Komik<em>Frost</em>
-          </span>
-        </a>
-
         <div className="mg-card mg-in" style={{ "--d": "80ms" } as CSSProperties}>
           <Scene mood={mood} sfx={sfx} bubble={bubble} code={code} props={scene} />
           <div className="mg-body">

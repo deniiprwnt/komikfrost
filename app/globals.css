@@ -2028,6 +2028,7 @@ html.dark .mg-caps { color: var(--color-gold); }
 .yk-blink { transform-box: fill-box; transform-origin: center; animation: yk-blink 4.2s infinite; }
 .yk-tail { transform-origin: 134px 182px; animation: yk-tail 2.4s ease-in-out infinite; }
 .yk-fox-tail { transform-origin: 134px 196px; animation: yk-swish 2.8s ease-in-out infinite; }
+.yk-twinkle { transform-box: fill-box; transform-origin: center; animation: yk-twinkle 1.9s ease-in-out infinite; }
 .yk-spin { animation: yk-spin 1.6s linear infinite; }
 .yk-orbit { transform-origin: 110px 70px; animation: yk-spin 3s linear infinite; }
 .yk-drip { animation: yk-drip 1.8s ease-in infinite; }
@@ -2047,6 +2048,7 @@ html.dark .mg-caps { color: var(--color-gold); }
 @keyframes yk-swish { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(6deg); } }
 @keyframes yk-tail { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(7deg); } }
 @keyframes yk-tilt { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes yk-twinkle { 0%, 100% { transform: scale(.7) rotate(0deg); opacity: .75; } 50% { transform: scale(1.18) rotate(14deg); opacity: 1; } }
 @keyframes yk-spin { to { transform: rotate(360deg); } }
 @keyframes yk-drip { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(22px); } }
 @keyframes yk-qmark { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-4px); } }
@@ -2054,6 +2056,6 @@ html.dark .mg-caps { color: var(--color-gold); }
 
 @media (prefers-reduced-motion: reduce) {
   .mg-in, .mg-sfx, .mg-bubble, .mg-burst, .mg-focus, .mg-float, .mg-steam, .mg-shake, .mg-spin, .mg-padlock,
-  .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-fox-tail, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
+  .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-fox-tail, .yk-twinkle, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
   .mg-steam { opacity: .6; }
 }

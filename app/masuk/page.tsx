@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePageTitle } from "@/lib/page-title";
-import { BrandMark } from "@/components/brand-mark";
 import { BareScreen, Scene } from "@/components/bare-screen";
 import { LockedDoor } from "@/components/scene-props";
 import type { Mood } from "@/components/mascot";
@@ -64,13 +63,6 @@ function MasukForm() {
         />
 
         <section className="mg-form">
-          <div className="mb-3 flex items-center gap-3 min-[860px]:mb-6">
-            <BrandMark className="h-9 w-9 min-[860px]:h-11 min-[860px]:w-11" />
-            <span className="font-display text-xl font-extrabold">
-              Komik<span className="text-accent">Frost</span>
-            </span>
-          </div>
-
           <h1 className="mg-title">Selamat datang</h1>
           <p className="mg-desc">Situs pribadi. Masukkan kata sandi untuk melanjutkan membaca.</p>
 
