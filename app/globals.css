@@ -809,7 +809,11 @@ html { overscroll-behavior-y: none; }
   --card-min: 104px;
   --card-gap: 0.5rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  /* Lebar kartu dibatasi: tidak melar mengisi sisa ruang, jadi cover
+     tetap berukuran wajar di layar lebar. */
+  --card-max: calc(var(--card-min) + 24px);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), var(--card-max)));
+  justify-content: start;
   gap: var(--card-gap);
 }
 @media (min-width: 420px) {
