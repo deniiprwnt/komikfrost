@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme";
 import { BootSplash } from "@/components/boot-splash";
 import { RouteMemory } from "@/components/route-memory";
 import { Pwa } from "@/components/pwa";
+import { NoZoom } from "@/components/no-zoom";
 import { BackToTop, Footer, Header, Main, MobileTabBar, Sidebar } from "@/components/layout";
 import "./globals.css";
 
@@ -63,7 +64,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
+  // Zoom dikunci agar terasa seperti aplikasi native.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   // Satu nilai default gelap (tema default aplikasi). Nilai media-query
   // dihapus — yang berlaku adalah meta theme-color yang ditulis ulang
@@ -110,6 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <BootSplash />
           <RouteMemory />
           <Pwa />
+          <NoZoom />
           <Sidebar />
           <div className="app-shell flex min-w-0 flex-1 flex-col">
             <Header />
