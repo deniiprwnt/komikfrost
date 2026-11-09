@@ -1685,14 +1685,10 @@ article.cv-auto:not(.group):active {
   animation: fade-only 240ms ease-out both;
 }
 
-/* Skeleton → konten: area yang memuat langsung terlihat hidup. */
-.shimmer {
-  animation-name: shimmer-sweep, fade-only;
-  animation-duration: 2s, 300ms;
-  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1), ease-out;
-  animation-iteration-count: infinite, 1;
-}
-
+/* Skeleton: TANPA fade-in. Skeleton route (loading.tsx) dan skeleton client
+   sering bergantian dalam hitungan milidetik; fade-in 300ms membuat tiap
+   pergantian tampak berkedip dari transparan → terlihat seperti "muncul 2x".
+   Skeleton harus langsung terlihat penuh, hanya shimmer yang bergerak. */
 /* Tautan & tombol umum: umpan balik tekan yang seragam. */
 @media (hover: hover) {
   a:active:not(.sb-item):not(.dock-item),
