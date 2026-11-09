@@ -60,7 +60,7 @@ export function TypeBadge({
 
 /** Tanda sumber data — kecil seperti TypeBadge, satu warna per source. */
 const SOURCE_STYLE: Record<string, string> = {
-  shinigami: "bg-[#337e76] dark:bg-[#2f7d75]",
+  shinigami: "bg-[#0e7c74] dark:bg-[#118079]",
   komiku: "bg-mark-manhwa",
   komikcast: "bg-mark-manga",
 };

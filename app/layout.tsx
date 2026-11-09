@@ -69,7 +69,7 @@ export const viewport: Viewport = {
   // dihapus — yang berlaku adalah meta theme-color yang ditulis ulang
   // ThemeProvider setiap tema diganti, agar bar browser/PWA selalu sama
   // dengan tema aplikasi, bukan tema OS.
-  themeColor: "#0c1114",
+  themeColor: "#080e11",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var p=!!(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone);if(p)document.documentElement.classList.add("booting");var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",p||t!=="light"?"#0c1114":"#eef2f3")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
+              'try{var p=!!(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone);if(p)document.documentElement.classList.add("booting");var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",p||t!=="light"?"#080e11":"#eaf1f1")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
           }}
         />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS

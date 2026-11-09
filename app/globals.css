@@ -22,30 +22,30 @@
 
   /* Palet teal-ink yang sama, dihaluskan: permukaan gelap sedikit
      diangkat, garis lebih tipis, aksen kurang jenuh. */
-  --color-ink: #0c1114;
-  --color-ink-2: #121a1e;
-  --color-ink-3: #1a2328;
-  --color-line-dark: #222d33;
-  --color-paper: #eef2f3;
-  --color-paper-2: #f8fbfb;
-  --color-paper-3: #e3eaec;
-  --color-line: #d9e2e4;
+  --color-ink: #080e11;
+  --color-ink-2: #0f181c;
+  --color-ink-3: #162227;
+  --color-line-dark: #1f2f35;
+  --color-paper: #eaf1f1;
+  --color-paper-2: #ffffff;
+  --color-paper-3: #e0eaea;
+  --color-line: #d6e2e3;
 
-  --color-fg: #0e1417;
-  --color-fg-dark: #e6eeef;
-  --color-muted: #5a686d;
-  --color-muted-dark: #8fa0a7;
+  --color-fg: #0d1518;
+  --color-fg-dark: #e7f1f1;
+  --color-muted: #566a70;
+  --color-muted-dark: #8ba2a8;
 
   /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
-  --color-accent: #1d3a3f;
-  --color-accent-strong: #122a2e;
-  --color-accent-soft: #dce8e9;
-  --color-accent-soft-dark: #17292c;
+  --color-accent: #0b6b66;
+  --color-accent-strong: #064e4a;
+  --color-accent-soft: #d5ecea;
+  --color-accent-soft-dark: #14302f;
 
   /* Penanda tipe bacaan — hue sama, saturasi diredam. */
   --color-mark-manga: #bf4f48;
-  --color-mark-manhwa: #3a7ab4;
-  --color-mark-manhua: #9c6f1c;
+  --color-mark-manhwa: #2f6fae;
+  --color-mark-manhua: #94650f;
 
   --color-gold: #d8a84a;
 
@@ -65,8 +65,8 @@
    tetap putih, mis. logo & tombol). Teks beraksen di atas gelap memakai
    teal yang lebih terang lewat aturan di bawah. */
 html.dark {
-  --color-accent: #2a5257;
-  --color-accent-strong: #8fb8bb;
+  --color-accent: #118079;
+  --color-accent-strong: #62d6c8;
 }
 :root {
   --on-accent: #ffffff;
@@ -88,7 +88,7 @@ html.dark {
    (untuk teks), jadi hover latar memakai aksen yang sedikit diangkat agar
    teks putih tetap terbaca. */
 .dark .hover\:bg-accent-strong:hover {
-  background-color: #346268;
+  background-color: #1a9a92;
 }
 
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).
@@ -137,11 +137,11 @@ html.dark {
    selesai (components/boot-splash.tsx). */
 html.booting,
 html.booting body {
-  background-color: #0c1114;
+  background-color: #080e11;
   color-scheme: dark;
 }
 html.booting body::before {
-  background: #0c1114;
+  background: #080e11;
 }
 
 ::selection {
@@ -594,7 +594,7 @@ h1, h2, h3, p, dd {
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
   --ph-iris-a: #7fb0b4;
-  --ph-iris-b: #1d3a3f;
+  --ph-iris-b: #0b6b66;
 }
 .dark .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
@@ -619,7 +619,7 @@ h1, h2, h3, p, dd {
 .dark .cover-ph--load {
   background:
     radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 72%),
-    radial-gradient(90% 60% at 0% 0%, #1d3a3f 0%, transparent 62%),
+    radial-gradient(90% 60% at 0% 0%, #14302f 0%, transparent 62%),
     radial-gradient(90% 60% at 100% 100%, #162f33 0%, transparent 62%),
     linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
 }
@@ -1097,7 +1097,7 @@ article.cv-auto:not(.group):active {
 .suggest-panel {
   transform-origin: top center;
   animation: suggest-in 0.22s var(--ease-out);
-  box-shadow: 0 22px 44px -22px rgba(40, 34, 20, 0.32), 0 2px 8px -4px rgba(40, 34, 20, 0.08);
+  box-shadow: 0 22px 44px -22px rgba(8, 28, 32, 0.32), 0 2px 8px -4px rgba(8, 28, 32, 0.08);
 }
 .dark .suggest-panel {
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
@@ -1172,7 +1172,7 @@ article.cv-auto:not(.group):active {
 
 /* Premium shadow for elevated elements */
 .shadow-premium {
-  box-shadow: 0 1px 0 rgba(40, 34, 20, 0.04), 0 8px 24px -16px rgba(40, 34, 20, 0.18);
+  box-shadow: 0 1px 0 rgba(8, 28, 32, 0.04), 0 8px 24px -16px rgba(8, 28, 32, 0.18);
 }
 .dark .shadow-premium {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px -16px rgba(0, 0, 0, 0.6);
@@ -1185,7 +1185,7 @@ article.cv-auto:not(.group):active {
 @media (hover: hover) {
   .card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 14px 28px -18px rgba(40, 34, 20, 0.28);
+    box-shadow: 0 14px 28px -18px rgba(8, 28, 32, 0.28);
     border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line));
   }
   .dark .card-hover:hover {
@@ -1365,7 +1365,7 @@ article.cv-auto:not(.group):active {
 .sb[data-peek] {
   width: var(--sb-full);
   background-color: var(--color-paper);
-  box-shadow: 24px 0 48px -28px rgba(40, 34, 20, 0.3);
+  box-shadow: 24px 0 48px -28px rgba(8, 28, 32, 0.3);
 }
 .dark .sb[data-peek] { background-color: var(--color-ink); }
 
@@ -1393,7 +1393,7 @@ article.cv-auto:not(.group):active {
   border: 1px solid var(--color-line);
   background: var(--color-paper-2);
   color: var(--color-muted);
-  box-shadow: 0 4px 12px -6px rgba(40, 34, 20, 0.3);
+  box-shadow: 0 4px 12px -6px rgba(8, 28, 32, 0.3);
   opacity: 0;
   transition: opacity 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms var(--ease-out);
 }
@@ -1534,7 +1534,7 @@ article.cv-auto:not(.group):active {
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 10px 26px -14px rgba(40, 34, 20, 0.35);
+  box-shadow: 0 10px 26px -14px rgba(8, 28, 32, 0.35);
   opacity: 0;
   translate: -4px -50%;
   pointer-events: none;
@@ -1573,7 +1573,7 @@ article.cv-auto:not(.group):active {
 }
 .dock {
   box-shadow:
-    0 18px 36px -20px rgba(40, 34, 20, 0.4),
+    0 18px 36px -20px rgba(8, 28, 32, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .dark .dock {
@@ -1619,7 +1619,7 @@ article.cv-auto:not(.group):active {
   .hdr-search:focus-within .search-field {
     box-shadow:
       0 0 0 4px color-mix(in srgb, var(--color-accent) 13%, transparent),
-      0 14px 30px -18px rgba(40, 34, 20, 0.4);
+      0 14px 30px -18px rgba(8, 28, 32, 0.4);
   }
   .hdr-search .suggest-panel { margin-top: 0.6rem; border-radius: var(--radius-2xl); }
   .hdr-search .suggest-panel ul { max-height: min(28rem, calc(100dvh - 7rem)); }

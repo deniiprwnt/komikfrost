@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="bg" x1="9" y1="3" x2="55" y2="62" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1d3235"/>
-      <stop offset="0.52" stop-color="#101c20"/>
-      <stop offset="1" stop-color="#0a1417"/>
+      <stop offset="0" stop-color="#1a9a92"/>
+      <stop offset="0.52" stop-color="#0b6b66"/>
+      <stop offset="1" stop-color="#064e4a"/>
     </linearGradient>
     <radialGradient id="bloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(49 54) rotate(-90) scale(40)">
-      <stop offset="0" stop-color="#3d6a70" stop-opacity="0.5"/>
-      <stop offset="0.6" stop-color="#1d3a3f" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#1d3a3f" stop-opacity="0"/>
+      <stop offset="0" stop-color="#62d6c8" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#62d6c8" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#62d6c8" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="mark" x1="32" y1="16" x2="32" y2="48" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ffffff"/>
