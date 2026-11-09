@@ -93,20 +93,20 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
         <path d="M32 48.500v1.500M32 50q-3 3.500-6 .5M32 50q3 3.500 6 .5" fill="none" stroke={INK} strokeWidth="1.600" strokeLinecap="round" />
       )}
       {/* ikat kepala melengkung mengikuti dahi; pelat dan empat baut tetap proporsional */}
-      <path d="M9 27 Q32 15.5 55 27 L54.5 32 Q32 22 9.5 32 Z" fill="#0b4f4b" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M11 27 Q32 18 53 27" fill="none" stroke="#17807a" strokeWidth="1.1" opacity=".8" />
+      <path d="M9 27 Q32 15.5 55 27 L54.5 32 Q32 22 9.5 32 Z" fill="#0d4bb9" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M11 27 Q32 18 53 27" fill="none" stroke="#2f6fe0" strokeWidth="1.1" opacity=".8" />
       <rect x="21" y="20.2" width="22" height="11" rx="2.4" fill="#cdd7de" stroke={INK} strokeWidth="1.6" />
       <rect x="22.6" y="21.5" width="18.8" height="8.4" rx="1.4" fill="none" stroke="#8d9ea9" strokeWidth=".65" />
       <KonohaMark x={27} y={22} w={10} h={7.2} color="#26343c" />
       <g fill="#74848f" stroke="#e8f0f3" strokeWidth=".35">
-        <circle cx="23.8" cy="23.1" r=".85" />
-        <circle cx="40.2" cy="23.1" r=".85" />
-        <circle cx="23.8" cy="28.3" r=".85" />
-        <circle cx="40.2" cy="28.3" r=".85" />
+        <circle cx="24.6" cy="23.6" r=".85" />
+        <circle cx="39.4" cy="23.6" r=".85" />
+        <circle cx="24.6" cy="27.8" r=".85" />
+        <circle cx="39.4" cy="27.8" r=".85" />
       </g>
       {/* syal */}
-      <path d="M16 54C25 62 39 62 48 54l1.500 6c-9 7-24 7-35 0z" fill="#a6ece2" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
-          <UzumakiMark x={28.400} y={60.400} w={7.200} h={7.200} />
+      <path d="M15 53C25 60 39 60 49 53l1.500 6L32 66.500 13.500 59z" fill="#0d4bb9" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
+      <UzumakiMark x={28.500} y={58.200} w={7} h={7} />
     </svg>
   );
 }

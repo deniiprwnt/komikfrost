@@ -2023,39 +2023,200 @@ html.dark .mg-caps { color: var(--color-gold); }
 @keyframes mg-spin { to { transform: rotate(360deg); } }
 
 /* Maskot */
-.yk-bob { animation: yk-bob 2.4s ease-in-out infinite; }
+.yk-bob { animation: yk-bob 3.6s ease-in-out infinite; }
 .yk-limp { animation: yk-limp 3.2s ease-in-out infinite; transform-origin: 110px 210px; }
 .yk-blink { transform-box: fill-box; transform-origin: center; animation: yk-blink 4.2s infinite; }
-.yk-tail { transform-origin: 134px 182px; animation: yk-tail 2.4s ease-in-out infinite; }
-.yk-fox-tail { transform-origin: 134px 196px; animation: yk-swish 2.8s ease-in-out infinite; }
+.yk-tail { transform-origin: 134px 182px; animation: yk-tail 3.6s ease-in-out infinite; }
+.yk-fox-tail { transform-origin: 134px 196px; animation: yk-swish 4s ease-in-out infinite; }
+.yk-wing { animation: yk-wing-l 4.6s ease-in-out infinite; }
+.yk-wing-l { transform-origin: 68px 160px; }
+.yk-wing-r { transform-origin: 152px 160px; animation-name: yk-wing-r; animation-delay: -1.1s; }
+.yk:hover .yk-wing { animation-duration: 3.2s; }
+.yk-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: yk-flame 1.15s ease-in-out infinite; }
+@keyframes yk-wing-l { 0%, 100% { transform: rotate(.5deg); } 50% { transform: rotate(-1.4deg); } }
+@keyframes yk-wing-r { 0%, 100% { transform: rotate(-.7deg); } 50% { transform: rotate(1.8deg); } }
+@keyframes yk-flame { 0%, 100% { transform: scaleY(.9) skewX(-3deg); } 50% { transform: scaleY(1.1) skewX(3deg); } }
 .yk-twinkle { transform-box: fill-box; transform-origin: center; animation: yk-twinkle 1.9s ease-in-out infinite; }
-.yk-spin { animation: yk-spin 1.6s linear infinite; }
-.yk-orbit { transform-origin: 110px 70px; animation: yk-spin 3s linear infinite; }
+.yk-spin { animation: yk-spin 3.2s linear infinite; }
+.yk-orbit { transform-origin: 110px 70px; animation: yk-spin 7s linear infinite; }
 .yk-drip { animation: yk-drip 1.8s ease-in infinite; }
 .yk-drip2 { animation-delay: -.6s; } .yk-drip3 { animation-delay: -1.2s; }
-.yk-qmark { transform-box: fill-box; transform-origin: 50% 90%; animation: yk-qmark 2s ease-in-out infinite; }
+.yk-qmark { transform-box: fill-box; transform-origin: 50% 90%; animation: yk-qmark 3.2s ease-in-out infinite; }
 .yk-soul { animation: yk-soul 2.8s ease-in-out infinite; }
-.yk-dizzy .yk-bob { animation: yk-wobble .9s ease-in-out infinite; transform-origin: 110px 200px; }
-.yk-tired .yk-bob { animation: yk-pant .9s ease-in-out infinite; transform-origin: 110px 200px; }
+.yk-dizzy .yk-bob { animation: yk-wobble 2.6s ease-in-out infinite; transform-origin: 110px 200px; }
+.yk-tired .yk-bob { animation: yk-pant 2.4s ease-in-out infinite; transform-origin: 110px 200px; }
 .yk-stern .yk-bob { animation: none; }
-.yk-puzzled .yk-bob { animation: yk-tilt 2.8s ease-in-out infinite; transform-origin: 110px 200px; }
+.yk-puzzled .yk-bob { animation: yk-tilt 4.2s ease-in-out infinite; transform-origin: 110px 200px; }
 
-@keyframes yk-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes yk-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 @keyframes yk-limp { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2px) rotate(1.2deg); } }
-@keyframes yk-pant { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.025, .97); } }
-@keyframes yk-wobble { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes yk-pant { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, .988); } }
+@keyframes yk-wobble { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
 @keyframes yk-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.08); } }
-@keyframes yk-swish { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(6deg); } }
-@keyframes yk-tail { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(7deg); } }
-@keyframes yk-tilt { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes yk-swish { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(3deg); } }
+@keyframes yk-tail { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(3deg); } }
+@keyframes yk-tilt { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.5deg); } }
 @keyframes yk-twinkle { 0%, 100% { transform: scale(.7) rotate(0deg); opacity: .75; } 50% { transform: scale(1.18) rotate(14deg); opacity: 1; } }
 @keyframes yk-spin { to { transform: rotate(360deg); } }
 @keyframes yk-drip { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(22px); } }
 @keyframes yk-qmark { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-4px); } }
-@keyframes yk-soul { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-9px); opacity: .85; } }
+@keyframes yk-soul { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-4px); opacity: .9; } }
 
 @media (prefers-reduced-motion: reduce) {
   .mg-in, .mg-sfx, .mg-bubble, .mg-burst, .mg-focus, .mg-float, .mg-steam, .mg-shake, .mg-spin, .mg-padlock,
-  .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-fox-tail, .yk-twinkle, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
+  .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-fox-tail, .yk-wing, .yk-flame, .yk-twinkle, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
   .mg-steam { opacity: .6; }
+}
+
+/* ==========================================================================
+   Gerak lanjutan: Yuki hidup + adegan 401 / 403 / 429 / 500 / masuk
+   Semua ukuran memakai cqw (mengikuti lebar panel) → responsif otomatis.
+   ========================================================================== */
+.bs-t-violet { --t: #8f7ee6; }
+html.dark .bs-t-violet { --t: #a99bf2; }
+
+/* ---- Yuki ---------------------------------------------------------------- */
+/* Muncul & berganti ekspresi = squash & stretch (svg di-remount per mood). */
+.yk { transform-origin: 50% 100%; animation: yk-swap .45s cubic-bezier(.3, 1.2, .5, 1) both; }
+/* Kepala, telinga & mata mengikuti --px/--py (diisi SceneMotion). */
+.yk-follow { transform-origin: 110px 160px; transform: translate(calc(var(--px, 0) * 2px), calc(var(--py, 0) * 1.2px)) rotate(calc(var(--px, 0) * .8deg)); }
+.yk-look { transform: translate(calc(var(--px, 0) * 2px), calc(var(--py, 0) * 1px)); }
+.yk-shadow { transform-box: fill-box; transform-origin: center; animation: yk-shadow 3.6s ease-in-out infinite; }
+.yk-vein { transform-box: fill-box; transform-origin: center; animation: yk-vein 1.8s ease-in-out infinite; }
+.yk-card { transform-box: fill-box; transform-origin: 50% 100%; animation: yk-card 3.4s ease-in-out infinite; }
+.mg-yuki { transform-origin: 50% 100%; cursor: pointer; }
+.mg-yuki.is-poked { animation: yk-poke .7s cubic-bezier(.3, 1.4, .5, 1); }
+.mg-yuki::after {
+  content: "✦"; position: absolute; right: 4cqw; top: 2cqw; font-size: 7cqw; line-height: 1; color: var(--t); opacity: 0; pointer-events: none;
+}
+.mg-yuki.is-poked::after { animation: yk-spark .7s ease-out; }
+.mg-scene[data-fx="open"] .mg-yuki { animation: yk-jump .8s cubic-bezier(.3, 1.3, .5, 1) both; }
+.mg-scene[data-fx="rested"] .mg-yuki { animation: yk-jump .8s cubic-bezier(.3, 1.3, .5, 1) both; }
+.mg-scene[data-fx="rested"] .yk-drip, .mg-scene[data-fx="rested"] .yk-soul { display: none; }
+.mg-scene[data-fx="rested"] .yk-tired .yk-bob { animation: yk-bob 2.4s ease-in-out infinite; }
+
+@keyframes yk-swap { 0% { transform: scale(1.03, .96); opacity: 0; } 50% { transform: scale(.99, 1.015); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes yk-shadow { 0%, 100% { transform: scaleX(1); opacity: .16; } 50% { transform: scaleX(.86); opacity: .1; } }
+@keyframes yk-vein { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@keyframes yk-card { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-1px); } }
+@keyframes yk-poke {
+  0% { scale: 1; rotate: 0deg; translate: -50% 0; }
+  25% { scale: 1.04 .96; rotate: -2deg; translate: -50% 0; }
+  50% { scale: .99 1.03; rotate: 2deg; translate: -50% -1.6cqw; }
+  80% { scale: 1.01 .995; rotate: -.8deg; translate: -50% 0; }
+  100% { scale: 1; rotate: 0deg; translate: -50% 0; }
+}
+@keyframes yk-jump { 0%, 100% { translate: -50% 0; scale: 1; } 35% { translate: -50% -3.5cqw; scale: .99 1.02; } 70% { translate: -50% 0; scale: 1.02 .98; } }
+@keyframes yk-spark { 0% { opacity: 0; translate: 0 2cqw; scale: .4; rotate: 0deg; } 30% { opacity: 1; } 100% { opacity: 0; translate: 2cqw -6cqw; scale: 1.2; rotate: 90deg; } }
+
+/* ---- Semua adegan -------------------------------------------------------- */
+.mg-glow { animation: mg-breathe 5s ease-in-out infinite; }
+.mg-code { animation: mg-code-in .8s cubic-bezier(.2, 1.2, .4, 1) both; }
+.mg-motes { inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.mg-motes i { position: absolute; bottom: -3cqw; width: 1.4cqw; height: 1.4cqw; border-radius: 50%; background: var(--t); opacity: 0; animation: mg-mote 8s linear infinite; }
+.mg-motes i:nth-child(1) { left: 8cqw; animation-delay: 0s; }
+.mg-motes i:nth-child(2) { left: 22cqw; width: 1cqw; height: 1cqw; animation-delay: -2.4s; animation-duration: 9s; }
+.mg-motes i:nth-child(3) { left: 38cqw; animation-delay: -5s; animation-duration: 7s; }
+.mg-motes i:nth-child(4) { left: 55cqw; width: 1cqw; height: 1cqw; animation-delay: -1.2s; animation-duration: 10s; }
+.mg-motes i:nth-child(5) { left: 70cqw; animation-delay: -6.1s; }
+.mg-motes i:nth-child(6) { left: 84cqw; width: 1.8cqw; height: 1.8cqw; animation-delay: -3.3s; animation-duration: 9s; }
+.mg-motes i:nth-child(7) { left: 93cqw; width: 1cqw; height: 1cqw; animation-delay: -7s; animation-duration: 11s; }
+@keyframes mg-breathe { 0%, 100% { opacity: .75; scale: 1; } 50% { opacity: 1; scale: 1.12; } }
+@keyframes mg-code-in { from { opacity: 0; translate: -50% 5cqw; scale: .9; } to { opacity: .55; translate: -50% 0; scale: 1; } }
+@keyframes mg-mote { 0% { opacity: 0; translate: 0 0; } 15% { opacity: .75; } 85% { opacity: .5; } 100% { opacity: 0; translate: 4cqw -90cqw; } }
+
+/* ---- 401: gerbang pemeriksaan ------------------------------------------- */
+.mg-reader { right: 7cqw; bottom: 3cqw; width: 14cqw; z-index: 1; }
+.mg-barrier { right: 8cqw; bottom: 4.3cqw; width: 84cqw; z-index: 2; transform-origin: 93% 50%; /* palang diam: tidak lagi bergerak naik */ }
+.mg-beam { animation: mg-beam 1.8s ease-in-out infinite; }
+.mg-led { animation: mg-led 1.2s steps(1, end) infinite; }
+@keyframes mg-beam { 0%, 100% { transform: translateY(0); opacity: 0; } 15%, 85% { opacity: 1; } 50% { transform: translateY(12px); } }
+@keyframes mg-led { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+
+/* ---- 403: gembok, pita peringatan, gelombang kejut ----------------------- */
+.mg-padlock { animation: mg-float 4s ease-in-out infinite, mg-rattle 3.2s ease-in-out infinite; }
+.mg-shackle { transform-box: fill-box; transform-origin: 50% 100%; animation: mg-shackle 3.2s ease-in-out infinite; }
+.mg-tape {
+  position: absolute; left: -8cqw; right: -8cqw; bottom: 27cqw; height: 6.2cqw; rotate: -4deg; z-index: 1; opacity: .85;
+  background: linear-gradient(135deg, var(--t) 25%, #0d1518 25% 50%, var(--t) 50% 75%, #0d1518 75%); background-size: 6.2cqw 6.2cqw;
+  animation: mg-tape 1.6s linear infinite;
+}
+.mg-ring { position: absolute; left: 50%; top: 66%; width: 30cqw; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: .9cqw solid var(--t); opacity: 0; z-index: 1; animation: mg-ring 3.2s ease-out infinite; }
+@keyframes mg-rattle { 0%, 58%, 86%, 100% { rotate: 10deg; } 62% { rotate: 4deg; } 66% { rotate: 16deg; } 70% { rotate: 6deg; } 74% { rotate: 14deg; } 80% { rotate: 9deg; } }
+@keyframes mg-shackle { 0%, 58%, 82%, 100% { transform: translateY(0); } 66% { transform: translateY(-4px); } 72% { transform: translateY(-1px); } 76% { transform: translateY(-3px); } }
+@keyframes mg-tape { to { background-position: 6.2cqw 0; } }
+@keyframes mg-ring { 0%, 55% { opacity: 0; scale: .3; } 60% { opacity: .8; } 100% { opacity: 0; scale: 2.6; } }
+
+/* ---- 429: paket permintaan menyerbu -------------------------------------- */
+.mg-req {
+  position: absolute; z-index: 2; padding: 1cqw 2.2cqw; border-radius: 99px; background: var(--t); color: #0d1518;
+  font: 800 2.6cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; opacity: 0;
+  box-shadow: 0 .8cqw 1.6cqw -.8cqw rgba(0, 0, 0, .4); animation: mg-req 2.4s ease-in infinite;
+}
+@keyframes mg-req { 0% { opacity: 0; translate: 0 0; scale: .7; } 15% { opacity: 1; scale: 1; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--dx) 0; scale: .85; } }
+.mg-scene[data-fx="rested"] .mg-req, .mg-scene[data-fx="rested"] .mg-steam { display: none; }
+
+/* ---- 500: letupan berulang ----------------------------------------------- */
+.mg-burst { animation: mg-boom .55s cubic-bezier(.2, 1.4, .4, 1) .1s both, mg-thump 3.2s ease-out .8s infinite; }
+.mg-shock { position: absolute; left: 50%; top: 60%; width: 40cqw; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: .9cqw solid var(--t); opacity: 0; animation: mg-ring 3.2s ease-out infinite; }
+.mg-spark { position: absolute; left: 50%; top: 60%; width: .9cqw; height: 3.4cqw; margin: -1.7cqw 0 0 -.45cqw; border-radius: 99px; background: var(--t); opacity: 0; animation: mg-spark 3.2s ease-out infinite; }
+.mg-puff { position: absolute; width: 9cqw; aspect-ratio: 1; border-radius: 50%; background: var(--pk); filter: blur(.7cqw); opacity: 0; animation: mg-puff 3.4s ease-out infinite; }
+.bs-t-red .mg-scene { animation: mg-quake 5s ease-out 1.5s infinite; }
+.bs-t-red .mg-code { animation: mg-code-in .8s cubic-bezier(.2, 1.2, .4, 1) both, mg-glitch 3.2s steps(1, end) 1.2s infinite; }
+@keyframes mg-thump { 0%, 22%, 100% { scale: 1; } 4% { scale: 1.14; } }
+@keyframes mg-spark { 0%, 56% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(1); } 58% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--r) * -1)) scale(.3); } }
+@keyframes mg-puff { 0% { opacity: 0; translate: 0 0; scale: .6; } 20% { opacity: .55; } 100% { opacity: 0; translate: 1cqw -24cqw; scale: 1.7; } }
+@keyframes mg-quake { 0%, 6%, 100% { translate: 0 0; } 1.5% { translate: -.3% .15%; } 3% { translate: .25% -.15%; } 4.5% { translate: -.15% .1%; } }
+@keyframes mg-glitch {
+  0%, 6%, 100% { translate: -50% 0; opacity: .55; } 2% { translate: -52% 1%; opacity: .3; } 4% { translate: -48% -1%; opacity: .7; }
+  60% { translate: -50% 0; opacity: .55; } 61% { translate: -53% 0; opacity: .25; } 62% { translate: -50% 0; opacity: .55; }
+}
+
+/* ---- Masuk: pintu ------------------------------------------------------- */
+.mg-door { left: 4cqw; bottom: 3cqw; width: 30cqw; translate: none; transform-origin: 50% 100%; }
+.mg-door-leaf { transform-box: fill-box; transform-origin: 0% 50%; transition: transform .6s cubic-bezier(.5, 0, .2, 1); }
+.mg-door-light { opacity: 0; transition: opacity .5s; }
+.mg-door-key { transform-box: fill-box; transform-origin: 50% 50%; opacity: 0; }
+.mg-door[data-state="checking"] .mg-door-key { animation: mg-key 1.2s ease-in-out infinite; }
+.mg-door[data-state="denied"] { animation: mg-door-denied .45s cubic-bezier(.36, .07, .19, .97) both; }
+.mg-door[data-state="open"] .mg-door-leaf { transform: scaleX(.14) skewY(-3deg); }
+.mg-door[data-state="open"] .mg-door-light { opacity: 1; }
+@keyframes mg-key { 0% { opacity: 0; transform: translateY(14px) rotate(0deg); } 30% { opacity: 1; transform: translateY(0) rotate(0deg); } 65% { transform: translateY(0) rotate(0deg); } 85%, 100% { opacity: 1; transform: translateY(0) rotate(90deg); } }
+@keyframes mg-door-denied { 10%, 90% { rotate: -1deg; } 20%, 80% { rotate: 2deg; } 30%, 50%, 70% { rotate: -3deg; } 40%, 60% { rotate: 3deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .yk, .yk-shadow, .yk-vein, .yk-card, .mg-yuki, .mg-glow, .mg-code, .mg-motes i, .mg-barrier, .mg-beam, .mg-led, .mg-padlock, .mg-shackle,
+  .mg-tape, .mg-ring, .mg-req, .mg-burst, .mg-shock, .mg-spark, .mg-puff, .mg-door, .mg-door-key,
+  .bs-t-red .mg-scene, .bs-t-red .mg-code { animation: none !important; }
+  .mg-code { opacity: .55; }
+  .mg-req, .mg-spark, .mg-puff, .mg-motes { display: none; }
+  .mg-door-leaf { transition: none; }
+}
+
+/* ==========================================================================
+   Yuki: tangan, kaki, kilau ikat kepala
+   ========================================================================== */
+.mg-yuki { width: 48cqw; } /* viewBox lebih tinggi (ada kaki) → lebar dikecilkan agar tinggi tetap pas */
+.yk-wave { animation: yk-wave 1.8s ease-in-out infinite; }
+.yk-hold { animation: yk-hold 3.8s ease-in-out infinite; }
+.yk-search { animation: yk-search 3.6s ease-in-out infinite; }
+.yk-sway-l { animation: yk-sway-l 3.8s ease-in-out infinite; }
+.yk-sway-r { animation: yk-sway-r 3.8s ease-in-out infinite -1.9s; }
+.yk-flail-l { animation: yk-flail-l 2.2s ease-in-out infinite; }
+.yk-flail-r { animation: yk-flail-r 2.2s ease-in-out infinite -1.1s; }
+.yk-breathe { animation: yk-breathe 3.6s ease-in-out infinite; }
+.yk-foot { animation: yk-tap 5s ease-in-out infinite; }
+.yk-foot-r { animation-delay: -2.5s; }
+.yk:hover .yk-wave, .mg-yuki.is-poked .yk-wave { animation-duration: 1.2s; }
+@keyframes yk-wave { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(4deg); } }
+@keyframes yk-hold { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(2deg) translateY(-.8px); } }
+@keyframes yk-search { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes yk-sway-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-2.5deg); } }
+@keyframes yk-sway-r { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes yk-flail-l { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(3deg); } }
+@keyframes yk-flail-r { 0%, 100% { transform: rotate(5deg); } 50% { transform: rotate(-3deg); } }
+@keyframes yk-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes yk-tap { 0%, 80%, 100% { transform: translateY(0); } 88% { transform: translateY(-1.8px); } 95% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .yk-wave, .yk-hold, .yk-search, .yk-sway-l, .yk-sway-r, .yk-flail-l, .yk-flail-r, .yk-breathe, .yk-foot { animation: none !important; }
 }

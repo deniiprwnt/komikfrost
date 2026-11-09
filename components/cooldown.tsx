@@ -18,6 +18,14 @@ export function Cooldown({ seconds = 60 }: { seconds?: number }) {
   }, []);
 
   const done = left === 0;
+
+  // Stamina penuh → adegan 429 berhenti ngos-ngosan (lihat [data-fx="rested"] di CSS).
+  useEffect(() => {
+    if (!done) return;
+    const scene = document.querySelector<HTMLElement>(".mg-scene");
+    scene?.setAttribute("data-fx", "rested");
+    return () => scene?.removeAttribute("data-fx");
+  }, [done]);
   const filled = Math.round(((seconds - left) / seconds) * SEGMENTS);
   const mm = String(Math.floor(left / 60)).padStart(1, "0");
   const ss = String(left % 60).padStart(2, "0");

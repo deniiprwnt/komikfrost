@@ -1,5 +1,5 @@
 /**
- * Yuki — maskot KomikFrost: rubah teal (warna primer KomikFrost) berpipi putih kehijauan, berekor lebat berujung
+ * Yuki — maskot KomikFrost: rubah teal (warna primer KomikFrost) berpipi putih kehijauan, berjubah Hokage putih bermotif api teal, berekor lebat berujung
  * putih, bersyal teal tua. Digambar sebagai SVG murni: garis tinta tebal, warna
  * datar + satu lapis bayangan cel. Satu komponen, tujuh ekspresi — dipakai
  * oleh halaman masuk dan semua layar error.
@@ -10,7 +10,7 @@
 import { KonohaMark } from "@/components/konoha-mark";
 import { UzumakiMark } from "@/components/uzumaki-mark";
 
-export type Mood = "happy" | "lost" | "stern" | "tired" | "dizzy" | "faint" | "puzzled";
+export type Mood = "happy" | "lost" | "stern" | "tired" | "dizzy" | "faint" | "puzzled" | "guard";
 
 const INK = "#0d1518";
 const SNOW = "#ffffff";
@@ -21,21 +21,65 @@ const CREAM = "#eaf6f4";
 const CREAM_SHADE = "#bfdedb";
 const SOCK = "#0a2f2d";
 const SCARF = "#a6ece2";
+const SCARF_BLUE = "#0d4bb9";
+const NAVY = "#2b3570";
+const NAVY_LIGHT = "#3d4a8f";
+const VEST = "#7c9170";
+const VEST_DARK = "#586d50";
 const MOUTH = "#5a1f2b";
 
 /** Lengan mungil dengan telapak/paw bulat agar setiap pose punya tangan yang jelas. */
-function Arm({ d }: { d: string }) {
-  const end = d.match(/(-?\\d+(?:\\.\\d+)?)\\s+(-?\\d+(?:\\.\\d+)?)$/);
-  const handX = end ? Number(end[1]) : 0;
-  const handY = end ? Number(end[2]) : 0;
+function Arm({ d, anim }: { d: string; anim?: string }) {
+  // Arah lengan dari dua titik terakhir path → telapak diputar searah lengan (menyatu, bukan tempelan).
+  const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const [cx, cy, ex, ey] = n.slice(-4);
+  const deg = (Math.atan2(ey - cy, ex - cx) * 180) / Math.PI;
   return (
-    <g>
-      <path d={d} fill="none" stroke={INK} strokeWidth={17} strokeLinecap="round" />
-      <path d={d} fill="none" stroke={FUR} strokeWidth={9.5} strokeLinecap="round" />
-      <g transform={`translate(${handX} ${handY})`}>
-        <ellipse cy={0} rx={7.2} ry={6.2} fill={FUR} stroke={INK} strokeWidth={2.8} />
-        <path d="M-3 -1.2 q1.2 1.8 2.4 0 M1 -1.2 q1.2 1.8 2.4 0" fill="none" stroke="#0b6b66" strokeWidth={1.2} strokeLinecap="round" />
+    <g className={anim} style={anim ? { transformOrigin: `${n[0]}px ${n[1]}px` } : undefined}>
+      {/* lengan jubah ala Akatsuki: lengan baju lebar berwarna putih, ujungnya melebar dengan pita api teal */}
+      <path d={d} fill="none" stroke={INK} strokeWidth={24} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={HAORI} strokeWidth={18.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={HAORI_SHADE} strokeWidth={5} strokeLinecap="round" opacity={0.85} transform="translate(1.6 3)" />
+      <path d={d} fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" opacity={0.9} transform="translate(-3.4 -3.4)" />
+      <g transform={`translate(${ex} ${ey}) rotate(${deg})`}>
+        {/* ujung lengan melebar + pita api dekoratif teal */}
+        <g transform="translate(-5.5 0)">
+        <path d="M-21 -10.4 L-3 -13.6 Q1.2 0 -3 13.6 L-21 10.4 Z" fill={HAORI} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
+        <path d="M-9 -12.2 L-3 -13.6 Q1.2 0 -3 13.6 L-9 12.2 Q-6.6 0 -9 -12.2 Z" fill={FLAME} />
+        <path d="M-9 -8 q-2 2.4 0 4.8 M-9 -1.6 q-2.6 3 0 6 M-9 5.2 q-2 2.4 0 4.8" fill="none" stroke={HAORI} strokeWidth={1.8} strokeLinecap="round" />
+        <path d="M-3 -13.6 Q1.2 0 -3 13.6" fill="none" stroke={INK} strokeWidth={2.8} strokeLinecap="round" />
+        <path d="M-19 -6 L-10 -7.4" stroke={HAORI_LINE} strokeWidth={1.6} strokeLinecap="round" opacity={0.6} />
+        </g>
+        {/* telapak: siluet menyatu (telapak + tiga jari), garis tepi hanya di luar */}
+        <g fill={INK} stroke={INK} strokeWidth={5.6} strokeLinejoin="round">
+          <ellipse cx={7} cy={0} rx={11} ry={9.4} />
+          <circle cx={17.6} cy={-5.6} r={4.6} />
+          <circle cx={20} cy={0} r={4.8} />
+          <circle cx={17.6} cy={5.6} r={4.6} />
+        </g>
+        <g fill={FUR}>
+          <ellipse cx={7} cy={0} rx={11} ry={9.4} />
+          <circle cx={17.6} cy={-5.6} r={4.6} />
+          <circle cx={20} cy={0} r={4.8} />
+          <circle cx={17.6} cy={5.6} r={4.6} />
+        </g>
+        {/* bayangan sel di sisi bawah + kilau atas */}
+        <path d="M0 6.4 C7 9.6 15 9.2 20.6 5 C19.4 9.2 14 11 8 10.6 C4 10.2 1.4 8.6 0 6.4 Z" fill={FUR_SHADE} opacity={0.7} />
+        <path d="M0.5 -7 C5 -8.8 10 -8.8 14 -8" fill="none" stroke={FUR_LIGHT} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
+        {/* celah antar jari */}
+        <path d="M13.8 -2.9 L18.6 -2.9 M13.8 2.9 L18.6 2.9" stroke={INK} strokeWidth={1.8} strokeLinecap="round" />
+        {/* bantalan telapak */}
+        <path d="M3.6 0 C3.6 -3 6 -4 8 -3.2 C10.4 -2.4 10.4 2.4 8 3.2 C6 4 3.6 3 3.6 0 Z" fill={CREAM_SHADE} opacity={0.95} />
       </g>
+    </g>
+  );
+}
+
+/** Kelompok yang berayun dari bahu: lengan + benda yang dipegang bergerak bersama. */
+function Hold({ at, anim, children }: { at: [number, number]; anim: string; children: React.ReactNode }) {
+  return (
+    <g className={anim} style={{ transformOrigin: `${at[0]}px ${at[1]}px` }}>
+      {children}
     </g>
   );
 }
@@ -44,6 +88,7 @@ function Arm({ d }: { d: string }) {
 function Ear({ deg, side }: { deg: number; side: "l" | "r" }) {
   const t = side === "l" ? undefined : "translate(220 0) scale(-1 1)";
   return (
+    <g className="yk-follow">
     <g transform={t}>
       <g transform={`rotate(${deg} 90 80)`}>
         <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" fill={FUR} />
@@ -51,6 +96,7 @@ function Ear({ deg, side }: { deg: number; side: "l" | "r" }) {
         <path d="M66 80 C60 62 62 46 68 32 C86 42 98 58 100 78 Z" fill={CREAM} />
         <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" fill="none" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
       </g>
+    </g>
     </g>
   );
 }
@@ -72,81 +118,149 @@ function Sparkle({ x, y, s = 1, fill = "#fff6c2", className, delay = 0 }: { x: n
   );
 }
 
-function Heart({ x, y, s = 1, className, delay = 0 }: { x: number; y: number; s?: number; className?: string; delay?: number }) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <path
-        className={className}
-        style={delay ? { animationDelay: `${delay}s` } : undefined}
-        d="M0 8 C-13 -2 -10 -13 0 -6 C10 -13 13 -2 0 8 Z"
-        fill="#ff7a9a"
-        stroke={INK}
-        strokeWidth={2.6}
-        strokeLinejoin="round"
-      />
-    </g>
-  );
-}
-
-const CLOTH = "#0b4f4b";
-const CLOTH_LIGHT = "#17807a";
+/** Kain ikat kepala shinobi Konoha: biru tua (navy), pelat baja sikat berlambang daun. */
+const CLOTH = "#0d4bb9";
+const CLOTH_LIGHT = "#2f6fe0";
+const CLOTH_DARK = "#0a3590";
 const PLATE = "#cdd7de";
 const ENGRAVE = "#26343c";
 
-/** Ukuran pelat ikat kepala; semua turunan (bingkai, paku, lambang) mengikuti angka ini. */
-const PLATE_BOX = { cx: 110, cy: 67, w: 70, h: 28 };
+/** Ukuran pelat ikat kepala; semua turunan (tutup ujung, paku, lambang) mengikuti angka ini. */
+const PLATE_BOX = { cx: 110, cy: 63, w: 78, h: 30 };
 
-/** Pelat dan kain ikat kepala mengikuti lengkung kepala, bukan kotak tempelan. */
+/**
+ * Ikat kepala ala aslinya: kain navy melingkar mengikuti lengkung dahi (tepi berjahit),
+ * pelat baja persegi panjang yang lebih tinggi dari kain, dua tutup ujung berpaku keling
+ * tempat kain masuk, panel tengah cekung berlambang daun. Statis: tanpa kilau/animasi.
+ */
 function Headband() {
   const { cx, cy, w, h } = PLATE_BOX;
   const x = cx - w / 2;
   const y = cy - h / 2;
-  const iw = w - 8; // bingkai dalam
-  const ih = h - 8;
-  const ix = x + 4;
+  const cap = 7; // tutup ujung pelat
+  const ix = x + cap;
+  const iw = w - cap * 2;
   const iy = y + 4;
-  const pad = 2.6; // ruang napas lambang di dalam bingkai
+  const ih = h - 8;
+  const pad = 2.4;
+  const rivets = [
+    [ix + 5, iy + 4.500],
+    [ix + 5, iy + ih - 4.500],
+    [ix + iw - 5, iy + 4.500],
+    [ix + iw - 5, iy + ih - 4.500],
+  ];
   return (
     <g>
+      {/* kain melingkar dahi */}
       <g clipPath="url(#yk-head)">
-        <path d="M38 69 Q110 39 182 69 L182 82 Q110 55 38 82 Z" fill={CLOTH} />
-        <path d="M40 68 Q110 42 180 68 L180 73 Q110 49 40 73 Z" fill={CLOTH_LIGHT} opacity={0.62} />
-        <path d="M42 75 Q110 51 178 75" fill="none" stroke="#8fdcd3" strokeWidth={1} strokeDasharray="3 2.8" opacity={0.85} />
-        <path d="M38 69 Q110 39 182 69 M38 82 Q110 55 182 82" fill="none" stroke={INK} strokeWidth={3.4} />
+        <path d="M36 70 Q110 42 184 70 L184 85 Q110 57 36 85 Z" fill={CLOTH} />
+        <path d="M36 70 Q110 42 184 70 L184 75 Q110 47 36 75 Z" fill={CLOTH_LIGHT} opacity={0.7} />
+        <path d="M36 80 Q110 52 184 80 L184 85 Q110 57 36 85 Z" fill={CLOTH_DARK} opacity={0.55} />
+        <path d="M36 70 Q110 42 184 70 M36 85 Q110 57 184 85" fill="none" stroke={INK} strokeWidth={3.600} />
       </g>
-      {/* pelat logam */}
-      <rect x={x} y={y} width={w} height={h} rx={5} fill={PLATE} stroke={INK} strokeWidth={4} />
-      <path d={`M${x + 4} ${y + 3.5} H${x + w - 4}`} stroke="#fff" strokeWidth={2.600} strokeLinecap="round" opacity={0.85} />
-      <rect x={ix} y={iy} width={iw} height={ih} rx={3} fill="none" stroke="#8d9ea9" strokeWidth={1.300} />
-      <path d={`M${x + 5} ${y + h - 3} H${x + w - 5}`} stroke="#9aabb5" strokeWidth={1.800} strokeLinecap="round" opacity={0.9} />
-      {[ix + 4.5, ix + iw - 4.5].flatMap((rx) => [iy + 5, iy + ih - 5].map((ry) => <circle key={`${rx}-${ry}`} cx={rx} cy={ry} r={1.800} fill="#74848f" />))}
-      {/* lambang: otomatis muat & di-tengah-kan di bingkai dalam (di antara paku) */}
+      {/* bayangan pelat di atas kain */}
+      <rect x={x + 1.500} y={y + 3.500} width={w} height={h} rx={6} fill={INK} opacity={0.28} />
+      {/* badan pelat: baja sikat */}
+      <rect x={x} y={y} width={w} height={h} rx={6} fill="url(#yk-steel)" stroke={INK} strokeWidth={4} />
+      {/* panel tengah cekung */}
+      <rect x={ix + 1} y={iy} width={iw - 2} height={ih} rx={3} fill="#e3eaef" stroke="#8d9ea9" strokeWidth={1.300} />
+      <path d={`M${ix + 3.500} ${iy + 1.700} H${ix + iw - 3.500}`} stroke="#fff" strokeWidth={1.600} strokeLinecap="round" opacity={0.9} />
+      {/* paku keling */}
+      {rivets.map(([rx, ry]) => (
+        <g key={`${rx}-${ry}`}>
+          <circle cx={rx} cy={ry} r={1.900} fill="#74848f" stroke={INK} strokeWidth={0.800} />
+        </g>
+      ))}
+      {/* lambang daun Konoha */}
       <KonohaMark x={cx - (ih - pad * 2) * 0.62} y={iy + pad} w={(ih - pad * 2) * 1.24} h={ih - pad * 2} color={ENGRAVE} />
     </g>
   );
 }
 
-/** Simpul + ujung kain ikat kepala yang berkibar di belakang kepala (kanan). */
+/** Simpul + dua ujung kain yang berkibar di belakang kepala (kanan). */
 function HeadbandTails() {
   return (
     <g className="yk-fox-tail" style={{ transformOrigin: "166px 68px" }} stroke={INK} strokeWidth={4} strokeLinejoin="round">
-      <path d="M172 61 C186 50 198 56 214 44 L214 59 C200 68 188 63 172 69 Z" fill={CLOTH} />
-      <path d="M172 67 C188 72 198 84 207 100 L194 96 C186 87 180 80 172 75 Z" fill={CLOTH} />
-      <path d="M180 58 C190 56 198 58 208 52" fill="none" stroke={CLOTH_LIGHT} strokeWidth={2.400} strokeLinecap="round" />
+      <path d="M172 61 C186 50 198 58 216 44 L216 60 C200 70 188 64 172 70 Z" fill={CLOTH} />
+      <path d="M172 67 C188 72 198 86 209 104 L195 99 C187 89 180 81 172 76 Z" fill={CLOTH} />
+      <path d="M180 58 C190 56 199 59 210 52" fill="none" stroke={CLOTH_LIGHT} strokeWidth={2.400} strokeLinecap="round" />
+      <path d="M186 77 C190 85 195 91 200 97" fill="none" stroke={CLOTH_LIGHT} strokeWidth={2.200} strokeLinecap="round" />
       <rect x={160} y={58} width={16} height={18} rx={4} fill={CLOTH} />
       <path d="M163 62 H173 M163 68 H173" stroke={CLOTH_LIGHT} strokeWidth={2} strokeLinecap="round" />
+      <path d="M162 73 H174" stroke={CLOTH_DARK} strokeWidth={2} strokeLinecap="round" />
     </g>
   );
 }
 
-/** Lambang spiral merah di dada (kotak tetap; isi otomatis pas & di-tengah-kan). */
-function Crest() {
-  const d = 18;
+/** Kerah syal biru berbentuk V (lambang spiral di tengah), di atas rompi & di bawah bahu jubah. */
+function Collar() {
+  const d = 17;
   return (
     <g>
-      {/* jahitan halus membuat emblem terasa bagian dari syal */}
-      <circle cx={110} cy={190} r={10.8} fill="none" stroke="#d8fff7" strokeWidth={1.1} strokeDasharray="1.8 2.4" opacity={0.8} />
-      <UzumakiMark x={110 - d / 2} y={181} w={d} h={d} ink="#173c3a" red="#ed2635" />
+      <path d="M64 158 Q110 181 156 158 L159 171 L110 198 L61 171 Z" fill={SCARF_BLUE} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+      <UzumakiMark x={110 - d / 2} y={174.500} w={d} h={d} ink={INK} red="#e22a2c" />
+    </g>
+  );
+}
+
+/** Jubah Hokage Keempat (haori Yondaime): PUTIH, dengan motif api TEAL di tepi bawah — murni dekorasi (datar, tidak menyala/berkelip). */
+const HAORI = "#f6f3ee";
+const HAORI_LIGHT = "#ffffff";
+const HAORI_SHADE = "#ddd7cc";
+const HAORI_LINE = "#b9b1a4";
+const FLAME = "#1a9a92";
+const FLAME_IN = "#0b6b66";
+
+/** Motif lidah api dekoratif di tepi bawah jubah: datar, tanpa animasi, bukan api sungguhan. */
+function FlameRow({ xs, by, hs = [24, 17], w = 9 }: { xs: number[]; by: number; hs?: number[]; w?: number; delay?: number }) {
+  return (
+    <>
+      {xs.map((cx, i) => {
+        const h = hs[i % hs.length];
+        return (
+          <g key={cx}>
+            <path d={`M${cx - w} ${by} C${cx - w} ${by - h * 0.45} ${cx - w * 0.2} ${by - h * 0.55} ${cx + w * 0.1} ${by - h} C${cx + w * 0.1} ${by - h * 0.5} ${cx + w} ${by - h * 0.5} ${cx + w} ${by} Z`} fill={FLAME} />
+            <path d={`M${cx - w * 0.4} ${by} C${cx - w * 0.4} ${by - h * 0.3} ${cx - w * 0.1} ${by - h * 0.45} ${cx + w * 0.1} ${by - h * 0.7} C${cx + w * 0.2} ${by - h * 0.4} ${cx + w * 0.5} ${by - h * 0.3} ${cx + w * 0.5} ${by} Z`} fill={FLAME_IN} opacity={0.5} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+const WING_OUTER = "M68 160 C58 174 52 198 48 228 Q60 233 72 230 Q86 227 99 231 Q107 233 112 232";
+const PANEL_L = "M64 157 Q76 151 90 160 L87 226 Q72 231 56 228 L55 186 Z";
+const PANEL_R = "M156 157 Q144 151 130 160 L133 226 Q148 231 164 228 L165 186 Z";
+
+function CapeWing({ side }: { side: "l" | "r" }) {
+  const xs = [55, 68, 81, 94, 106];
+  const outer = WING_OUTER;
+  const mirror = side === "l" ? undefined : "translate(220 0) scale(-1 1)";
+  return (
+    <g className={side === "l" ? "yk-wing yk-wing-l" : "yk-wing yk-wing-r"}>
+      <g transform={mirror}>
+        <path d={`${outer} L100 166 Z`} fill={HAORI} />
+        <g clipPath="url(#yk-wing-clip)">
+          <path d="M80 166 C68 180 62 198 58 229 Q70 225 80 229 Q84 196 94 172 Z" fill={HAORI_SHADE} />
+          <path d="M70 176 Q64 196 60 221 M90 182 Q86 198 84 223" fill="none" stroke={HAORI_LINE} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
+        </g>
+        {/* motif api teal dekoratif di tepi bawah */}
+        <g clipPath="url(#yk-wing-clip)">
+          <path d="M40 228 L112 229 L112 245 L40 245 Z" fill={FLAME} />
+          <FlameRow xs={xs} by={228.500} hs={[11, 8]} w={6.5} />
+        </g>
+        <path d={outer} fill="none" stroke={INK} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </g>
+  );
+}
+
+function Cape() {
+  return (
+    <g>
+      <path d="M70 160 L150 160 L148 213 L72 213 Z" fill={HAORI_SHADE} />
+      <CapeWing side="l" />
+      <CapeWing side="r" />
     </g>
   );
 }
@@ -157,6 +271,7 @@ function Eye({ x, y, lx = 0, ly = 0, blink = true, shine = "normal" }: { x: numb
     <g transform={`translate(${x} ${y})`}>
      <g className={blink ? "yk-blink" : undefined}>
       <ellipse rx={11.500} ry={14.500} fill={INK} />
+      <g className="yk-look">
       <g transform={`translate(${lx} ${ly})`}>
         <ellipse cy={3} rx={8.200} ry={9.800} fill="#16363a" />
         {shine === "wet" ? (
@@ -172,6 +287,7 @@ function Eye({ x, y, lx = 0, ly = 0, blink = true, shine = "normal" }: { x: numb
           </>
         )}
         {shine === "sparkle" && <path transform="translate(5.400 -6.600) scale(.5)" d="M0 -9 Q1.5 -1.5 9 0 Q1.5 1.5 0 9 Q-1.5 1.5 -9 0 Q-1.5 -1.5 0 -9 Z" fill="#fff" />}
+      </g>
       </g>
      </g>
     </g>
@@ -220,8 +336,10 @@ function Vein({ x, y }: { x: number; y: number }) {
   const p = "M-9 -3 Q-3 -3 -3 -9 M9 -3 Q3 -3 3 -9 M-9 3 Q-3 3 -3 9 M9 3 Q3 3 3 9";
   return (
     <g transform={`translate(${x} ${y})`} fill="none" strokeLinecap="round">
-      <path d={p} stroke={INK} strokeWidth={7} />
-      <path d={p} stroke="#e5483f" strokeWidth={3.4} />
+      <g className="yk-vein">
+        <path d={p} stroke={INK} strokeWidth={7} />
+        <path d={p} stroke="#e5483f" strokeWidth={3.4} />
+      </g>
     </g>
   );
 }
@@ -263,6 +381,41 @@ function FoxTails() {
   return <FoxTail fill={FUR} />;
 }
 
+/** Kaki: celana biru berperban + telapak berjari tiga. Digambar DI BELAKANG badan agar jubah menutup pangkalnya. */
+function Legs() {
+  return (
+    <g>
+      {[89, 131].map((x, i) => (
+        <g key={x} transform={`translate(${x} 238)${i ? " scale(-1 1)" : ""}`}>
+          <g className={i ? "yk-foot yk-foot-r" : "yk-foot"}>
+            {/* celana: tabung pendek yang menyambung ke bawah jubah */}
+            <path d="M-11 -24 H11 L12.500 0.500 Q0 5 -12.500 0.500 Z" fill={NAVY} stroke={INK} strokeWidth={3.600} strokeLinejoin="round" />
+            <path d="M-6 -22 V-4" stroke={NAVY_LIGHT} strokeWidth={3} strokeLinecap="round" opacity={0.8} />
+            <path d="M-12 -2.500 Q0 1.500 12 -2.500" fill="none" stroke="#fff" strokeWidth={2.400} strokeLinecap="round" />
+            <path d="M-12.200 -7.500 Q0 -4 12.200 -7.500" fill="none" stroke="#fff" strokeWidth={2.400} strokeLinecap="round" opacity={0.9} />
+            {/* telapak: siluet menyatu, garis tepi hanya di luar */}
+            <g fill={INK} stroke={INK} strokeWidth={6.400} strokeLinejoin="round">
+              <ellipse cx={0} cy={9} rx={14.500} ry={8.400} />
+              <circle cx={-8.600} cy={15.400} r={5.400} />
+              <circle cx={0} cy={17.400} r={5.800} />
+              <circle cx={8.600} cy={15.400} r={5.400} />
+            </g>
+            <g fill={FUR}>
+              <ellipse cx={0} cy={9} rx={14.500} ry={8.400} />
+              <circle cx={-8.600} cy={15.400} r={5.400} />
+              <circle cx={0} cy={17.400} r={5.800} />
+              <circle cx={8.600} cy={15.400} r={5.400} />
+            </g>
+            <path d="M7 8.400 C12.600 9.400 14.800 13 13 17 C11.600 20 8 21 5.400 20.400 C9 19 10.600 14 8 9.400 Z" fill={FUR_SHADE} opacity={0.65} />
+            <path d="M-11 5.400 Q-4 2.600 5 3.400" fill="none" stroke={FUR_LIGHT} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
+            <path d="M-4.400 13.400 L-4.400 17.600 M4.400 13.400 L4.400 17.600" stroke={INK} strokeWidth={1.800} strokeLinecap="round" />
+          </g>
+        </g>
+      ))}
+    </g>
+  );
+}
+
 export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; className?: string }) {
   // Siluet telinga dikunci untuk semua ekspresi. Mood hanya mengubah wajah/pose,
   // bukan anatomi kepala, agar Yuki tetap konsisten di setiap ukuran dan keadaan.
@@ -274,38 +427,48 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
     dizzy: [-5, 6],
     faint: [-5, 6],
     puzzled: [-5, 6],
+    guard: [-5, 6],
   };
   const [eL, eR] = ears[mood];
 
   return (
-    <svg viewBox="0 0 220 224" overflow="visible" className={`yk yk-${mood} ${className}`} aria-hidden="true" focusable="false">
+    <svg key={mood} viewBox="0 0 220 266" preserveAspectRatio="xMidYMax meet" overflow="visible" style={{ display: "block", width: "100%", height: "auto", maxWidth: "100%" }} className={`yk yk-${mood} ${className}`} aria-hidden="true" focusable="false">
       <defs>
+        <linearGradient id="yk-steel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f4f7f9" />
+          <stop offset="0.5" stopColor="#cdd7de" />
+          <stop offset="1" stopColor="#9fb0bb" />
+        </linearGradient>
         <clipPath id="yk-head">
           <ellipse cx={110} cy={108} rx={72} ry={58} />
         </clipPath>
+        <clipPath id="yk-wing-clip">
+          <path d={`${WING_OUTER} L100 166 Z`} />
+        </clipPath>
+        <clipPath id="yk-panel-l"><path d={PANEL_L} /></clipPath>
+        <clipPath id="yk-panel-r"><path d={PANEL_R} /></clipPath>
         <clipPath id="yk-ear">
           <path d="M54 88 C46 60 52 32 64 8 C94 20 112 48 116 84 Z" />
         </clipPath>
       </defs>
 
       {/* tanah */}
-      <ellipse cx={112} cy={216} rx={58} ry={6} fill={INK} opacity={0.16} />
+      <ellipse className="yk-shadow" cx={110} cy={262} rx={60} ry={5} fill={INK} opacity={0.16} />
 
       <g transform={mood === "faint" ? "rotate(-11 110 210)" : undefined}>
         <g className={mood === "faint" ? "yk-limp" : "yk-bob"}>
           {/* dua ekor lebat berujung putih (di belakang badan) */}
           <FoxTails />
 
-          {/* kaki mungil berbentuk paw, dengan ujung jari yang lembut */}
-          <g>
-            <path d="M77 205 C77 199 82 195 89 195 C97 195 103 199 103 206 C103 212 98 216 89 216 C81 216 77 212 77 205 Z" fill={SOCK} stroke={INK} strokeWidth={4.2} strokeLinejoin="round" />
-            <path d="M117 206 C117 199 123 195 131 195 C138 195 143 199 143 205 C143 212 138 216 130 216 C122 216 117 212 117 206 Z" fill={SOCK} stroke={INK} strokeWidth={4.2} strokeLinejoin="round" />
-            <path d="M84 201 q2 -2 4 0 M92 200 q2 -2 4 0 M124 200 q2 -2 4 0 M132 201 q2 -2 4 0" fill="none" stroke="#2d7770" strokeWidth={1.8} strokeLinecap="round" />
-          </g>
+          {/* jubah di belakang badan */}
+          <Cape />
 
           {/* telinga */}
           <Ear deg={eL} side="l" />
           <Ear deg={eR} side="r" />
+
+          {/* kaki (di belakang badan) */}
+          <Legs />
 
           {/* badan */}
           <path d="M78 156 C72 186 88 206 110 206 C132 206 148 186 142 156 Z" fill={FUR} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
@@ -313,30 +476,31 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           <path d="M96 174 C94 192 100 203 110 204 C120 203 126 192 124 174 Z" fill={CREAM} />
 
           {/* lengan belakang (pose) */}
-          {mood === "happy" && <Arm d="M80 178 Q62 172 54 152" />}
-          {mood === "lost" && <Arm d="M80 180 Q66 192 68 204" />}
-          {mood === "puzzled" && <Arm d="M80 180 Q66 192 68 204" />}
+          {(mood === "happy" || mood === "guard") && <Arm d="M80 178 Q62 172 54 152" anim="yk-wave" />}
+          {mood === "lost" && <Arm d="M80 180 Q66 192 68 204" anim="yk-sway-l" />}
+          {mood === "puzzled" && <Arm d="M80 180 Q66 192 68 204" anim="yk-sway-l" />}
           {mood === "tired" && (
             <>
-              <Arm d="M80 178 Q62 188 62 204" />
-              <Arm d="M140 178 Q158 188 158 204" />
+              <Arm d="M80 178 Q62 188 62 204" anim="yk-sway-l" />
+              <Arm d="M140 178 Q158 188 158 204" anim="yk-sway-r" />
             </>
           )}
           {mood === "dizzy" && (
             <>
-              <Arm d="M80 176 Q56 170 48 146" />
-              <Arm d="M140 176 Q164 170 172 146" />
+              <Arm d="M80 176 Q56 170 48 146" anim="yk-flail-l" />
+              <Arm d="M140 176 Q164 170 172 146" anim="yk-flail-r" />
             </>
           )}
           {mood === "faint" && (
             <>
-              <Arm d="M80 178 Q62 196 56 210" />
-              <Arm d="M140 178 Q158 196 164 210" />
+              <Arm d="M80 178 Q62 196 56 210" anim="yk-sway-l" />
+              <Arm d="M140 178 Q158 196 164 210" anim="yk-sway-r" />
             </>
           )}
 
-          <HeadbandTails />
+          <g className="yk-follow"><HeadbandTails /></g>
 
+          <g className="yk-follow">
           {/* jambul */}
           <path d="M96 56 Q100 34 112 46 Q118 34 126 58 Z" fill={FUR} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
 
@@ -379,7 +543,6 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <path d="M102 142.500 L106.500 142.500 L104.200 148 Z M113.500 142.500 L118 142.500 L115.800 148 Z" fill="#fff" stroke={INK} strokeWidth={1.4} strokeLinejoin="round" />
               <Sparkle x={26} y={78} s={1} className="yk-twinkle" />
               <Sparkle x={196} y={36} s={0.75} fill="#a6ece2" className="yk-twinkle" delay={0.6} />
-              <Heart x={30} y={112} s={0.75} className="yk-twinkle" delay={1.1} />
             </>
           )}
           {mood === "lost" && (
@@ -464,59 +627,66 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
             </>
           )}
 
+          {mood === "guard" && (
+            <>
+              <Eye x={80} y={112} lx={2} ly={-1} />
+              <Eye x={140} y={112} lx={2} ly={-1} />
+              <path d="M62 96 Q78 91 96 97" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
+              <path d="M126 88 Q142 75 158 86" fill="none" stroke={INK} strokeWidth={4.4} strokeLinecap="round" />
+              <Nose />
+              <path d="M99 149 Q110 155 121 147" fill="none" stroke={INK} strokeWidth={4.2} strokeLinecap="round" />
+              <g className="yk-qmark">
+                <text x={192} y={64} fontSize={42} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#8f7ee6" stroke={INK} strokeWidth={4} paintOrder="stroke" textAnchor="middle">
+                  ?
+                </text>
+              </g>
+            </>
+          )}
+
           {/* ikat kepala ninja */}
           <Headband />
-
-          {/* pakaian ninja baru: rompi berlapis, pelindung bahu, dan jahitan tegas */}
-          <g stroke={INK} strokeLinejoin="round">
-            <path d="M67 158 Q78 154 88 162 L83 193 Q78 204 69 201 L59 184 Z"
-              fill="#123b3b" strokeWidth={3.8} />
-            <path d="M153 158 Q142 154 132 162 L137 193 Q142 204 151 201 L161 184 Z"
-              fill="#123b3b" strokeWidth={3.8} />
-            <path d="M65 160 Q73 153 84 160 L80 171 Q70 174 62 168 Z"
-              fill="#17807a" strokeWidth={3.2} />
-            <path d="M155 160 Q147 153 136 160 L140 171 Q150 174 158 168 Z"
-              fill="#17807a" strokeWidth={3.2} />
-            <path d="M67 163 Q73 159 79 162 M141 162 Q147 159 153 163"
-              fill="none" stroke="#8fe0d6" strokeWidth={1.8} strokeLinecap="round" />
-            <path d="M70 178 L75 194 M150 178 L145 194"
-              fill="none" stroke="#56b9ae" strokeWidth={1.8} strokeDasharray="2 3" />
-            <circle cx="73" cy="183" r="2" fill="#d8fff7" strokeWidth={1} />
-            <circle cx="147" cy="183" r="2" fill="#d8fff7" strokeWidth={1} />
           </g>
 
-          {/* syal: kerah berlapis, panel dada, jahitan, dan ujung kain */}
+          {/* rompi, sabuk, lalu kerah syal biru berbentuk V di atasnya */}
           <g>
-            {/* lapisan belakang membentuk volume di bawah dagu */}
-            <path d="M66 158 Q110 181 154 158 L160 178 Q110 207 60 178 Z"
-              fill="#0b6b66" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
-            <path d="M73 163 Q110 183 147 163 L150 174 Q110 194 70 174 Z"
-              fill="#17807a" stroke="#063f3c" strokeWidth={2.2} strokeLinejoin="round" />
-            <path d="M78 166 Q110 183 142 166" fill="none" stroke="#65cfc3" strokeWidth={2.2} strokeLinecap="round" />
-            {/* panel depan dengan tepi miring seperti kain yang dilipat */}
-            <path d="M66 174 Q110 195 154 174 L148 207 Q110 219 72 207 Z"
-              fill={SCARF} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
-            <path d="M73 181 Q110 199 147 181 L144 190 Q110 207 76 190 Z"
-              fill="#d9fff6" opacity={0.72} />
-            <path d="M78 198 Q110 211 142 198" fill="none" stroke="#4baea4" strokeWidth={2.1} strokeLinecap="round" />
-            {/* jahitan kecil pada kedua sisi panel */}
-            {[84, 94, 104, 116, 126, 136].map((x) => (
-              <circle key={x} cx={x} cy={x < 110 ? 190 + (x - 84) * 0.42 : 198 - (x - 116) * 0.42}
-                r={1.45} fill="#147d76" opacity={0.82} />
+            {/* rompi flak Konoha: hijau abu-abu, kantong dada, ritsleting */}
+            <path d="M66 174 Q110 195 154 174 L148 207 Q110 219 72 207 Z" fill={VEST} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+            <path d="M72 180 Q110 198 148 180 L146 186 Q110 203 74 186 Z" fill="#9db38f" opacity={0.55} />
+            {[[88, 189], [122, 189]].map(([x, y]) => (
+              <g key={x}>
+                <rect x={x} y={y} width={10} height={11} rx={2} fill={VEST_DARK} stroke={INK} strokeWidth={2.2} />
+                <path d={`M${x + 1.2} ${y + 4} H${x + 8.8}`} stroke="#9db38f" strokeWidth={1.2} strokeLinecap="round" />
+                <circle cx={x + 5} cy={y + 7.5} r={1.2} fill="#c9d6bf" />
+              </g>
             ))}
+            <path d="M110 180 V183 M110 198 V206" stroke="#3c4b36" strokeWidth={2} strokeLinecap="round" />
             {/* sabuk kain kecil di bawah panel, memberi siluet seragam ninja */}
             <path d="M82 205 Q110 215 138 205 L136 213 Q110 222 84 213 Z"
-              fill="#0b4f4b" stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
-            <path d="M91 211 Q110 216 129 211" fill="none" stroke="#70d4c8" strokeWidth={1.5} strokeLinecap="round" />
-            {/* ujung syal jatuh ke sisi kanan */}
-            <path className="yk-tail" d="M132 184 L142 216 Q145 220 151 215 L165 205 L151 177 Z"
-              fill="#9be4d9" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+              fill={NAVY} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
+            <path d="M91 211 Q110 216 129 211" fill="none" stroke={NAVY_LIGHT} strokeWidth={1.5} strokeLinecap="round" />
+            <rect x={103} y={208} width={14} height={9} rx={2.5} fill={PLATE} stroke={INK} strokeWidth={2.4} />
+            <rect x={107} y={210.500} width={6} height={4} rx={1} fill="none" stroke="#74848f" strokeWidth={1.2} />
           </g>
-          <Crest />
+
+          <Collar />
+
+          {/* haori Yondaime: dua panel depan terbuka dari bahu sampai bawah, api di ujung */}
+          <g stroke={INK} strokeLinejoin="round">
+            <path d={PANEL_L} fill={HAORI} strokeWidth={3.8} />
+            <path d={PANEL_R} fill={HAORI} strokeWidth={3.8} />
+            <path d="M63 159 Q74 152 88 159 L84 171 Q72 175 60 168 Z" fill={HAORI_LIGHT} strokeWidth={3.2} />
+            <path d="M157 159 Q146 152 132 159 L136 171 Q148 175 160 168 Z" fill={HAORI_LIGHT} strokeWidth={3.2} />
+            <path d="M66 162 Q74 157 82 161 M138 161 Q146 157 154 162" fill="none" stroke="#cfc8bc" strokeWidth={1.8} strokeLinecap="round" />
+            <path d="M70 182 L67 200 M150 182 L153 200" fill="none" stroke={HAORI_LINE} strokeWidth={1.8} strokeDasharray="2 3" opacity={0.6} />
+            <path d="M63 167 Q73 173 85 168 M157 167 Q147 173 135 168" fill="none" stroke={HAORI_LINE} strokeWidth={1.6} strokeLinecap="round" opacity={0.6} />
+          </g>
+          <g clipPath="url(#yk-panel-l)"><path d="M50 222 L92 222 L92 237 L50 237 Z" fill={FLAME} /><FlameRow xs={[63, 77]} by={222.500} hs={[9, 6]} w={6.5} /></g>
+          <g clipPath="url(#yk-panel-r)"><path d="M128 222 L170 222 L170 237 L128 237 Z" fill={FLAME} /><FlameRow xs={[143, 157]} by={222.500} hs={[9, 6]} w={6.5} /></g>
+
 
           {/* properti & lengan depan (di atas kepala) */}
           {mood === "happy" && (
-            <>
+            <Hold at={[140, 178]} anim="yk-hold">
               <g transform="translate(186 134) rotate(12)">
                 <rect x={-19} y={-25} width={38} height={50} rx={4} fill="#eaf6f4" stroke={INK} strokeWidth={4} />
                 <rect x={-19} y={-25} width={34} height={50} rx={4} fill="#0b6b66" stroke={INK} strokeWidth={4} />
@@ -524,10 +694,10 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <Star x={12} y={-23} s={0.95} />
               </g>
               <Arm d="M140 178 Q166 178 178 156" />
-            </>
+            </Hold>
           )}
           {mood === "lost" && (
-            <>
+            <Hold at={[140, 178]} anim="yk-search">
               <g fill="none" strokeLinecap="round">
                 <path d="M186 140 L177 158" stroke={INK} strokeWidth={10} />
                 <path d="M186 140 L177 158" stroke="#9a6a3a" strokeWidth={5} />
@@ -535,22 +705,35 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <path d="M187 112 Q190 103 200 101" stroke="#fff" strokeWidth={4} />
               </g>
               <Arm d="M140 178 Q168 178 179 160" />
-            </>
+            </Hold>
           )}
           {mood === "puzzled" && (
-            <>
+            <Hold at={[140, 178]} anim="yk-hold">
               <g transform="translate(176 150) rotate(14)">
                 <path d="M-18 -22 L16 -26 L22 4 L-14 10 Z" fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
                 <path d="M-10 -14 L8 -16 M-9 -6 L12 -9 M-9 2 L4 0" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
                 <text x={4} y={-3} fontSize={26} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#e5483f" stroke={INK} strokeWidth={3} paintOrder="stroke" textAnchor="middle">?!</text>
               </g>
               <Arm d="M140 178 Q164 180 174 160" />
-            </>
+            </Hold>
+          )}
+          {mood === "guard" && (
+            <Hold at={[140, 178]} anim="yk-hold">
+              <g transform="translate(184 132) rotate(10)">
+                <g className="yk-card">
+                  <rect x={-23} y={-16} width={46} height={32} rx={5} fill="#fff" stroke={INK} strokeWidth={4} />
+                  <path d="M-21 -14 H21 V-8 H-21 Z" fill={FUR} />
+                  <circle cx={-12} cy={3} r={5.4} fill={CREAM_SHADE} stroke={INK} strokeWidth={2} />
+                  <path d="M-3 0 H16 M-3 7 H11" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.55} />
+                </g>
+              </g>
+              <Arm d="M140 178 Q166 178 178 156" />
+            </Hold>
           )}
           {mood === "stern" && (
             <>
-              <Arm d="M80 160 Q104 176 140 198" />
-              <Arm d="M140 160 Q116 176 80 198" />
+              <Arm d="M82 182 Q96 204 134 172" anim="yk-breathe" />
+              <Arm d="M138 182 Q124 204 86 172" anim="yk-breathe" />
             </>
           )}
         </g>

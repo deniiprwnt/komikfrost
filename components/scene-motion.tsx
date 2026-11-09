@@ -24,8 +24,8 @@ export function SceneMotion() {
 
     const clamp = (n: number) => Math.max(-1, Math.min(1, n));
     const tick = () => {
-      cx += (tx - cx) * 0.09;
-      cy += (ty - cy) * 0.09;
+      cx += (tx - cx) * 0.06;
+      cy += (ty - cy) * 0.06;
       scene.style.setProperty("--px", cx.toFixed(3));
       scene.style.setProperty("--py", cy.toFixed(3));
       raf = Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002 ? requestAnimationFrame(tick) : 0;
@@ -45,11 +45,11 @@ export function SceneMotion() {
 
     // Saat tidak ada input, Yuki melirik ke sana-sini.
     const wander = () => {
-      if (!document.hidden && performance.now() - lastInput > 2600) {
+      if (!document.hidden && performance.now() - lastInput > 3500) {
         const back = Math.random() < 0.35;
-        go(back ? 0 : (Math.random() - 0.5) * 1.3, back ? 0 : (Math.random() - 0.5) * 0.6);
+        go(back ? 0 : (Math.random() - 0.5) * 0.8, back ? 0 : (Math.random() - 0.5) * 0.4);
       }
-      glance = window.setTimeout(wander, 1800 + Math.random() * 2600);
+      glance = window.setTimeout(wander, 3200 + Math.random() * 3400);
     };
     glance = window.setTimeout(wander, 1500);
 

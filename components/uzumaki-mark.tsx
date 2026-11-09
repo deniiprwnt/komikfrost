@@ -32,8 +32,6 @@ export function UzumakiMark({
     <svg x={x} y={y} width={w} height={h} viewBox="0 0 1400 1400" preserveAspectRatio="xMidYMid meet" overflow="hidden">
       <circle cx={R} cy={R} r={R} fill={ink} />
       <circle cx={R} cy={R} r={R - RING} fill={red} />
-      {/* kilau lembut di kiri-atas */}
-      <path d="M205 560 C240 330 430 175 660 150 C470 235 330 370 270 610 Z" fill="#fff" opacity={0.28} />
       <path d={SPIRAL} fill="none" stroke={ink} strokeWidth={SPIRAL_W} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

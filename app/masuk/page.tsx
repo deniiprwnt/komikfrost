@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePageTitle } from "@/lib/page-title";
 import { BareScreen, Scene } from "@/components/bare-screen";
-import { LockedDoor } from "@/components/scene-props";
+import { LockedDoor, type DoorState } from "@/components/scene-props";
 import type { Mood } from "@/components/mascot";
 
 function MasukForm() {
@@ -21,12 +21,15 @@ function MasukForm() {
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [limited, setLimited] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pw) return;
     setLoading(true);
     setError(null);
+    setLimited(false);
     try {
       const res = await fetch("/api/gate", {
         method: "POST",
@@ -34,9 +37,13 @@ function MasukForm() {
         body: JSON.stringify({ password: pw }),
       });
       const json = await res.json().catch(() => null);
+      if (res.status === 429) setLimited(true);
       if (!res.ok || json?.error) {
         throw new Error(json?.error?.message || "Gagal masuk.");
       }
+      // Pintu terbuka dulu sebentar, baru pindah halaman.
+      setOk(true);
+      await new Promise((r) => setTimeout(r, 750));
       router.replace(next);
       router.refresh();
     } catch (err) {
@@ -48,8 +55,17 @@ function MasukForm() {
   };
 
   // Yuki ikut bereaksi: memeriksa → mencari, salah → galak, selain itu ramah.
-  const mood: Mood = error ? "stern" : loading ? "lost" : "happy";
-  const bubble = error ? "Hmph! Ditolak." : loading ? "Sebentar, kucek dulu…" : "Kata sandinya apa?";
+  const mood: Mood = ok ? "happy" : limited ? "tired" : error ? "stern" : loading ? "lost" : "happy";
+  const bubble = ok
+    ? "Silakan masuk!"
+    : limited
+      ? "Hah… pelan-pelan, dong!"
+      : error
+        ? "Hmph! Ditolak."
+        : loading
+          ? "Sebentar, kucek dulu…"
+          : "Kata sandinya apa?";
+  const door: DoorState = ok ? "open" : error ? "denied" : loading ? "checking" : "idle";
 
   return (
     <BareScreen tone="teal">
@@ -57,9 +73,10 @@ function MasukForm() {
         <div className="mg-card mg-in">
         <Scene
           mood={mood}
-          sfx={error ? { jp: "ブブー", romaji: "bubuu" } : { jp: "カチャッ", romaji: "kacha" }}
+          fx={ok ? "open" : undefined}
+          sfx={ok ? { jp: "ガチャッ", romaji: "gacha" } : error ? { jp: "ブブー", romaji: "bubuu" } : { jp: "カチャッ", romaji: "kacha" }}
           bubble={bubble}
-          props={<LockedDoor />}
+          props={<LockedDoor state={door} />}
         />
 
         <section className="mg-form">
@@ -130,7 +147,9 @@ function MasukForm() {
             )}
 
             <button type="submit" disabled={loading || !pw} className="mg-btn mg-btn-primary mt-1 !h-[3rem] w-full min-[860px]:!h-[3.25rem]">
-              {loading ? (
+              {ok ? (
+                "Berhasil!"
+              ) : loading ? (
                 <>
                   <svg viewBox="0 0 24 24" fill="none" className="mg-spin h-4 w-4" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity=".3" strokeWidth="3" />

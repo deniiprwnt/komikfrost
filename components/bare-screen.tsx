@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { Yuki, type Mood } from "@/components/mascot";
+import { SceneMotion } from "@/components/scene-motion";
 
 /**
  * Layar penuh tanpa chrome aplikasi (login, 403, 404, 429, 500, global-error).
@@ -11,7 +12,7 @@ import { Yuki, type Mood } from "@/components/mascot";
  * aturan `:has([data-bare-screen])` di globals.css. Tanpa hook → aman dipakai
  * dari server maupun client component.
  */
-export type Tone = "teal" | "blue" | "amber" | "orange" | "red";
+export type Tone = "teal" | "blue" | "amber" | "orange" | "red" | "violet";
 
 export function BareScreen({
   children,
@@ -52,18 +53,24 @@ export function Scene({
   bubble,
   code,
   props,
+  fx,
 }: {
   mood: Mood;
   sfx: Sfx;
   bubble: string;
   code?: string;
   props?: ReactNode;
+  /** Efek sesaat dari luar, mis. "open" (login berhasil) / "rested" (429 pulih). */
+  fx?: string;
 }) {
   return (
-    <div className="mg-scene" data-mood={mood} aria-hidden="true">
+    <div className="mg-scene" data-mood={mood} data-fx={fx} aria-hidden="true">
       <div className="mg-tone" />
       <div className="mg-focus" />
       <div className="mg-glow" />
+      <div className="mg-motes">
+        <i /><i /><i /><i /><i /><i /><i />
+      </div>
       {code && <div className="mg-code">{code}</div>}
       {props}
       <div className="mg-yuki">
@@ -74,6 +81,7 @@ export function Scene({
         <b lang="ja">{sfx.jp}</b>
         <i>{sfx.romaji}</i>
       </div>
+      <SceneMotion />
     </div>
   );
 }
