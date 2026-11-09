@@ -18,19 +18,19 @@ function DetailSkeleton() {
       <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
         <div data-cover-slot className="shimmer mx-auto aspect-[3/4] w-32 shrink-0 rounded-xl min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52" />
         <div className="min-w-0 flex-1 space-y-2.5">
-          <div className="shimmer h-5 w-16 rounded" />
-          <div className="shimmer h-6 w-3/4 rounded" />
-          <div className="shimmer h-4 w-1/2 rounded" />
+          <div className="shimmer h-5 w-16 rounded-md" />
+          <div className="shimmer h-6 w-3/4 rounded-md" />
+          <div className="shimmer h-4 w-1/2 rounded-md" />
           <div className="flex flex-wrap gap-1.5">
             <div className="shimmer h-6 w-16 rounded-lg" />
             <div className="shimmer h-6 w-20 rounded-lg" />
             <div className="shimmer h-6 w-14 rounded-lg" />
           </div>
           <div className="grid grid-cols-1 gap-1.5 min-[420px]:grid-cols-2">
-            <div className="shimmer h-4 w-2/3 rounded" />
-            <div className="shimmer h-4 w-2/3 rounded" />
-            <div className="shimmer h-4 w-1/2 rounded" />
-            <div className="shimmer h-4 w-1/2 rounded" />
+            <div className="shimmer h-4 w-2/3 rounded-md" />
+            <div className="shimmer h-4 w-2/3 rounded-md" />
+            <div className="shimmer h-4 w-1/2 rounded-md" />
+            <div className="shimmer h-4 w-1/2 rounded-md" />
           </div>
           <div className="flex flex-col gap-2 pt-2 min-[420px]:flex-row">
             <div className="shimmer h-10 flex-1 rounded-lg min-[420px]:flex-none min-[420px]:px-5 min-[420px]:w-36" />
@@ -40,16 +40,16 @@ function DetailSkeleton() {
       </div>
       {/* Sinopsis */}
       <div className="rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
-        <div className="shimmer mb-2 h-5 w-28 rounded" />
+        <div className="shimmer mb-2 h-5 w-28 rounded-md" />
         <div className="space-y-2">
-          <div className="shimmer h-3.5 w-full rounded" />
-          <div className="shimmer h-3.5 w-full rounded" />
-          <div className="shimmer h-3.5 w-2/3 rounded" />
+          <div className="shimmer h-3.5 w-full rounded-md" />
+          <div className="shimmer h-3.5 w-full rounded-md" />
+          <div className="shimmer h-3.5 w-2/3 rounded-md" />
         </div>
       </div>
       {/* Daftar chapter */}
       <div className="rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 dark:border-line-dark dark:bg-ink-2">
-        <div className="shimmer mb-2 h-5 w-36 rounded" />
+        <div className="shimmer mb-2 h-5 w-36 rounded-md" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="shimmer h-9 w-full rounded-lg" />

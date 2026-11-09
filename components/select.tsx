@@ -345,7 +345,7 @@ export function Select({
                 role="dialog"
                 aria-modal="true"
                 aria-label={label}
-                className={`select-sheet absolute inset-x-0 bottom-0 flex max-h-[80dvh] flex-col rounded-t-2xl outline-none ${surface} border-b-0`}
+                className={`select-sheet absolute inset-x-0 bottom-0 flex max-h-[80dvh] flex-col rounded-t-3xl outline-none ${surface} border-b-0`}
               >
                 <div className="flex shrink-0 flex-col items-center px-4 pb-1 pt-2.5">
                   <span className="h-1 w-10 rounded-full bg-line dark:bg-line-dark" aria-hidden />

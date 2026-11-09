@@ -76,7 +76,7 @@ export function flyCover(
       width: `${dest.width}px`,
       height: `${dest.height}px`,
       objectFit: "cover",
-      borderRadius: "12px",
+      borderRadius: "18px",
       zIndex: "60",
       pointerEvents: "none",
       margin: "0",
@@ -86,8 +86,8 @@ export function flyCover(
     document.body.appendChild(ghost);
     const anim = ghost.animate(
       [
-        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: "12px", opacity: 1 },
-        { transform: "translate(0, 0) scale(1, 1)", borderRadius: "12px", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: "18px", opacity: 1 },
+        { transform: "translate(0, 0) scale(1, 1)", borderRadius: "18px", opacity: 1 },
       ],
       { duration: durationMs, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" },
     );

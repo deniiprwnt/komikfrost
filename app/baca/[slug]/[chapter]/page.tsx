@@ -15,9 +15,9 @@ import { Select } from "@/components/select";
 function ReaderSkeleton() {
   return (
     <div className="mx-auto max-w-3xl space-y-2">
-      <div className="shimmer h-6 w-2/3 rounded" />
+      <div className="shimmer h-6 w-2/3 rounded-md" />
       {[70, 55, 80].map((h, i) => (
-        <div key={i} className="shimmer w-full rounded" style={{ height: h * 6 }} />
+        <div key={i} className="shimmer w-full rounded-md" style={{ height: h * 6 }} />
       ))}
     </div>
   );
