@@ -644,7 +644,6 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <Eye x={141} y={110} shine="sparkle" />
                 <Nose />
                 <path d="M99 141 Q110 165 121 141 Z" fill={MOUTH} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
-                <ellipse cx={110} cy={155} rx={6.6} ry={3.6} fill={PINK} />
                 <path d="M101.800 142.500 L106.400 142.500 L104.100 148 Z M113.600 142.500 L118.200 142.500 L115.900 148 Z" fill="#fff" stroke={INK} strokeWidth={1.3} strokeLinejoin="round" />
                 <Sparkle x={26} y={78} s={1} className="yk-twinkle" />
                 <Sparkle x={198} y={34} s={0.75} fill="#a6ece2" className="yk-twinkle" delay={0.6} />
