@@ -140,6 +140,15 @@ function komikuDetailSafe(slug: string): Promise<MangaDetail | null> {
  */
 const CANON_TTL = 30 * 60_000;
 
+/** "rewriting-my-third-life-id" → "rewriting my third life". */
+function slugToTitle(slug: string): string {
+  return slug
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+id\s*\d*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Semaphore sederhana: batasi request upstream paralel dari enrich. */
 let canonActive = 0;
 const canonWaiters: Array<() => void> = [];
@@ -171,7 +180,7 @@ const komikuSlugForTitles = (aliases: string[]): Promise<string | null> =>
   komikuSlugCache
     .load(aliasId(aliases), async () => {
       const want = aliasKeys(...aliases);
-      for (const q of aliases.filter(Boolean).slice(0, 2)) {
+      for (const q of aliases.filter(Boolean).slice(0, 3)) {
         const { items } = await searchMangaRemote(q, 1);
         const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.includes(x)));
         if (hit) return { slug: hit.slug };
@@ -220,13 +229,24 @@ const GOOD_SYNOPSIS = 250;
  * Shinigami → Komiku → Komikcast dan berhenti begitu semua kebutuhan
  * terpenuhi. `known` = slug sumber yang sudah diketahui kartu.
  */
-async function resolveCanon(input: {
+async function resolveCanonRaw(input: {
   title: string;
   altTitle?: string;
   slugs?: Partial<Record<(typeof SOURCE_PRIORITY)[number], string>>;
   listSynopsis?: string;
 }): Promise<CanonResult> {
-  const aliases = [input.title, input.altTitle ?? ""].filter(Boolean);
+  const aliases: string[] = [];
+  const addAlias = (v?: string | null) => {
+    const t = (v ?? "").trim();
+    if (t && !aliases.includes(t)) aliases.push(t);
+  };
+  addAlias(input.title);
+  addAlias(input.altTitle);
+  // Judul turunan slug Komiku/Komikcast ("rewriting-my-third-life-id" →
+  // "rewriting my third life"): jembatan bila judul tampil memakai ejaan lain.
+  for (const sl of [input.slugs?.komiku, input.slugs?.komikcast]) {
+    if (sl && !isShiniId(sl)) addAlias(slugToTitle(sl));
+  }
   const metas: Partial<Record<(typeof SOURCE_PRIORITY)[number], SrcMeta>> = {};
   const failed: Array<(typeof SOURCE_PRIORITY)[number]> = [];
   const isTransient = (e: unknown): boolean => {
@@ -281,7 +301,22 @@ async function resolveCanon(input: {
   const tp = pickType(metas);
   const gp = pickPrimaryGenre(metas);
   // Daftar sendiri (list) ikut jadi kandidat sinopsis, sebagai yang terakhir.
-  const synopsis = pickBestSynopsis([...synopses, input.listSynopsis]);
+  let synopsis = pickBestSynopsis([...synopses, input.listSynopsis]);
+  // Semua sumber yang terjangkau lewat slug kosong → cari entri lain untuk
+  // judul yang sama lewat judul + ALIAS di ketiga sumber (aturan yang sama
+  // dengan halaman detail). Hanya teks dari sumber; tidak ada yang dikarang.
+  if (!synopsis || !isMeaningfulSynopsis(synopsis)) {
+    try {
+      const found = await fallbackSynopsisByAliases(aliases, {
+        ...(input.slugs?.shinigami ? { shinigami: { slug: input.slugs.shinigami } } : {}),
+        ...(input.slugs?.komiku ? { komiku: { slug: input.slugs.komiku } } : {}),
+        ...(input.slugs?.komikcast ? { komikcast: { slug: input.slugs.komikcast } } : {}),
+      });
+      if (found) synopsis = found;
+    } catch {
+      // diabaikan — kartu tampil tanpa sinopsis
+    }
+  }
   const rank = (x: (typeof SOURCE_PRIORITY)[number]) => SOURCE_PRIORITY.indexOf(x);
   const safe = (winner?: (typeof SOURCE_PRIORITY)[number]): boolean =>
     failed.every((f) => winner !== undefined && rank(f) > rank(winner));
@@ -292,6 +327,21 @@ async function resolveCanon(input: {
     genreCertain: safe(gp?.source),
     typeCertain: safe(tp?.source),
   };
+}
+
+/**
+ * Hasil resolusi kanonis di-cache per judul+alias (versi data) dan inflight
+ * dedupe: Peringkat, Rekomendasi, Update terbaru, pencarian, dan Serupa yang
+ * memuat judul yang sama memakai SATU hasil yang sama — kartu yang lolos
+ * batas waktu di satu daftar tidak lagi berbeda label dari daftar lain.
+ * Hasil tak pasti (sumber prioritas lebih tinggi gagal sementara) tidak
+ * disimpan agar dicoba lagi.
+ */
+const canonResultCache = createKeyedCache<CanonResult>(CANON_TTL, 1000);
+function resolveCanon(input: Parameters<typeof resolveCanonRaw>[0]): Promise<CanonResult> {
+  const key = aliasId([input.title, input.altTitle ?? ""]);
+  if (!key) return resolveCanonRaw(input);
+  return canonResultCache.load(key, () => resolveCanonRaw(input), (r) => r.genreCertain && r.typeCertain);
 }
 
 /** Maks kartu yang dilengkapi per panggilan. */
@@ -697,18 +747,20 @@ async function fallbackSynopsisByAliases(
   const list = aliases.filter(Boolean);
   if (list.length === 0) return undefined;
   const jobs: Record<(typeof SOURCE_PRIORITY)[number], () => Promise<string | undefined>> = {
+    // Semua lewat helper ber-cache + semaphore canonSlot: kartu daftar yang
+    // sinopsisnya kosong tidak melipatgandakan request upstream.
     shinigami: async () => {
-      const id = await findShiniIdByTitles(list);
+      const id = await canonSlot(() => shiniIdForTitles(list));
       if (!id || id === have.shinigami?.slug) return undefined;
-      return (await shiniMetaById(id)).synopsis;
+      return (await canonSlot(() => shiniMetaById(id))).synopsis;
     },
     komiku: async () => {
-      const slug = await komikuSlugForTitles(list);
+      const slug = await canonSlot(() => komikuSlugForTitles(list));
       if (!slug || slug === have.komiku?.slug) return undefined;
-      return (await komikuDetailSafe(slug))?.synopsis;
+      return (await canonSlot(() => komikuDetailSafe(slug)))?.synopsis;
     },
     komikcast: async () => {
-      const kc = await kcBriefForTitles(list[0], list[1]);
+      const kc = await canonSlot(() => kcBriefForTitles(list[0], list[1] ?? list[2]));
       if (!kc || kc.slug === have.komikcast?.slug) return undefined;
       return kc.brief.synopsis;
     },

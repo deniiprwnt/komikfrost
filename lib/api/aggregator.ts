@@ -165,6 +165,39 @@ export function pickPrimaryGenre(
   return undefined;
 }
 
+/** Batas genre tambahan dari sumber non-pemenang (lihat extendGenreList). */
+export const EXTRA_GENRE_MAX = 2;
+
+/**
+ * Daftar genre detail = genre sumber PEMENANG (urutan asli, label utama
+ * tetap list[0]) + maksimal EXTRA_GENRE_MAX genre tambahan dari field
+ * `genres` sumber lain (urutan prioritas, hanya yang belum ada). Field
+ * `theme` TIDAK pernah dipakai sebagai tambahan. Kartu tetap memakai
+ * `genre` = list[0] saja, jadi label utama sama di pencarian dan detail.
+ */
+export function extendGenreList(
+  by: Partial<Record<ComicSourceId, GenreSource | undefined>>,
+  pick: { source: ComicSourceId; list: GenreRef[] } | undefined,
+  max = EXTRA_GENRE_MAX,
+): GenreRef[] {
+  if (!pick) return [];
+  const out = [...pick.list];
+  const seen = new Set(out.map((g) => g.slug));
+  let added = 0;
+  for (const s of SOURCE_PRIORITY) {
+    if (s === pick.source || added >= max) continue;
+    for (const g of by[s]?.genres ?? []) {
+      if (added >= max) break;
+      const c = canonicalGenre(g?.name) ?? canonicalGenre(g?.slug);
+      if (!c || seen.has(c.slug)) continue;
+      seen.add(c.slug);
+      out.push({ name: c.name, slug: c.slug });
+      added++;
+    }
+  }
+  return out;
+}
+
 /**
  * Chapter terbaru lintas sumber: nomor TERTINGGI menang; nomor sama →
  * sumber berprioritas lebih tinggi (urutan SOURCE_PRIORITY). Tak ada nomor
@@ -252,6 +285,16 @@ export function normalizeTitle(raw: string): string {
  * ekor penanda yang dibuang; judul yang memang berakhiran kata "id" tetap
  * aman karena polanya menuntut pemisah + angka/akhir.
  */
+/**
+ * Judul yang diketahui sama tetapi ditulis berbeda antar sumber (romaji vs
+ * Inggris). Kunci = hasil normalizeTitle; nilai = kunci kanonis bersama.
+ * Hanya pasangan yang terbukti sama — bukan fuzzy.
+ */
+const TITLE_ALIAS_KEYS: ReadonlyMap<string, string> = new Map([
+  ["mousouchu", "wild delusions"],
+  ["mousou chu", "wild delusions"],
+]);
+
 export function dedupeKey(raw: string): string {
   // Ekor rentang chapter dalam kurung ("Sumisaka-san (1-5)") bukan bagian
   // judul — dibuang SEBELUM normalizeTitle (yang menghapus tanda kurung,
@@ -263,7 +306,8 @@ export function dedupeKey(raw: string): string {
     .replace(/\s*[(\[]\s*(?:id|indo(?:nesia)?)\s*\d*\s*[)\]]\s*$/i, "");
   const t = normalizeTitle(stripped);
   if (!t) return "";
-  return t.replace(/\s+id\s*\d*$/, "").trim() || t;
+  const k = t.replace(/\s+id\s*\d*$/, "").trim() || t;
+  return TITLE_ALIAS_KEYS.get(k) ?? k;
 }
 
 /**
@@ -494,6 +538,9 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       if (!ra || !rb) return true; // tanpa data chapter: sampul sama sudah cukup kuat
       return ra.lo <= rb.hi && rb.lo <= ra.hi;
     };
+    // Bobot grup = nomor chapter terbaru tertinggi lintas sumbernya.
+    const groupWeight = (k: string): number =>
+      Math.max(-1, ...SOURCE_PRIORITY.map((s) => weight(groups.get(k)!.cards[s])));
     const byCover = new Map<string, string[]>();
     for (const k of live) {
       const ids = new Set<string>();
@@ -520,10 +567,18 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       return r;
     };
     for (const [, ks] of byCover) {
-      if (ks.length < 2 || ks.length > 4) continue;
+      // >8 grup berbagi satu sampul = sampul generik, jangan disentuh.
+      if (ks.length < 2 || ks.length > 8) continue;
       for (let a = 0; a < ks.length; a++) {
         for (let b = a + 1; b < ks.length; b++) {
           if (!overlaps(ks[a], ks[b])) continue;
+          // 5-8 grup: sampul sama saja belum cukup; wajib nomor chapter
+          // terbaru yang sama persis. 2-4 grup: sampul sama + rentang
+          // chapter beririsan (juga mencakup sampul sama + chapter sama).
+          if (ks.length > 4) {
+            const wa = groupWeight(ks[a]);
+            if (wa < 0 || wa !== groupWeight(ks[b])) continue;
+          }
           const ra = find(ks[a]);
           const rb = find(ks[b]);
           if (ra !== rb) parent.set(rb, ra);
@@ -537,8 +592,6 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       if (arr) arr.push(k);
       else comps.set(r, [k]);
     }
-    const groupWeight = (k: string): number =>
-      Math.max(-1, ...SOURCE_PRIORITY.map((s) => weight(groups.get(k)!.cards[s])));
     for (const [, ks] of comps) {
       if (ks.length < 2) continue;
       const ordered = [...ks].sort(
@@ -879,7 +932,7 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   // `theme`) tidak pernah ikut. Aturan yang SAMA dipakai mergeCards dan
   // getMangaSummary (pickPrimaryGenre).
   const genrePick = pickPrimaryGenre(details);
-  const genres: GenreRef[] = genrePick ? genrePick.list : [];
+  const genres: GenreRef[] = extendGenreList(details, genrePick);
   const mergedTitle = fixTitle((get("title") as string) ?? primary.title);
   // Tipe: sumber prioritas tertinggi yang punya tipe valid (pickType) —
   // aturan yang sama dengan mergeCards dan getMangaSummary.
@@ -974,81 +1027,6 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
  * Label tampilan = dari source prioritas. Urutan = nomor chapter tertinggi
  * dulu lintas source. Nomor tak terparse → fallback urutan daftar Shinigami.
  */
-function parseIdDate(raw?: string): number | undefined {
-  if (!raw) return undefined;
-  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return undefined;
-  const t = Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-  return Number.isFinite(t) ? t : undefined;
-}
-
-/**
- * Sembunyikan tanggal chapter bila tidak konsisten dengan urutan nomor.
- * Urutan daftar = nomor tertinggi dulu, jadi tanggal harus menurun seiring
- * nomor. Bila ada pasangan yang nomornya lebih tinggi tapi tanggalnya lebih
- * lama (tanda tanggal dari sumber campur/keliru), SEMUA tanggal disembunyikan
- * agar daftar tidak menampilkan tanggal yang menyesatkan.
- */
-function hideInconsistentDates(items: MergedChapterItem[]): MergedChapterItem[] {
-  const strip = (it: MergedChapterItem): MergedChapterItem => {
-    if (it.date === undefined) return it;
-    const copy = { ...it };
-    delete (copy as { date?: string }).date;
-    return copy;
-  };
-  // Tanggal tepercaya = parse valid (dd/mm/yyyy nyata, bukan tanggal masa
-  // depan). Sisanya dibuang per item (hanya field `date`, chapter utuh).
-  const now = Date.now() + 24 * 60 * 60_000;
-  const parsed = items.map((it) => {
-    const d = parseIdDate(it.date);
-    const n = chapterNum(it.title);
-    const ok = typeof d === "number" && d <= now && d >= Date.UTC(2000, 0, 1);
-    return { d: ok ? (d as number) : undefined, n };
-  });
-  const bad = new Array<boolean>(items.length).fill(false);
-  parsed.forEach((p, i) => {
-    if (p.d === undefined && items[i].date) bad[i] = true;
-  });
-
-  // 1) Tanggal identik pada >= 3 chapter BERURUTAN (stempel massal sumber).
-  let i = 0;
-  while (i < parsed.length) {
-    if (parsed[i].d === undefined) {
-      i++;
-      continue;
-    }
-    let j = i + 1;
-    while (j < parsed.length && parsed[j].d === parsed[i].d) j++;
-    if (j - i >= 3) for (let k = i; k < j; k++) bad[k] = true;
-    i = j;
-  }
-
-  // 2) Urutan bertentangan: daftar = nomor tertinggi dulu, jadi tanggal
-  // harus menurun (non-increasing) ke bawah. Untuk tiap pasangan yang
-  // bertentangan, tanggal item yang terlibat dibuang.
-  const idx: number[] = [];
-  parsed.forEach((p, k) => {
-    if (!bad[k] && p.d !== undefined && Number.isFinite(p.n)) idx.push(k);
-  });
-  for (let a = 1; a < idx.length; a++) {
-    const p0 = parsed[idx[a - 1]];
-    const p1 = parsed[idx[a]];
-    if ((p0.n as number) > (p1.n as number) && (p0.d as number) < (p1.d as number)) {
-      bad[idx[a - 1]] = true;
-      bad[idx[a]] = true;
-    }
-  }
-  // Nomor tak terparse tapi bertanggal tidak bisa diverifikasi → buang.
-  parsed.forEach((p, k) => {
-    if (p.d !== undefined && !Number.isFinite(p.n)) bad[k] = true;
-  });
-
-  // 3) Tanpa tanggal tepercaya sama sekali → sembunyikan semuanya.
-  const trusted = items.some((it, k) => !bad[k] && parsed[k].d !== undefined);
-  if (!trusted) return items.map(strip);
-  return items.map((it, k) => (bad[k] ? strip(it) : it));
-}
-
 export function mergeChapters(
   lists: Partial<Record<ComicSourceId, ChapterItem[]>>,
   displaySlug: string,
@@ -1062,6 +1040,11 @@ export function mergeChapters(
       const cid = s === "shinigami" ? c.chapterId : undefined;
       const ex = byKey.get(key);
       if (ex) {
+        // Tanggal diisi dari sumber berikutnya bila sumber pemenang tidak
+        // punya tanggal untuk chapter ini (dulu hanya tanggal sumber pertama
+        // yang dipakai, sehingga chapter tanpa tanggal Shinigami tetap kosong
+        // walau Komiku/Komikcast punya).
+        if (!ex.date && c.date) ex.date = c.date;
         if (!ex.sources.some((r) => r.source === s)) {
           ex.sources.push({ source: s, url: c.url, ...(cid ? { chapterId: cid } : {}) });
         } else if (cid) {
@@ -1110,8 +1093,9 @@ export function mergeChapters(
     if (ob !== undefined) return 1;
     return ka.localeCompare(kb);
   });
-  // Tanggal yang bertentangan dengan urutan nomor chapter disembunyikan.
-  return hideInconsistentDates(sorted);
+  // Semua tanggal dari sumber ditampilkan apa adanya (tanpa penyembunyian);
+  // chapter tanpa tanggal di sumber pemenang diisi dari sumber berikutnya.
+  return sorted;
 }
 
 /**

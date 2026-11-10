@@ -193,6 +193,14 @@ function fixGluedReduplication(s: string): string {
 }
 
 /**
+ * "bekerjasama" → "bekerja sama" (juga "Bekerjasama", "BEKERJASAMA"). Pola
+ * dibatasi pembatas kata Unicode agar kata lain tidak ikut berubah.
+ */
+function fixBekerjaSama(s: string): string {
+  return s.replace(/(?<![\p{L}\p{N}])(bekerja)(sama)(?![\p{L}\p{N}])/giu, (_m, a: string, b: string) => `${a} ${b}`);
+}
+
+/**
  * Bersihkan sinopsis: tag HTML sisa → spasi (bukan dihapus, supaya kata
  * tidak menempel), entity (termasuk yang ter-encode ganda) didekode,
  * escape backslash dibuang, camelCase yang menempel dipisah, spasi berlebih
@@ -252,6 +260,10 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
   s = s.replace(/\b[a-z]{3,}(?=[A-Z][a-z])/g, (w) => `${w} `);
   // Reduplikasi menempel yang dikenal ("lakilaki" → "laki-laki").
   s = fixGluedReduplication(s);
+  // Ejaan baku: "bekerjasama" → "bekerja sama" (case-insensitive, huruf
+  // kapital awal/seluruhnya dipertahankan). Hanya token UTUH — "dibekerjasamakan"
+  // atau kata lain yang memuat potongan itu tidak tersentuh.
+  s = fixBekerjaSama(s);
   // Tanda baca menempel pada kata berikutnya: "berakhir.Dia", "kata,kata".
   s = s.replace(/([a-z]{2}[.!?…])(?=[A-Z][a-z])/g, "$1 ");
   s = s.replace(/([a-z]{2}[,;])(?=[A-Za-z])/g, "$1 ");

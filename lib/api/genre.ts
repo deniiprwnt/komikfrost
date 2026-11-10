@@ -88,12 +88,13 @@ export async function getMangaByGenre(
   const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
   const items = more ? merged.slice(0, 15) : merged;
   // Label genre/sinopsis kartu memakai aturan yang sama dengan beranda &
-  // pencarian (completeCards). Dibatasi 2 dtk; kartu tetap tampil bila lewat.
+  // pencarian (completeCards). Dibatasi 3 dtk; kartu tetap tampil bila lewat (hasil resolusi di-cache
+  // bersama daftar lain, jadi label konsisten di request berikutnya).
   let timer: ReturnType<typeof setTimeout> | undefined;
   await Promise.race([
     completeCards(items).catch(() => undefined),
     new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, 2000);
+      timer = setTimeout(resolve, 3000);
     }),
   ]);
   if (timer) clearTimeout(timer);
