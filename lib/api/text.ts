@@ -392,3 +392,27 @@ export function shortenAtSentence(raw: string | undefined | null, max: number): 
   const base = (sp > 0 ? cut.slice(0, sp) : cut).replace(/[\s,;:\u2013-]+$/, "");
   return base ? base + "\u2026" : s.slice(0, max);
 }
+
+/**
+ * Pecah kolom "judul alternatif" yang memuat BEBERAPA alias dalam satu string
+ * ("Judul A; Judul B", "A | B", "A / B", baris baru). Nilai utuh tetap
+ * disertakan paling depan, lalu tiap potongan. Koma hanya memecah bila SEMUA
+ * potongan >= 2 kata (agar judul bertanda koma tidak terpecah jadi kata
+ * lepas). Dipakai pencocokan alias lintas sumber (exact, bukan fuzzy).
+ */
+export function splitAltTitles(raw?: string | null): string[] {
+  const whole = (raw ?? "").trim();
+  if (!whole) return [];
+  const out: string[] = [whole];
+  const add = (v: string) => {
+    const t = v.trim();
+    if (t.length >= 2 && !out.includes(t)) out.push(t);
+  };
+  let parts = whole.split(/\s*[;|\n\r]+\s*|\s+[/\u2022\u00b7]\s+/);
+  if (parts.length === 1 && whole.includes(",")) {
+    const byComma = whole.split(/\s*,\s*/);
+    if (byComma.length > 1 && byComma.every((x) => x.trim().split(/\s+/).length >= 2)) parts = byComma;
+  }
+  if (parts.length > 1) for (const x of parts) add(x);
+  return out;
+}

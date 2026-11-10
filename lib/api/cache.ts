@@ -24,7 +24,7 @@
  * - klien (components/client-cache-version.tsx) membuang snapshot
  *   localStorage + cache memori saat versi berubah.
  */
-export const DATA_VERSION = "norm-2026-11-11d";
+export const DATA_VERSION = "norm-2026-11-11e";
 
 /**
  * Tempel versi data ke URL upstream sebagai query `_v`. Sumber mengabaikan

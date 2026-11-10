@@ -3,7 +3,7 @@ import type { ChapterItem, ChapterRef, GenreRef, KomikType, MangaCard, MangaDeta
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
 import { canonicalGenre, themeDisplayName } from "./genre-canonical";
-import { pickBestSynopsis } from "./text";
+import { pickBestSynopsis, splitAltTitles } from "./text";
 import { splitRating } from "./rating";
 
 /**
@@ -302,14 +302,20 @@ export function normalizeTitle(raw: string): string {
  * aman karena polanya menuntut pemisah + angka/akhir.
  */
 /**
- * Judul yang diketahui sama tetapi ditulis berbeda antar sumber (romaji vs
- * Inggris). Kunci = hasil normalizeTitle; nilai = kunci kanonis bersama.
- * Hanya pasangan yang terbukti sama — bukan fuzzy.
+ * Alias FRASA AKHIR judul (romaji → Inggris). Pola dicocokkan pada EKOR judul
+ * ternormalisasi lalu diganti dengan frasa kanonis — BUKAN lookup seluruh
+ * judul — sehingga "sumisaka san mousouchu" dan "sumisaka san mousou chu"
+ * sama-sama menjadi "sumisaka san wild delusions". Hanya pasangan yang
+ * terbukti sama (bukan fuzzy).
  */
-const TITLE_ALIAS_KEYS: ReadonlyMap<string, string> = new Map([
-  ["mousouchu", "wild delusions"],
-  ["mousou chu", "wild delusions"],
-]);
+const TITLE_TAIL_ALIASES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/(?:^|\s)mousou\s?chu$/, "wild delusions"],
+];
+
+/** Akhiran possessive ("Sumisaka-san's") dibuang sebelum tanda baca jadi spasi. */
+function stripPossessive(s: string): string {
+  return s.replace(/([A-Za-z0-9])['\u2019\u2018`\u00b4]s(?=\s|$)/g, "$1");
+}
 
 export function dedupeKey(raw: string): string {
   // Ekor rentang chapter dalam kurung ("Sumisaka-san (1-5)") bukan bagian
@@ -317,13 +323,21 @@ export function dedupeKey(raw: string): string {
   // sehingga pola ini tidak akan pernah cocok bila dijalankan sesudahnya).
   // Koreksi ejaan judul yang diketahui salah ("Albrechtrecht") juga dilakukan
   // di sini agar varian ejaan jatuh ke grup yang sama.
-  const stripped = fixTitle(raw)
+  const stripped = stripPossessive(fixTitle(raw))
     .replace(/\s*[(\[]\s*\d+\s*[-\u2010-\u2015]\s*\d+\s*[)\]]\s*$/, "")
     .replace(/\s*[(\[]\s*(?:id|indo(?:nesia)?)\s*\d*\s*[)\]]\s*$/i, "");
   const t = normalizeTitle(stripped);
   if (!t) return "";
-  const k = t.replace(/\s+id\s*\d*$/, "").trim() || t;
-  return TITLE_ALIAS_KEYS.get(k) ?? k;
+  // Token "s" tunggal (sisa possessive yang lolos, mis. dari slug "san-s-...")
+  // bukan bagian judul.
+  let k = (t.replace(/\s+id\s*\d*$/, "").replace(/\s+s(?=\s|$)/g, "").trim() || t);
+  for (const [re, to] of TITLE_TAIL_ALIASES) {
+    if (re.test(k)) {
+      k = k.replace(re, (m) => (m.startsWith(" ") ? " " : "") + to).trim();
+      break;
+    }
+  }
+  return k;
 }
 
 /**
@@ -334,10 +348,12 @@ export function dedupeKey(raw: string): string {
  */
 export function aliasKeys(...titles: Array<string | null | undefined>): string[] {
   const out: string[] = [];
-  for (const t of titles) {
-    if (!t) continue;
-    const k = dedupeKey(t);
-    if (k && !out.includes(k)) out.push(k);
+  for (const raw of titles) {
+    // Kolom alias bisa memuat beberapa judul ("A; B") — tiap potongan ikut.
+    for (const t of splitAltTitles(raw)) {
+      const k = dedupeKey(t);
+      if (k && !out.includes(k)) out.push(k);
+    }
   }
   return out;
 }

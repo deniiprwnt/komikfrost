@@ -10,7 +10,7 @@ import type {
 import { KomikuError } from "./komiku";
 import { proxiedImage } from "./img-proxy";
 import { withDataVersion } from "./cache";
-import { cleanSynopsis } from "./text";
+import { cleanSynopsis, splitAltTitles } from "./text";
 import { aliasKeys } from "./aggregator";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
@@ -486,7 +486,7 @@ export async function resolveShiniDetailForSlug(slug: string, altTitle?: string)
     if (words.length > 3) queries.push(words.slice(0, 3).join(" "));
     // Alias (EN) pemanggil ikut jadi kueri: judul utama sumber lain kadang
     // beda total dari judul Shinigami, tapi alias-nya sama.
-    if (altTitle && !queries.includes(altTitle)) queries.push(altTitle);
+    for (const a of splitAltTitles(altTitle)) if (!queries.includes(a)) queries.push(a);
     // Kandidat target: judul + altTitle pemanggil (exact, tanpa fuzzy).
     const want = aliasKeys(target, altTitle);
     for (const query of queries) {
@@ -559,7 +559,7 @@ export async function findShiniIdByTitles(
   const want = aliasKeys(...titles);
   if (want.length === 0) return null;
   const queries: string[] = [];
-  for (const t of titles) {
+  for (const t of titles.flatMap((x) => splitAltTitles(x))) {
     const q = (t ?? "")
       .replace(/\s*[(\[][^)\]]*[)\]]\s*$/, "")
       .replace(/[-_]+/g, " ")

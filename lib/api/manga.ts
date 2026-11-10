@@ -38,6 +38,7 @@ import {
 } from "./shinigami";
 import {
   aliasKeys,
+  dedupeKey,
   fetchAllSettled,
   fixTitle,
   mergeCards,
@@ -54,7 +55,7 @@ import {
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache } from "./cache";
-import { isMeaningfulSynopsis, pickBestSynopsis, synopsisQuality } from "./text";
+import { isMeaningfulSynopsis, pickBestSynopsis, splitAltTitles, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
 
@@ -181,7 +182,8 @@ const komikuSlugForTitles = (aliases: string[]): Promise<string | null> =>
   komikuSlugCache
     .load(aliasId(aliases), async () => {
       const want = aliasKeys(...aliases);
-      for (const q of aliases.filter(Boolean).slice(0, 3)) {
+      const queries = [...new Set(aliases.flatMap((a) => splitAltTitles(a)))];
+      for (const q of queries.filter(Boolean).slice(0, 4)) {
         const { items } = await searchMangaRemote(q, 1);
         const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.includes(x)));
         if (hit) return { slug: hit.slug };
@@ -194,7 +196,7 @@ const kcBriefCache = createKeyedCache<{ slug: string; brief: KcBrief } | null>(C
 const kcBriefForTitles = (title: string, alt?: string): Promise<{ slug: string; brief: KcBrief } | null> =>
   kcBriefCache.load(aliasId([title, alt ?? ""]), async () => {
     try {
-      return await resolveKomikcastBriefForTitle(title, normalizeTitle, alt);
+      return await resolveKomikcastBriefForTitle(title, dedupeKey, alt);
     } catch (e) {
       // 404 = memang tidak ada (boleh di-cache); lainnya = gangguan sementara.
       if ((e as { status?: number } | null)?.status === 404) return null;
@@ -776,7 +778,7 @@ async function fallbackSynopsisByAliases(
   aliases: string[],
   have: Partial<Record<(typeof SOURCE_PRIORITY)[number], { slug: string }>>,
 ): Promise<string | undefined> {
-  const list = aliases.filter(Boolean);
+  const list = [...new Set(aliases.filter(Boolean).flatMap((a) => splitAltTitles(a)))];
   if (list.length === 0) return undefined;
   const jobs: Record<(typeof SOURCE_PRIORITY)[number], () => Promise<string | undefined>> = {
     // Semua lewat helper ber-cache + semaphore canonSlot: kartu daftar yang
@@ -834,7 +836,7 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
     const title = data.shinigami?.title ?? data.komiku?.title ?? slug;
     const alt = data.shinigami?.altTitle ?? data.komiku?.altTitle;
     try {
-      data.komikcast = await resolveKomikcastDetailForTitle(title, normalizeTitle, alt);
+      data.komikcast = await resolveKomikcastDetailForTitle(title, dedupeKey, alt);
     } catch {
       // absen di Komikcast — normal, bukan error
     }

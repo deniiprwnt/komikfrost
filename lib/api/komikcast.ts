@@ -26,7 +26,7 @@ import type {
   PagedResult,
 } from "./types";
 import { proxiedImage } from "./img-proxy";
-import { cleanSynopsis } from "./text";
+import { cleanSynopsis, splitAltTitles } from "./text";
 import { DATA_VERSION, withDataVersion } from "./cache";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
@@ -520,7 +520,7 @@ export async function fetchKomikcastChapter(chapterPath: string): Promise<Chapte
  */
 function titleCandidates(rawTitle: string, altTitle?: string): string[] {
   const cands: string[] = [];
-  for (const raw of [rawTitle, altTitle ?? ""]) {
+  for (const raw of [rawTitle, ...splitAltTitles(altTitle)]) {
     const base = raw.replace(/-/g, " ").replace(/\s+/g, " ").trim();
     for (const v of [base.replace(/\s+id\s*\d*$/i, "").trim(), base]) {
       if (v && !cands.includes(v)) cands.push(v);
@@ -542,7 +542,8 @@ export async function resolveKomikcastBriefForTitle(
   const cands = titleCandidates(rawTitle, altTitle);
   const want = cands.map((c) => norm(c)).filter(Boolean);
   const matches = (title?: string, alt?: string): boolean =>
-    (!!title && want.includes(norm(title))) || (!!alt && want.includes(norm(alt)));
+    (!!title && want.includes(norm(title))) ||
+    splitAltTitles(alt).some((a) => want.includes(norm(a)));
   for (const q of cands) {
     const guess = q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     if (!guess) continue;

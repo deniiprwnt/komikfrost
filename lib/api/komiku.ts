@@ -576,7 +576,9 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   // Beberapa halaman tidak memakai itemprop="description" atau memindahkan
   // sinopsis ke section lain — coba selektor cadangan, urut dari yang paling
   // spesifik. Hanya teks halaman itu sendiri yang dipakai (tidak dikarang).
-  const synopsis =
+  // Sinopsis bisa tersebar di beberapa <p> (paragraf) — gabungkan semua <p>
+  // pada selektor section, bukan hanya yang pertama.
+  const fromSelectors =
     [
       "section#Informasi p.desc[itemprop='description']",
       "section#Informasi p.desc",
@@ -584,8 +586,45 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
       "#Sinopsis p",
       "[itemprop='description']",
     ]
-      .map((sel) => cleanSynopsis(blockText($, $(sel).first())))
-      .find((v): v is string => Boolean(v)) ?? "";
+      .map((sel) => {
+        const els = $(sel);
+        const text = els.length > 1 && /Sinopsis/.test(sel)
+          ? els.toArray().map((el) => blockText($, $(el))).filter(Boolean).join(" ")
+          : blockText($, els.first());
+        return cleanSynopsis(text);
+      })
+      .find((v): v is string => Boolean(v));
+  // Cadangan TERAKHIR: deskripsi yang ditanam halaman itu sendiri (JSON-LD /
+  // og:description / meta description). Hanya dipakai bila bukan boilerplate
+  // situs ("Baca komik ... bahasa Indonesia ... Komiku") — teks dari halaman,
+  // tidak dikarang.
+  const fromMeta = (): string | undefined => {
+    const cands: string[] = [];
+    $("script[type='application/ld+json']").each((_, el) => {
+      try {
+        const walk = (n: unknown): void => {
+          if (Array.isArray(n)) return n.forEach(walk);
+          if (n && typeof n === "object") {
+            const o = n as Record<string, unknown>;
+            if (typeof o.description === "string") cands.push(o.description);
+            Object.values(o).forEach(walk);
+          }
+        };
+        walk(JSON.parse($(el).contents().text()));
+      } catch {
+        // JSON-LD rusak diabaikan
+      }
+    });
+    for (const sel of ["meta[property='og:description']", "meta[name='description']"]) {
+      const v = $(sel).attr("content");
+      if (v) cands.push(v);
+    }
+    const boiler = /^(baca|read|download|nonton)\b|bahasa indonesia|komiku|sub indo|gratis|terbaru/i;
+    return cands
+      .map((c) => cleanSynopsis(c))
+      .find((c): c is string => Boolean(c) && !boiler.test(c as string));
+  };
+  const synopsis = fromSelectors ?? fromMeta() ?? "";
 
   if (!synopsis) {
     // Diagnostik (server log): hitung elemen yang cocok per selektor supaya
