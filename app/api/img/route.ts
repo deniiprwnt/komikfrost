@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { IMG_HOSTS } from "@/lib/api/img-proxy";
+import { isAllowedImageHost } from "@/lib/api/img-proxy";
 import { guard } from "../_lib";
 
 /**
@@ -7,28 +7,29 @@ import { guard } from "../_lib";
  * Proxy gambar upstream (cover + reader) lewat origin sendiri.
  *
  * Latar: host gambar Shinigami (assets.shngm.id) me-reset koneksi TLS
- * dari jaringan Indonesia (ECONNRESET/000) — browser me-render slot
+ * dari jaringan Indonesia (ECONNRESET/000) â€” browser me-render slot
  * abu-abu kosong walau URL cover dari API valid. Lewat proxy ini,
  * browser memuat dari origin KomikFrost (relatif, tanpa CORS/hotlink),
  * dan fetch server-side (Vercel, jaringan luar) mencapai host-nya.
  *
- * Keamanan: hanya host upstream yang dikenal; path dibatasi ke gambar;
- * tanpa cookie/auth ke upstream; timeout 15 dtk; Content-Type dari
- * respons upstream yang tervalidasi; Cache-Control private 7 hari.
+ * Keamanan: hanya host upstream yang dikenal (termasuk subdomainnya);
+ * path dibatasi ke gambar; tanpa cookie/auth ke upstream; timeout 15 dtk;
+ * Content-Type dari respons upstream yang tervalidasi; Cache-Control
+ * private 7 hari.
  */
 // Route ini tetap dinamis (membaca `req.nextUrl.searchParams`), tapi JANGAN
 // dipaksa `force-dynamic`: opsi itu setara `fetchCache = "force-no-store"` dan
 // mematikan `next.revalidate` di bawah, sehingga cache server 7 hari tidak
 // pernah terpakai.
-// Upstream gambar bisa lambat (abort 15 dtk di bawah) — jangan biarkan batas
+// Upstream gambar bisa lambat (abort 15 dtk di bawah) â€” jangan biarkan batas
 // fungsi default memutus stream sebelum itu.
 export const maxDuration = 30;
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-// Allowlist fetch upstream = daftar host di img-proxy (satu sumber).
-const ALLOWED_HOSTS = IMG_HOSTS;
+// Allowlist fetch upstream = daftar host/sufiks domain di img-proxy
+// (satu sumber, ikut mencakup subdomain seperti cdn.shngm.io).
 
 const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
 
@@ -37,7 +38,7 @@ const IMG_CACHE_SECONDS = 604800;
 export async function GET(req: NextRequest) {
   // Bucket gambar terpisah dengan batas tinggi: satu chapter berisi puluhan
   // gambar, jadi memakai batas API (60/menit) membuat gambar ke-61 dst
-  // dijawab 429 — penyebab utama halaman chapter tampil kosong.
+  // dijawab 429 â€” penyebab utama halaman chapter tampil kosong.
   const blocked = await guard(req, { limit: 600, bucket: "img" });
   if (blocked) return blocked;
 
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (url.protocol !== "https:" || !ALLOWED_HOSTS.has(url.hostname.toLowerCase())) {
+  if (url.protocol !== "https:" || !isAllowedImageHost(url.hostname)) {
     return Response.json(
       { error: { message: "Host gambar tidak diizinkan.", source: "validation" } },
       { status: 400 },
@@ -94,9 +95,11 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": ct,
-        // Route ini di belakang gate → cache browser saja (private), jangan
+        // Route ini di belakang gate â†’ cache browser saja (private), jangan
         // biarkan CDN menyajikan gambar kepada request tanpa sesi.
-        "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
+        // `immutable`: URL gambar berisi nama file unik dan tidak berubah,
+        // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
+        "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
         "X-Content-Type-Options": "nosniff",
       },
     });

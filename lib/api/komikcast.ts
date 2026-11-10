@@ -26,6 +26,7 @@ import type {
   PagedResult,
 } from "./types";
 import { proxiedImage } from "./img-proxy";
+import { cleanSynopsis } from "./text";
 
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
@@ -194,7 +195,7 @@ function toCard(s: KcSeries): MangaCard {
     thumbnail: proxiedImage(s.poster_url),
     ...(normalizeType(s.type) ? { type: normalizeType(s.type)! } : {}),
     ...(genreOne ? { genre: genreOne.name || genreOne.slug } : {}),
-    ...(s.synopsis ? { synopsis: s.synopsis } : {}),
+    ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
     ...(timeAgoId(s.updated_at) ? { updatedAt: timeAgoId(s.updated_at)! } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(first ? { firstChapter: first } : {}),
@@ -230,7 +231,16 @@ export async function searchKomikcastRemote(
   const p = Math.max(1, page);
   const url = `${KC_API}/search?q=${encodeURIComponent(kw)}&page=${p}`;
   const json = await fetchJson<{ data: KcSeries[] }>(url);
-  const items = (json.data ?? []).map(toCard);
+  // Endpoint pencarian Komikcast ikut mengembalikan entri database ANIME
+  // (type "anime", tanpa poster komik). Entri itu tidak pernah cocok dengan
+  // judul komik dan hanya mengotori hasil, jadi saring bila tipenya jelas.
+  const raw = (json.data ?? []).filter((s) => {
+    if (!s?.slug || !s.title) return false;
+    const t = (s.type ?? "").trim().toLowerCase();
+    if (!t) return true;
+    return t === "manga" || t === "manhwa" || t === "manhua" || t === "comic";
+  });
+  const items = raw.map(toCard);
   // API tidak memberi meta paginator pada search — halaman penuh (~40)
   // diasumsikan masih ada lanjutannya (pola sama seperti sumber lain).
   return { items, hasNextPage: items.length >= 40 };
@@ -287,7 +297,7 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
     title: s.title,
     ...(s.title_english ? { altTitle: s.title_english } : {}),
     cover: proxiedImage(s.poster_url),
-    synopsis: s.synopsis ?? "",
+    synopsis: cleanSynopsis(s.synopsis) ?? "",
     ...(s.type ? { type: s.type } : {}),
     genres: toGenres(s.genres),
     ...(s.status ? { status: s.status } : {}),
@@ -331,7 +341,7 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
     ...(s.poster_url ? { cover: proxiedImage(s.poster_url) } : {}),
     ...(g ? { genre: g.name || g.slug } : {}),
     ...(type ? { type } : {}),
-    ...(s.synopsis ? { synopsis: s.synopsis } : {}),
+    ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
   };
   kcBriefCache.set(clean, { at: Date.now(), brief });
   if (kcBriefCache.size > 1000) {
@@ -470,6 +480,19 @@ export async function resolveKomikcastDetailForTitle(
   const cands: string[] = [];
   for (const v of [base.replace(/\s+id\s*\d*$/i, "").trim(), base]) {
     if (v && !cands.includes(v)) cands.push(v);
+  }
+  // Tahap 0: slug tebakan langsung ("Limit Breaker" jadi "limit-breaker").
+  // Jauh lebih murah & tepat daripada pencarian yang bisa mengarah ke
+  // database Anime. Brief 1 request, tercache 6 jam.
+  for (const q of cands) {
+    const guess = q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!guess) continue;
+    try {
+      const brief = await fetchKomikcastBrief(guess);
+      if (brief.title && norm(brief.title) === norm(q)) return fetchKomikcastDetail(guess);
+    } catch {
+      // tidak ada, lanjut ke pencarian biasa
+    }
   }
   for (const q of cands) {
     const { items } = await searchKomikcastRemote(q, 1);

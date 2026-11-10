@@ -138,12 +138,29 @@ function AnimeError({ label }: { label: string }) {
 
 type Status = "loading" | "loaded" | "error";
 
+/**
+ * Anggaran "prioritas" per muat halaman: N cover pertama yang dirender
+ * (praktis = yang terlihat di layar) dimuat eager + fetchpriority tinggi,
+ * sisanya tetap lazy/low. Tanpa ini SEMUA cover memakai loading="lazy"
+ * sehingga grid peringkat 11-20 baru terisi setelah browser menggulir.
+ * Pemanggil tetap bisa memaksa prioritas lewat prop `priority`.
+ */
+const PRIORITY_BUDGET = 8;
+let priorityLeft = PRIORITY_BUDGET;
+
+function claimPrioritySlot(): boolean {
+  if (priorityLeft <= 0) return false;
+  priorityLeft -= 1;
+  return true;
+}
+
 export function CoverImage({
   src,
   alt,
   className = "",
   priority = false,
   label = "Cover tidak tersedia",
+  fallbackSrcs,
 }: {
   src?: string | null;
   alt: string;
@@ -153,32 +170,64 @@ export function CoverImage({
   className?: string;
   priority?: boolean;
   label?: string;
+  /**
+   * URL cover cadangan (sumber berikutnya) yang dicoba BERURUTAN bila cover
+   * utama gagal dimuat. Kotak "Cover tidak tersedia" baru muncul setelah
+   * semua kandidat gagal; tampilan kotaknya sendiri tidak berubah.
+   */
+  fallbackSrcs?: string[];
 }) {
-  // Status terikat ke src: bila src berubah, otomatis kembali ke "loading".
-  const [st, setSt] = useState<{ src?: string | null; status: Status }>({ src, status: "loading" });
-  const status: Status = !src ? "error" : st.src === src ? st.status : "loading";
-  const set = useCallback((s: Status) => setSt({ src, status: s }), [src]);
+  // Rantai kandidat: cover utama dulu, lalu cadangan (dedupe, tanpa kosong).
+  const candidates: string[] = [];
+  for (const u of [src ?? "", ...(fallbackSrcs ?? [])]) {
+    const v = (u ?? "").trim();
+    if (v && !candidates.includes(v)) candidates.push(v);
+  }
+  const key = candidates.join("|");
+  const initialStatus: Status = candidates.length > 0 ? "loading" : "error";
+  const [st, setSt] = useState<{ key: string; i: number; status: Status }>({
+    key,
+    i: 0,
+    status: initialStatus,
+  });
+  // Status terikat ke daftar kandidat: berubah = mulai lagi dari kandidat 0.
+  const cur = st.key === key ? st : { key, i: 0, status: initialStatus };
+  const status: Status = cur.status;
+  const activeSrc =
+    candidates.length > 0 ? candidates[Math.min(cur.i, candidates.length - 1)] : undefined;
+
+  // Cover di layar (N pertama) dimuat eager; sisanya lazy.
+  const [autoPriority] = useState(claimPrioritySlot);
+  const eager = priority || autoPriority;
 
   const fail = useCallback(
     (el: HTMLImageElement) => {
-      if (src && !el.dataset.retried) {
-        el.dataset.retried = "1";
-        el.src = `${src}${src.includes("?") ? "&" : "?"}r=${Date.now()}`;
+      // Satu kali coba ulang per URL (kegagalan proxy sering sementara).
+      if (activeSrc && el.dataset.retriedFor !== activeSrc) {
+        el.dataset.retriedFor = activeSrc;
+        el.src = `${activeSrc}${activeSrc.includes("?") ? "&" : "?"}r=${Date.now()}`;
         return;
       }
-      set("error");
+      setSt((prev) => {
+        const base = prev.key === key ? prev : { key, i: 0, status: "loading" as Status };
+        // Masih ada sumber lain? Pindah ke kandidat berikutnya.
+        if (base.i + 1 < candidates.length) {
+          return { key, i: base.i + 1, status: "loading" };
+        }
+        return { key, i: base.i, status: "error" };
+      });
     },
-    [src, set],
+    [activeSrc, key, candidates.length],
   );
 
   // Gambar yang sudah selesai SEBELUM React memasang onLoad (cache / hidrasi lambat).
   const ref = useCallback(
     (el: HTMLImageElement | null) => {
       if (!el || !el.complete) return;
-      if (el.naturalWidth > 0) set("loaded");
+      if (el.naturalWidth > 0) setSt({ key, i: cur.i, status: "loaded" });
       else fail(el);
     },
-    [set, fail],
+    [key, cur.i, fail],
   );
 
   return (
@@ -197,12 +246,12 @@ export function CoverImage({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={ref}
-          src={src ?? undefined}
+          src={activeSrc ?? undefined}
           alt={alt}
-          loading={priority ? "eager" : "lazy"}
-          decoding={priority ? "sync" : "async"}
-          fetchPriority={priority ? "high" : "low"}
-          onLoad={() => set("loaded")}
+          loading={eager ? "eager" : "lazy"}
+          decoding={eager ? "sync" : "async"}
+          fetchPriority={eager ? "high" : "low"}
+          onLoad={() => setSt({ key, i: cur.i, status: "loaded" })}
           onError={(e) => fail(e.currentTarget)}
           className={`blur-up ${status === "loaded" ? "blur-done" : ""} ${className}`}
         />

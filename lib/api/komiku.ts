@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { anchorTs, updatedAtMinutes } from "./aggregator";
 import { proxiedImage } from "./img-proxy";
+import { blockText, cleanSynopsis } from "./text";
 import type {
   ApiError,
   ChapterData,
@@ -147,10 +148,28 @@ function absUrl(src: string | undefined): string {
   return KOMIKU_BASE + (s.startsWith("/") ? s : "/" + s);
 }
 
+/**
+ * URL gambar asli dari satu <img>, termasuk gambar lazy-load.
+ *
+ * Sumber kerap mengisi `src` dengan placeholder (data URI / spacer) dan
+ * menyimpan URL aslinya di `data-src`, `data-lazy-src`, atau `srcset`.
+ * Dulu hanya `data-src || src` yang dicek, sehingga cover lazy-load terbaca
+ * kosong dan berakhir "Cover tidak tersedia".
+ */
+function pickImgSrc($el: cheerio.Cheerio<any>): string {
+  const direct = $el.attr("data-src") || $el.attr("data-lazy-src") || $el.attr("src");
+  const d = absUrl(direct);
+  if (d) return d;
+  // srcset/data-srcset: "url1 1x, url2 2x" -> ambil kandidat pertama.
+  const srcset = $el.attr("data-srcset") || $el.attr("srcset") || "";
+  const first = srcset.split(",")[0]?.trim().split(/\s+/)[0] ?? "";
+  return absUrl(first);
+}
+
 function pickImg($el: cheerio.Cheerio<any>): string {
   // Cover/thumbnail lewat proxy: host gambar Komiku ikut diblokir dari
   // jaringan Indonesia, jadi URL mentah berakhir sebagai slot kosong.
-  return proxiedImage(absUrl($el.attr("data-src") || $el.attr("src")));
+  return proxiedImage(pickImgSrc($el));
 }
 
 /* ------------------------------------------------------------------ */
@@ -354,6 +373,25 @@ export async function searchMangaRemote(
   // Hasil pencarian tidak memakai infinite scroll — halaman penuh (10 kartu)
   // berarti kemungkinan masih ada halaman berikut.
   const items = parseBgeCards($, takeUpstreamAge(url));
+  if (items.length === 0 && p === 1) {
+    // Fallback: pencarian fragment api.komiku.org bisa 0 hasil untuk judul
+    // yang jelas ada (mis. "Limit Breaker" yang hanya muncul di daftar
+    // terbaru). Halaman pencarian server-rendered situs memakai markup lain,
+    // jadi parse dua pola kartu sekaligus.
+    try {
+      const html2 = await fetchHtml(
+        `${KOMIKU_BASE}/?post_type=manga&s=${encodeURIComponent(keyword)}`,
+      );
+      const $2 = cheerio.load(html2);
+      const alt = dedupeCards([
+        ...parseBgeCards($2, 0),
+        ...parseLs2Cards($2, $2.root()),
+      ]);
+      if (alt.length > 0) return { items: alt, hasNextPage: false };
+    } catch {
+      // biarkan: hasil kosong dikembalikan seperti semula
+    }
+  }
   return { items, hasNextPage: items.length >= 10 };
 }
 
@@ -512,7 +550,12 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
       .text()
       .trim() ||
     $("h1").first().text().trim().replace(/^Komik\s+/i, "");
-  const synopsis = $("section#Informasi p.desc[itemprop='description']").text().trim();
+  // blockText menyisipkan spasi di batas <br>/tag blok sebelum teks diambil,
+  // sehingga sinopsis tidak lagi menempel ("lakilaki bernamaMonkey D Luffy").
+  const synopsis =
+    cleanSynopsis(
+      blockText($, $("section#Informasi p.desc[itemprop='description']").first()),
+    ) ?? "";
 
   const info: Record<string, string> = {};
   $("section#Informasi table.inftable tr").each((_, tr) => {

@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import { KomikuError } from "./komiku";
 import { proxiedImage } from "./img-proxy";
+import { cleanSynopsis } from "./text";
 
 /**
  * Lapisan HTTP + mapping JSON publik Shinigami (dipakai frontend mereka sendiri).
@@ -256,8 +257,36 @@ function authorNames(m: ShiniManga): string | undefined {
 
 /** Cover portrait untuk kartu/detail (rasio slot 3:4); fallback landscape.
  *  Host Shinigami rusak dari jaringan ID → lewat proxy /api/img. */
+/**
+ * Normalisasi URL gambar Shinigami: protokol-relatif jadi https, path
+ * relatif jadi host aset mereka. Tanpa ini URL relatif lolos apa adanya dan
+ * browser memintanya ke origin KomikFrost (404 = "Cover tidak tersedia").
+ */
+function normalizeImgUrl(raw?: string | null): string {
+  const s = (raw ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("//")) return "https:" + s;
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/")) return "https://assets.shngm.id" + s;
+  return s;
+}
+
+/**
+ * Kandidat cover: portrait dulu (rasio slot 3:4), lalu landscape.
+ * Host Shinigami rusak dari jaringan ID, jadi semuanya lewat proxy /api/img.
+ */
+function coverCandidates(m: ShiniManga): string[] {
+  const out: string[] = [];
+  for (const raw of [m.cover_portrait_url, m.cover_image_url]) {
+    const v = proxiedImage(normalizeImgUrl(raw));
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+/** Cover utama (portrait bila ada, fallback landscape). */
 function coverUrl(m: ShiniManga): string {
-  return proxiedImage(m.cover_portrait_url || m.cover_image_url || "");
+  return coverCandidates(m)[0] ?? "";
 }
 
 /** Kartu daftar dari satu item manga/list. Slug = manga_id (UUID). */
@@ -269,12 +298,13 @@ function toCard(m: ShiniManga): MangaCard {
     slug: m.manga_id,
     title: m.title,
     thumbnail: coverUrl(m),
+    ...(coverCandidates(m).length > 1 ? { thumbnailCandidates: coverCandidates(m) } : {}),
     ...(m.alternative_title ? { altTitle: m.alternative_title } : {}),
     ...(mapType(m) ? { type: mapType(m) as KomikType } : {}),
     ...(m.taxonomy?.Genre?.[0]?.name ? { genre: m.taxonomy.Genre[0].name } : {}),
     ...(timeAgoId(m.latest_chapter_time) ? { updatedAt: timeAgoId(m.latest_chapter_time) as string } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
-    ...(m.description ? { synopsis: m.description } : {}),
+    ...(cleanSynopsis(m.description) ? { synopsis: cleanSynopsis(m.description) as string } : {}),
     ...(typeof n === "number"
       ? {
           // manga/list tidak memberi nomor chapter pertama — tebak Chapter 1
@@ -519,7 +549,8 @@ export async function fetchShiniDetail(mangaId: string): Promise<MangaDetail> {
     title: m.title,
     ...(m.alternative_title ? { altTitle: m.alternative_title } : {}),
     cover: coverUrl(m),
-    synopsis: m.description ?? "",
+    ...(coverCandidates(m).length > 1 ? { coverCandidates: coverCandidates(m) } : {}),
+    synopsis: cleanSynopsis(m.description) ?? "",
     ...(type ? { type } : {}),
     genres: genreNames(m),
     ...(author ? { author } : {}),

@@ -27,7 +27,13 @@ export function KomikListCard({ item }: { item: MangaCard }) {
         onClick={(e) => captureCoverMorph(item.slug, e.currentTarget.closest("article"))}
         className="relative h-[132px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-paper-3 sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px] dark:bg-ink-3"
       >
-        <CoverImage src={item.thumbnail} alt="" title={item.title} className="h-full w-full object-cover" />
+        <CoverImage
+          src={item.thumbnail}
+          fallbackSrcs={item.thumbnailCandidates}
+          alt=""
+          title={item.title}
+          className="h-full w-full object-cover"
+        />
         {item.type && (
           <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />

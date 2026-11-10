@@ -167,6 +167,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
       >
         <CoverImage
           src={item.thumbnail}
+          fallbackSrcs={item.thumbnailCandidates}
           alt={item.title}
           title={item.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
@@ -240,6 +241,7 @@ export function UpdateTile({ item, featured = false }: { item: MangaCard; featur
       >
         <CoverImage
           src={item.thumbnail}
+          fallbackSrcs={item.thumbnailCandidates}
           alt={item.title}
           title={item.title}
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
@@ -275,7 +277,13 @@ export function UpdateRow({ item }: { item: MangaCard }) {
         {...coverMorphProps(item.slug)}
         className="relative h-[58px] w-[88px] shrink-0 overflow-hidden rounded-sm bg-paper-3 min-[420px]:h-[68px] min-[420px]:w-[110px] dark:bg-ink-3"
       >
-        <CoverImage src={item.thumbnail} alt="" title={item.title} className="h-full w-full object-cover" />
+        <CoverImage
+          src={item.thumbnail}
+          fallbackSrcs={item.thumbnailCandidates}
+          alt=""
+          title={item.title}
+          className="h-full w-full object-cover"
+        />
         {item.type && (
           <div className="absolute left-0 top-0 z-10">
             <TypeBadge type={item.type} flush />
@@ -388,6 +396,7 @@ export function RankRow({ item }: { item: MangaCard }) {
       >
         <CoverImage
           src={item.thumbnail}
+          fallbackSrcs={item.thumbnailCandidates}
           alt=""
           title={item.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"

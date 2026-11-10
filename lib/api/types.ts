@@ -19,6 +19,12 @@ export interface MangaCard {
   altTitle?: string;
   /** URL absolut thumbnail (thumbnail.komiku.to / thumbnail.komiku.org) */
   thumbnail: string;
+  /**
+   * Kandidat thumbnail lintas sumber (sumber prioritas dulu, sudah dedupe).
+   * Klien mencoba berurutan bila thumbnail utama gagal dimuat â€” kotak
+   * "Cover tidak tersedia" baru muncul setelah SEMUA kandidat gagal.
+   */
+  thumbnailCandidates?: string[];
   /** Tipe komik; absen bila sumber tidak menyebutkannya */
   type?: KomikType;
   /** Genre utama / tema (teks bebas dari Komiku, mis. "Fantasi") */
@@ -75,8 +81,10 @@ export interface MangaDetail {
   slug: string;
   title: string;
   altTitle?: string;
-  /** URL absolut cover */
+  /** URL absolut cover (sumber prioritas tertinggi yang punya cover) */
   cover: string;
+  /** Kandidat cover lintas sumber (prioritas dulu) â€” fallback onError di klien. */
+  coverCandidates?: string[];
   synopsis: string;
   type?: string;
   theme?: string;

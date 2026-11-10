@@ -2,6 +2,8 @@ import type { ChapterItem, ChapterRef, GenreRef, MangaCard, MangaDetail } from "
 // ID source terpusat di types (satu definisi, dipakai client + server).
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
+import { canonicalGenre, genreDisplayName, genreSlug } from "./genre-canonical";
+import { cleanSynopsis } from "./text";
 
 /**
  * Aggregator multi-source: Shinigami + Komiku → satu bentuk data gabungan.
@@ -201,6 +203,17 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       }
       return undefined;
     };
+    // Genre kanonis (satu bahasa di semua bagian situs) + sinopsis rapi.
+    const genreName = genreDisplayName(getCard("genre") as string | undefined);
+    const synopsisText = cleanSynopsis(getCard("synopsis") as string | undefined);
+    // Kandidat cover lintas sumber (prioritas dulu): klien mencoba berurutan
+    // bila cover utama gagal dimuat, dan kotak error baru muncul bila semua
+    // kandidat sudah dicoba.
+    const thumbCandidates: string[] = [];
+    for (const s of SOURCE_PRIORITY) {
+      const v = g.cards[s]?.thumbnail;
+      if (v && !thumbCandidates.includes(v)) thumbCandidates.push(v);
+    }
     // firstChapter: Komiku (dari HTML, nomor asli) menang atas tebakan
     // "Chapter 1" kartu list Shinigami; fallback ke getCard bila Komiku absen.
     // Koreksi: bila pemenang bernomor > 1 dari kartu Komikcast (tebakan
@@ -289,12 +302,13 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       slug: displaySlug,
       title: (getCard("title") as string) ?? p.title,
       thumbnail: (getCard("thumbnail") as string) ?? p.thumbnail,
+      ...(thumbCandidates.length > 1 ? { thumbnailCandidates: thumbCandidates } : {}),
       ...(getCard("altTitle") ? { altTitle: getCard("altTitle") as string } : {}),
       ...(getCard("type") ? { type: getCard("type") as NonNullable<MangaCard["type"]> } : {}),
-      ...(getCard("genre") ? { genre: getCard("genre") as string } : {}),
+      ...(genreName ? { genre: genreName } : {}),
       ...(mergedUpdatedAt ? { updatedAt: mergedUpdatedAt } : {}),
       ...(typeof mergedUpdatedAtTs === "number" ? { updatedAtTs: mergedUpdatedAtTs } : {}),
-      ...(getCard("synopsis") ? { synopsis: getCard("synopsis") as string } : {}),
+      ...(synopsisText ? { synopsis: synopsisText } : {}),
       ...(firstCh ? { firstChapter: rewriteShiniUrl(firstCh, displaySlug) } : {}),
       ...(latestCh ? { latestChapter: rewriteShiniUrl(latestCh, displaySlug) } : {}),
       ...(latestSrc ? { latestSource: latestSrc } : {}),
@@ -458,16 +472,28 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   };
 
   // Genres: gabung unik (kunci = slug lowercased, fallback nama).
+  // Dipetakan ke bentuk KANONIS lebih dulu, baru digabung unik. Tanpa ini
+  // judul yang sama tampil "Fantasi" di satu bagian dan "Fantasy" di bagian
+  // lain (datang dari sumber berbeda).
   const seen = new Set<string>();
   const genres: GenreRef[] = [];
   for (const s of SOURCE_PRIORITY) {
     for (const g of details[s]?.genres ?? []) {
-      const key = (g.slug || g.name).toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        genres.push(g);
-      }
+      const name = genreDisplayName(g.name) ?? genreDisplayName(g.slug);
+      if (!name) continue;
+      const canon = canonicalGenre(name);
+      const slug = canon?.slug ?? (g.slug || genreSlug(name));
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      genres.push(canon ? { name: canon.name, slug: canon.slug } : { name, slug });
     }
+  }
+
+  // Kandidat cover lintas sumber (prioritas dulu) untuk fallback onError.
+  const covers: string[] = [];
+  for (const s of SOURCE_PRIORITY) {
+    const c = details[s]?.cover;
+    if (c && !covers.includes(c)) covers.push(c);
   }
 
   const chapters = mergeChapters(
@@ -508,7 +534,8 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
     title: (get("title") as string) ?? primary.title,
     ...(get("altTitle") ? { altTitle: get("altTitle") as string } : {}),
     cover: (get("cover") as string) ?? primary.cover,
-    synopsis: (get("synopsis") as string) ?? "",
+    ...(covers.length > 1 ? { coverCandidates: covers } : {}),
+    synopsis: cleanSynopsis(get("synopsis") as string | undefined) ?? "",
     ...(get("type") ? { type: get("type") as string } : {}),
     ...(get("theme") ? { theme: get("theme") as string } : {}),
     genres,
