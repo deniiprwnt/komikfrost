@@ -43,6 +43,7 @@ import {
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache } from "./cache";
+import { applyCanonicalCard, getCanonicalRecord } from "./canonical";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { MangaCard, MangaDetail, PagedResult } from "./types";
 
@@ -212,6 +213,10 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   // Enrich tetap <=5 kartu; batas waktu 2500 -> 1500 dtk. Enrich hanya
   // melengkapi genre/sinopsis â€” kartu tetap tampil walau dilewati.
   await withTimeout(enrichKomikcastOnly(merged), 1500);
+  // Enrich hanya melengkapi kartu yang belum punya record kanonis. Untuk
+  // judul yang detailnya sudah pernah di-merge, nilai kanonis dipulihkan di
+  // sini supaya genre/tipe/sinopsis/sampul identik dengan halaman detail.
+  for (const c of merged) applyCanonicalCard(c, normalizeTitle(c.title));
   // Urutkan berdasarkan waktu terbaru secara global (lintas sumber).
   // Prioritas sumber (Shinigami > Komiku > Komikcast) sudah ditangani
   // saat mergeCards: jika komik ada di beberapa sumber, datanya diambil
@@ -379,6 +384,8 @@ async function buildLatestPaged(
     enrichKomikcastOnly(items),
     opts.live ? 1500 : 2500,
   );
+  // Kembalikan ke nilai record kanonis bila sudah ada (lihat getLatest).
+  for (const c of items) applyCanonicalCard(c, normalizeTitle(c.title));
   return { items, hasNextPage: hasNext, total };
 }
 
@@ -416,6 +423,9 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     return Number.isFinite(n) && digits ? n : -1;
   };
   const ranked = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a));
+  // Genre/tipe/sampul kanonis â€” peringkat menampilkan nilai yang sama dengan
+  // beranda, pencarian, dan halaman detail.
+  for (const m of ranked) applyCanonicalCard(m, normalizeTitle(m.title));
   return ranked.slice(0, 20).map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
@@ -461,6 +471,7 @@ export async function getRecommended(): Promise<MangaCard[]> {
     shinigami: data.shinigami ?? [],
     komikcast: data.komikcast ?? [],
   });
+  for (const c of merged) applyCanonicalCard(c, normalizeTitle(c.title));
   return shuffle(merged);
 }
 
@@ -588,8 +599,12 @@ export async function getMangaSummary(slug: string): Promise<MangaSummary> {
     try {
       const d = await fetchMangaDetail(clean);
       // Genre ringkasan juga kanonis: kartu memakai endpoint ini sebagai
-      // cadangan, jadi tidak boleh membawa ejaan mentah sumber.
-      const summaryGenre = d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined;
+      // cadangan, jadi tidak boleh membawa ejaan mentah sumber. Bila record
+      // kanonis sudah ada (detail pernah di-merge), record itulah yang dipakai
+      // supaya ringkasan = halaman detail.
+      const rec = getCanonicalRecord(normalizeTitle(d.title));
+      const summaryGenre =
+        rec?.genre ?? (d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined);
       return {
         slug: d.slug,
         title: d.title,

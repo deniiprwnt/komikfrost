@@ -6,6 +6,7 @@ import { fetchMangaDetail, searchMangaRemote } from "./komiku";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchShiniRemote } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
+import { applyCanonicalCard } from "./canonical";
 import { genreDisplayName } from "./genre-canonical";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
@@ -156,5 +157,8 @@ export async function searchManga(
       2500,
     );
   }
+  // Record kanonis (bila judul pernah dibuka detailnya) menimpa hasil enrich:
+  // cuplikan pencarian memakai genre/sinopsis yang SAMA dengan halaman detail.
+  for (const c of items) applyCanonicalCard(c, normalizeTitle(c.title));
   return { items, hasNextPage: more, total };
 }

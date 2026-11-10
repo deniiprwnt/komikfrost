@@ -4,6 +4,7 @@ import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
+import { canonicalGenre } from "@/lib/api/genre-canonical";
 import type { MangaCard } from "@/lib/api/types";
 import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
 import { GenreDetailRouteSkeleton } from "@/components/route-skeletons";
@@ -245,7 +246,11 @@ function GenreDetailContent({ slug }: { slug: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, page]);
 
-  const title = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  // Judul genre memakai NAMA KANONIS (Inggris) â€” sama dengan chip di halaman
+  // detail dan daftar /genre. Slug sumber lama ("romansa", "fiksi-sains")
+  // tidak lagi tampil sebagai judul hasil title-case slug.
+  const canon = canonicalGenre(slug);
+  const title = canon?.name ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   usePageTitle(`Genre: ${title}`);
 
   return (

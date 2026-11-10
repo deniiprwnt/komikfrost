@@ -56,7 +56,12 @@ export function ClientDataVersion() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const needy = entries.filter((e) => !e.cover).slice(0, 5);
+    // SELALU selaraskan sampul riwayat dengan record kanonis (bukan hanya
+    // entri tanpa sampul). Dulu entri dengan sampul placeholder/lokal yang
+    // usang (mis. Limit Breaker) tidak pernah diperbaiki sehingga "Lanjut
+    // membaca" dan Riwayat tetap menampilkan kotak kosong walau halaman
+    // detail punya sampulnya.
+    const needy = entries.slice(0, 12);
     if (needy.length === 0) return;
     let cancelled = false;
     const queue = [...needy];
@@ -65,8 +70,11 @@ export function ClientDataVersion() {
         const e = queue.shift();
         if (!e) break;
         try {
+          // Detail GABUNGAN (bukan ?ringkas=1): sampul yang dipakai adalah
+          // sampul record kanonis â€” jalur yang sama dengan halaman detail.
           const d = await apiGet<MangaDetail>(`/api/manga/${encodeURIComponent(e.slug)}`);
           if (cancelled || !d.cover) continue;
+          if (e.cover === d.cover) continue;
           saveHistory({
             slug: e.slug,
             title: e.title,

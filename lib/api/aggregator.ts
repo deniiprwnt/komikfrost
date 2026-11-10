@@ -6,6 +6,7 @@ import { canonicalGenre, genreDisplayName, themeDisplayName } from "./genre-cano
 import { cleanSynopsis } from "./text";
 import { DATA_VERSION } from "./cache";
 import { splitRating } from "./rating";
+import { getCanonicalRecord, putCanonicalRecord } from "./canonical";
 
 /**
  * Aggregator multi-source: Shinigami + Komiku → satu bentuk data gabungan.
@@ -333,6 +334,11 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
     // lalu diingat per judul supaya bagian yang sumbernya lebih sedikit
     // menampilkan nilai yang sama dengan bagian lain.
     const metaKey = normalizeTitle((getCard("title") as string) ?? p.title);
+    // Record KANONIS (ditulis mergeDetails) = sumber kebenaran lintas halaman.
+    // Kartu membaca nilai yang SAMA dengan halaman detail untuk judul ini,
+    // sehingga genre/tipe/sinopsis/sampul tidak berubah antar bagian situs
+    // (beranda, peringkat, rekomendasi, pencarian, detail).
+    const canonRec = getCanonicalRecord(metaKey);
     const genreSrc = firstWithSource(g.cards, "genre");
     const typeSrc = firstWithSource(g.cards, "type");
     const cardGenre = genreDisplayName(genreSrc?.value as string | undefined);
@@ -349,10 +355,11 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       cardType,
       typeSrc ? SOURCE_PRIORITY.indexOf(typeSrc.source) : SOURCE_PRIORITY.length,
     );
-    const genreName = recallTitleMeta(metaKey, "genre")?.value ?? cardGenre;
-    const mergedType = (recallTitleMeta(metaKey, "type")?.value ?? cardType) as
-      | NonNullable<MangaCard["type"]>
-      | undefined;
+    const genreName =
+      canonRec?.genre ?? recallTitleMeta(metaKey, "genre")?.value ?? cardGenre;
+    const mergedType = (canonRec?.type ??
+      recallTitleMeta(metaKey, "type")?.value ??
+      cardType) as NonNullable<MangaCard["type"]> | undefined;
     // Sinopsis: pakai sumber PRIORITAS PERTAMA yang sinopsisnya benar-benar
     // bersih setelah dibersihkan. Dulu `getCard` hanya melewati string
     // kosong, sehingga sinopsis sumber utama yang isinya cuma placeholder
@@ -366,6 +373,9 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         break;
       }
     }
+    // Sinopsis kanonis (hasil merge detail) menang: cuplikan kartu dan
+    // sinopsis halaman detail memakai teks bersih yang SAMA.
+    if (canonRec?.synopsis) synopsisText = canonRec.synopsis;
     // Kandidat cover lintas sumber (prioritas dulu): klien mencoba berurutan
     // bila cover utama gagal dimuat, dan kotak error baru muncul bila semua
     // kandidat sudah dicoba.
@@ -467,7 +477,21 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
     // lewat proxiedImage di adapter) dan sumber prioritas tertinggi yang
     // benar-benar punya sampul. Bila semua `thumbnail` kosong, kandidat
     // per-sumber tetap dipakai agar slot tidak berakhir placeholder.
-    const thumbPrimary = ((getCard("thumbnail") as string) || thumbCandidates[0] || "").trim();
+    // Sampul kanonis DULU (jalur yang sama dengan halaman detail), lalu
+    // rantai kandidat sumber. Tanpa ini kartu bisa menampilkan sampul dari
+    // sumber berbeda dengan halaman detailnya.
+    if (canonRec?.cover && !thumbCandidates.includes(canonRec.cover)) {
+      thumbCandidates.unshift(canonRec.cover);
+    }
+    for (const v of canonRec?.coverCandidates ?? []) {
+      if (v && !thumbCandidates.includes(v)) thumbCandidates.push(v);
+    }
+    const thumbPrimary = (
+      canonRec?.cover ||
+      (getCard("thumbnail") as string) ||
+      thumbCandidates[0] ||
+      ""
+    ).trim();
     out.push({
       slug: displaySlug,
       title: (getCard("title") as string) ?? p.title,
@@ -645,17 +669,29 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   // Dipetakan ke bentuk KANONIS lebih dulu, baru digabung unik. Tanpa ini
   // judul yang sama tampil "Fantasi" di satu bagian dan "Fantasy" di bagian
   // lain (datang dari sumber berbeda).
+  // Chip genre = daftar genre dari SATU sumber pemenang (prioritas tertinggi
+  // yang benar-benar punya genre), dengan URUTAN ASLINYA â€” bukan gabungan
+  // lintas sumber, bukan urutan alfabetis. Ini yang menjamin label utama
+  // selalu genre PERTAMA sumber pemenang dan Genre tidak tertukar dengan
+  // Tema (yang datang dari kartu daftar).
   const seen = new Set<string>();
   const genres: GenreRef[] = [];
   for (const s of SOURCE_PRIORITY) {
+    const list: GenreRef[] = [];
+    const localSeen = new Set<string>();
     for (const g of details[s]?.genres ?? []) {
-      // HANYA genre kanonis (Inggris). Nilai tak dikenal / label Bahasa
-      // Indonesia tidak pernah lolos ke daftar genre halaman detail, jadi
-      // daftar ini selalu sama bentuknya dengan label di kartu.
       const canon = canonicalGenre(g.name) ?? canonicalGenre(g.slug);
-      if (!canon || seen.has(canon.slug)) continue;
-      seen.add(canon.slug);
-      genres.push({ name: canon.name, slug: canon.slug });
+      if (!canon || localSeen.has(canon.slug)) continue;
+      localSeen.add(canon.slug);
+      list.push({ name: canon.name, slug: canon.slug });
+    }
+    if (list.length > 0) {
+      for (const g of list) {
+        if (seen.has(g.slug)) continue;
+        seen.add(g.slug);
+        genres.push(g);
+      }
+      break; // hanya sumber pemenang â€” urutan asli dipertahankan
     }
   }
 
@@ -752,6 +788,20 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
       }
     }
   }
+
+  // Tulis record kanonis: SATU sumber kebenaran untuk genre, tipe, rating,
+  // sampul, dan sinopsis yang dipakai seluruh halaman.
+  putCanonicalRecord(metaKey, {
+    ...(genres[0]?.name ? { genre: genres[0].name } : {}),
+    ...(get("type") ? { type: get("type") as string } : {}),
+    genres,
+    ...(ratingScore ? { rating: ratingScore } : {}),
+    ...(ageLimit ? { ageLimit } : {}),
+    ...(coverPrimary ? { cover: coverPrimary } : {}),
+    ...(covers.length > 1 ? { coverCandidates: covers } : {}),
+    ...(synopsisText ? { synopsis: synopsisText } : {}),
+    sources: present,
+  });
 
   return {
     slug: displaySlug,
@@ -873,17 +923,20 @@ export async function fetchAllSettled<T>(
   label: string,
 ): Promise<{ data: Partial<Record<ComicSourceId, T>>; errors: Partial<Record<ComicSourceId, string>> }> {
   const entries = Object.entries(jobs) as [ComicSourceId, () => Promise<T>][];
-  const settled = await Promise.all(
-    entries.map(async ([source, fn]) => {
-      try {
-        return { source, value: await fn(), err: null as unknown, msg: null as string | null };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error(`[aggregator:${label}] source=${source} gagal: ${msg}`);
-        return { source, value: null as T | null, err: e, msg };
-      }
-    }),
-  );
+  // Promise.allSettled: TIDAK ada "siapa cepat dia menang". Semua sumber
+  // diselesaikan dulu (sukses maupun gagal), baru pemenang ditentukan oleh
+  // SOURCE_PRIORITY yang tetap di bawah â€” bukan oleh urutan selesainya.
+  const results = await Promise.allSettled(entries.map(([, fn]) => fn()));
+  const settled = results.map((r, i) => {
+    const source = entries[i][0];
+    if (r.status === "fulfilled") {
+      return { source, value: r.value, err: null as unknown, msg: null as string | null };
+    }
+    const e: unknown = r.reason;
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[aggregator:${label}] source=${source} gagal: ${msg}`);
+    return { source, value: null as T | null, err: e, msg };
+  });
   const data: Partial<Record<ComicSourceId, T>> = {};
   const errors: Partial<Record<ComicSourceId, string>> = {};
   for (const { source, value, msg } of settled) {
