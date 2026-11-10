@@ -307,7 +307,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
         {item.latestChapter && (
           <Link
             href={chapterPathToRoute(item.latestChapter.url)}
-            className="mt-auto w-fit max-w-full truncate pt-1 text-xs font-semibold leading-tight text-accent hover:underline dark:text-white"
+            className="-ml-1.5 mt-auto w-fit max-w-full touch-manipulation truncate rounded-md px-1.5 py-1 text-xs font-semibold leading-tight text-accent transition-[background-color,color,transform] duration-200 hover:bg-accent-soft hover:text-accent-strong active:scale-95 active:bg-accent-soft dark:text-white dark:hover:bg-accent/20 dark:active:bg-accent/20"
           >
             {item.latestChapter.label}
           </Link>
