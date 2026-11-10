@@ -70,3 +70,20 @@ import { splitAltTitles } from "./text";
   assert.equal(none.synopsis, "");
 }
 console.log("aggregator.test (merge/alias): OK");
+
+/* ---- Comedy hanya di Tema sumber pemenang → chip terakhir (maks 1) ---- */
+{
+  const g = (...n: string[]) => n.map((x) => ({ name: x, slug: x.toLowerCase().replace(/\s+/g, "-") }));
+  const base = { cover: "", synopsis: "", chapters: [] };
+  const d = mergeDetails({
+    komiku: { ...base, slug: "m-id", title: "Money Keeps Piling Up", genres: g("Drama", "Fantasy", "Slice of Life"), theme: "Comedy" },
+  } as never)!;
+  assert.deepEqual(d.genres.map((x) => x.name), ["Drama", "Fantasy", "Slice of Life", "Comedy"]);
+  // Tema tak dikenal / tema sumber non-pemenang tidak ikut.
+  const e = mergeDetails({
+    shinigami: { ...base, slug: "u", title: "X", genres: g("Drama") },
+    komiku: { ...base, slug: "x-id", title: "X", genres: g("Drama"), theme: "Comedy" },
+  } as never)!;
+  assert.deepEqual(e.genres.map((x) => x.name), ["Drama"]);
+}
+console.log("aggregator.test (theme fallback): OK");

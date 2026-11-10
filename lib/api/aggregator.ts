@@ -965,6 +965,21 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   // getMangaSummary (pickPrimaryGenre).
   const genrePick = pickPrimaryGenre(details);
   const genres: GenreRef[] = extendGenreList(details, genrePick);
+  // Cadangan terakhir (maks 1): bila ruang genre tambahan belum terpakai
+  // penuh, satu nilai `theme` SUMBER PEMENANG yang dikenal sebagai genre
+  // kanonis (mis. Comedy yang hanya ada di Tema) ditaruh sebagai chip
+  // terakhir. Label utama (genres[0]) tidak pernah berubah.
+  if (genrePick && genres.length - genrePick.list.length < EXTRA_GENRE_MAX) {
+    const have = new Set(genres.map((g) => g.slug));
+    const themeRaw = (details[genrePick.source]?.theme ?? "") as string;
+    for (const part of themeRaw.split(/[,;/|]+/)) {
+      const c = canonicalGenre(part.trim());
+      if (c && !have.has(c.slug)) {
+        genres.push({ name: c.name, slug: c.slug });
+        break;
+      }
+    }
+  }
   const mergedTitle = fixTitle((get("title") as string) ?? primary.title);
   // Tipe: sumber prioritas tertinggi yang punya tipe valid (pickType) —
   // aturan yang sama dengan mergeCards dan getMangaSummary.
