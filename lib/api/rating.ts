@@ -33,9 +33,12 @@ export function splitRating(raw?: string | null): SplitRating {
   const m = s.match(/^(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:\/\s*10)?$/);
   if (m) {
     const n = parseFloat(m[1].replace(",", "."));
-    if (Number.isFinite(n) && n >= 0 && n <= 10) {
+    // Skor 0 bukan skor nyata: sumber mengisi "0" saat rating belum ada.
+    // Nilai itu dibuang agar UI menampilkan "-" (tidak tersedia), bukan "0".
+    if (Number.isFinite(n) && n > 0 && n <= 10) {
       return { score: m[1].replace(",", ".") };
     }
+    if (n === 0) return {};
   }
   // Teks lain (mis. "- ", "N/A") tidak dianggap skor maupun batas usia.
   if (/^[-â€“â€”?]+$/.test(s) || /^n\/?a$/i.test(s)) return {};

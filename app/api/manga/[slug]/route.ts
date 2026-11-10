@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getMangaDetail, getMangaSummary } from "@/lib/api/manga";
+import { getMangaSummary } from "@/lib/api/manga";
+import { getComic } from "@/lib/api/comic";
 import { guard, handle } from "../../_lib";
 
 export const maxDuration = 30;
@@ -28,5 +29,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   // Revalidate 30 -> 60 dtk: detail komik jarang berubah, sedangkan 30 dtk
   // terlalu agresif untuk back-navigation cepat dari reader. Server-side
   // cache detail (60 dtk di detailCache) tetap jadi lapis utama.
-  return handle(() => getMangaDetail(decoded), { revalidate: 60, scope: "private" });
+  return handle(() => getComic(decoded), { revalidate: 60, scope: "private" });
 }

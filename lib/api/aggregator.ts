@@ -134,6 +134,9 @@ export function dedupeKey(raw: string): string {
   return (
     t
       .replace(/\s+id\s*\d*$/, "")
+      // Ekor rentang chapter dalam kurung ("Sumisaka-san (1-5)") bukan
+      // bagian judul â€” dibuang agar varian itu bergabung dengan entri utama.
+      .replace(/\s*\(\s*\d+\s*[-\u2013]\s*\d+\s*\)\s*$/, "")
       // Varian ejaan yang dikenal beda di sumber: "Albrechtrecht" dan
       // "Albrecht" adalah judul yang sama. Dipetakan SEBELUM dedupe agar
       // keduanya jatuh ke grup yang sama (data sumber prioritas menang).
@@ -307,6 +310,59 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
           if (gl.cards[src] && !gs.cards[src]) gs.cards[src] = gl.cards[src]!;
         }
         absorbed.add(longK);
+      }
+    }
+  }
+  // Pass 3b: sampul identik + tumpang tindih chapter. Dua grup yang
+  // menunjuk FILE SAMPUL yang sama dan berbagi nomor chapter (awal atau
+  // terbaru) adalah judul yang sama walau ejaan judulnya berbeda. Konservatif:
+  // butuh sampul non-kosong identik, tanda tangan chapter identik, DAN satu
+  // kata judul (>=4 huruf) yang sama, sehingga dua series berbeda yang
+  // kebetulan memakai placeholder sama tidak ikut tergabung.
+  {
+    const coverKey = (c?: MangaCard): string => (c?.thumbnail ?? "").trim().toLowerCase();
+    const chapterSig = (c?: MangaCard): string => {
+      const parts: string[] = [];
+      const nl = chapterNum(c?.latestChapter?.label);
+      const nf = chapterNum(c?.firstChapter?.label);
+      if (Number.isFinite(nl)) parts.push(`l${nl}`);
+      if (Number.isFinite(nf)) parts.push(`f${nf}`);
+      return parts.join("|");
+    };
+    const byCover = new Map<string, string[]>();
+    for (const k of [...groups.keys()].filter((x) => !absorbed.has(x))) {
+      const g = groups.get(k)!;
+      let cover = "";
+      let sig = "";
+      for (const s of SOURCE_PRIORITY) {
+        const c = g.cards[s];
+        if (!c) continue;
+        if (!cover) cover = coverKey(c);
+        if (!sig) sig = chapterSig(c);
+        if (cover && sig) break;
+      }
+      if (!cover || !sig) continue;
+      const ck = `${cover}#${sig}`;
+      const arr = byCover.get(ck);
+      if (arr) arr.push(k);
+      else byCover.set(ck, [k]);
+    }
+    for (const [, ks] of byCover) {
+      if (ks.length < 2) continue;
+      // Penyerap = kunci terpanjang (judul paling lengkap).
+      const target = [...ks].sort((a, b) => b.length - a.length)[0];
+      const tg = groups.get(target);
+      if (!tg) continue;
+      const targetTokens = new Set(target.split(" ").filter((w) => w.length >= 4));
+      for (const k of ks) {
+        if (k === target || absorbed.has(k)) continue;
+        if (!k.split(" ").some((w) => w.length >= 4 && targetTokens.has(w))) continue;
+        const g = groups.get(k);
+        if (!g) continue;
+        for (const s of SOURCE_PRIORITY) {
+          if (g.cards[s] && !tg.cards[s]) tg.cards[s] = g.cards[s]!;
+        }
+        absorbed.add(k);
       }
     }
   }
@@ -835,6 +891,45 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
  * Label tampilan = dari source prioritas. Urutan = nomor chapter tertinggi
  * dulu lintas source. Nomor tak terparse → fallback urutan daftar Shinigami.
  */
+function parseIdDate(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return undefined;
+  const t = Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return Number.isFinite(t) ? t : undefined;
+}
+
+/**
+ * Sembunyikan tanggal chapter bila tidak konsisten dengan urutan nomor.
+ * Urutan daftar = nomor tertinggi dulu, jadi tanggal harus menurun seiring
+ * nomor. Bila ada pasangan yang nomornya lebih tinggi tapi tanggalnya lebih
+ * lama (tanda tanggal dari sumber campur/keliru), SEMUA tanggal disembunyikan
+ * agar daftar tidak menampilkan tanggal yang menyesatkan.
+ */
+function hideInconsistentDates(items: MergedChapterItem[]): MergedChapterItem[] {
+  const dated: { n: number; d: number }[] = [];
+  for (const it of items) {
+    const d = parseIdDate(it.date);
+    const n = chapterNum(it.title);
+    if (typeof d === "number" && Number.isFinite(n)) dated.push({ n, d });
+  }
+  let inconsistent = false;
+  for (let i = 1; i < dated.length; i++) {
+    const a = dated[i - 1];
+    const b = dated[i];
+    if (a.n > b.n && a.d < b.d) {
+      inconsistent = true;
+      break;
+    }
+  }
+  if (!inconsistent) return items;
+  return items.map((it) => {
+    const copy = { ...it };
+    delete (copy as { date?: string }).date;
+    return copy;
+  });
+}
+
 export function mergeChapters(
   lists: Partial<Record<ComicSourceId, ChapterItem[]>>,
   displaySlug: string,
@@ -875,7 +970,7 @@ export function mergeChapters(
   });
   // Satu definisi dengan chapterNum (ordinal) — "88-10" ≠ "88-1".
   const numOf = (k: string) => chapterNum(k);
-  return [...byKey.values()].sort((a, b) => {
+  const sorted = [...byKey.values()].sort((a, b) => {
     const ka = normalizeChapterKey(a.title);
     const kb = normalizeChapterKey(b.title);
     const na = numOf(ka);
@@ -896,6 +991,8 @@ export function mergeChapters(
     if (ob !== undefined) return 1;
     return ka.localeCompare(kb);
   });
+  // Tanggal yang bertentangan dengan urutan nomor chapter disembunyikan.
+  return hideInconsistentDates(sorted);
 }
 
 /**
