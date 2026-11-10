@@ -729,17 +729,17 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           )}
           {mood === "puzzled" && (
             <Hold at={[152, 174]} anim="yk-hold">
-              <g transform="translate(192 132) rotate(14)">
+              <g transform="translate(192 121) rotate(14)">
                 <path d="M-18 -22 L16 -26 L22 4 L-14 10 Z" fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
                 <path d="M-10 -14 L8 -16 M-9 -6 L12 -9 M-9 2 L4 0" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
                 <text x={4} y={-3} fontSize={26} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#e5483f" stroke={INK} strokeWidth={3} paintOrder="stroke" textAnchor="middle">?!</text>
               </g>
-              <Arm d="M152 174 Q186 176 192 144" kind="grip" />
+              <Arm d="M152 174 Q186 176 192 140" kind="grip" />
             </Hold>
           )}
           {mood === "guard" && (
             <Hold at={[152, 174]} anim="yk-hold">
-              <g transform="translate(196 132) rotate(10)">
+              <g transform="translate(196 121) rotate(10)">
                 <g className="yk-card">
                   <rect x={-23} y={-16} width={46} height={32} rx={5} fill="#fff" stroke={INK} strokeWidth={4} />
                   <path d="M-21 -14 H21 V-8 H-21 Z" fill={FUR} />
@@ -747,7 +747,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                   <path d="M-3 0 H16 M-3 7 H11" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.55} />
                 </g>
               </g>
-              <Arm d="M152 174 Q186 178 191 152" kind="grip" />
+              <Arm d="M152 174 Q186 178 191 147" kind="grip" />
             </Hold>
           )}
           {mood === "stern" && (
