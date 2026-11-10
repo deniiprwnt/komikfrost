@@ -85,7 +85,7 @@ export async function getMangaByGenre(
   // halaman berikut muncul lalu menampilkan halaman kosong. Bila tidak ada
   // sumber yang punya halaman berikut, semua kartu dikembalikan (tanpa potong).
   const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
-  return { items: more ? merged.slice(0, 15) : merged, hasNextPage: more };
+  return { items: more ? merged.slice(0, 15) : merged, hasNextPage: more, total: merged.length };
 }
 
 /** Samakan slug genre ke slug kanonis (bila dikenal), else slug masukan. */

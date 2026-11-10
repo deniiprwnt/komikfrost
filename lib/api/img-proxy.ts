@@ -94,6 +94,72 @@ export function proxiedImage(url: string | undefined | null): string {
  * Versi daftar: rapikan + dedupe kandidat gambar (dipakai untuk rantai
  * fallback cover antar-sumber).
  */
+/**
+ * URL alternatif untuk satu gambar upstream (host lain yang menyajikan file
+ * yang sama). Dipakai sebagai rantai fallback ketika host utama menolak
+ * koneksi/mengembalikan error.
+ *
+ * Kasus nyata: `imageN.komiku.to` dan `img.komiku.org` menyajikan file
+ * dengan path sama, dan Komiku sendiri memasang `onerror` untuk berpindah
+ * antar keduanya. Tanpa rantai ini satu host yang mati membuat sampul
+ * menjadi placeholder PERMANEN walau host lain masih hidup.
+ */
+export function alternateImageUrls(url: string | undefined | null): string[] {
+  const raw = (url ?? "").trim();
+  if (!raw) return [];
+  let u = raw;
+  // Sudah berupa proxy origin sendiri (/api/img?u=...): alternatif harus
+  // dihitung dari URL upstream DI DALAMNYA, bukan dari path relatifnya.
+  if (u.startsWith("/api/img")) {
+    const m = u.match(/[?&]u=([^&]+)/);
+    if (!m) return [];
+    try {
+      u = decodeURIComponent(m[1]);
+    } catch {
+      return [];
+    }
+  }
+  if (u.startsWith("//")) u = "https:" + u;
+  else if (/^http:\/\//i.test(u)) u = "https://" + u.slice(7);
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    return [];
+  }
+  const out: string[] = [];
+  const self = proxiedImage(u);
+  const push = (v: string) => {
+    const p = proxiedImage(v);
+    if (p && p !== self && !out.includes(p)) out.push(p);
+  };
+  const host = parsed.hostname.toLowerCase();
+  // imageN.komiku.to â‡„ img.komiku.org (path sama).
+  const m = host.match(/^image\d*\.komiku\.to$/);
+  if (m) {
+    const alt = new URL(parsed.toString());
+    alt.hostname = "img.komiku.org";
+    push(alt.toString());
+  } else if (host === "img.komiku.org") {
+    const alt = new URL(parsed.toString());
+    alt.hostname = "image2.komiku.to";
+    push(alt.toString());
+  }
+  // thumbnail.komiku.to â‡„ thumbnail.komiku.org.
+  if (host === "thumbnail.komiku.to" || host === "thumbnail.komiku.org") {
+    const alt = new URL(parsed.toString());
+    alt.hostname = host.endsWith(".to") ? "thumbnail.komiku.org" : "thumbnail.komiku.to";
+    push(alt.toString());
+  }
+  // Host aset Shinigami: coba cdn.shngm.io bila assets.shngm.id gagal.
+  if (host === "assets.shngm.id") {
+    const alt = new URL(parsed.toString());
+    alt.hostname = "cdn.shngm.io";
+    push(alt.toString());
+  }
+  return out;
+}
+
 export function proxiedImages(urls: (string | undefined | null)[]): string[] {
   const out: string[] = [];
   for (const u of urls) {

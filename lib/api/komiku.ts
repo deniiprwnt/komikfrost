@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { anchorTs, updatedAtMinutes } from "./aggregator";
+import { anchorTs, chapterNum, updatedAtMinutes } from "./aggregator";
 import { proxiedImage } from "./img-proxy";
 import { blockText, cleanSynopsis } from "./text";
 import type {
@@ -201,7 +201,14 @@ function parseBgeCards($: cheerio.CheerioAPI, ageMs = 0): MangaCard[] {
     if (!slug || !title) return;
 
     const img = root.find("div.bgei img").first();
-    const thumbnail = pickImg(img);
+    // Rantai kandidat cover: URL yang dipilih + URL asli (non-proxy) agar
+    // klien bisa mencoba host lain bila proxy gagal sekali. Dedupe di sini.
+    const thumbSrc = pickImgSrc(img);
+    const thumbCandidates: string[] = [];
+    for (const v of [pickImg(img), thumbSrc]) {
+      if (v && !thumbCandidates.includes(v)) thumbCandidates.push(v);
+    }
+    const thumbnail = thumbCandidates[0] ?? "";
 
     // Tipe + genre utama: <div class="tpe1_inf"><b>Manhwa</b> Fantasi</div>
     const tpe = root.find("div.tpe1_inf").first();
@@ -271,6 +278,7 @@ function parseBgeCards($: cheerio.CheerioAPI, ageMs = 0): MangaCard[] {
       slug,
       title,
       thumbnail,
+      ...(thumbCandidates.length > 1 ? { thumbnailCandidates: thumbCandidates } : {}),
       ...(type ? { type } : {}),
       ...(genre ? { genre } : {}),
       ...(updatedAt ? { updatedAt } : {}),
@@ -544,7 +552,13 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   const html = await fetchHtml(`${KOMIKU_BASE}/manga/${encodeURIComponent(clean)}/`);
   const $ = cheerio.load(html);
 
-  const cover = pickImg($("section#Informasi div.ims img").first());
+  const coverImg = $("section#Informasi div.ims img").first();
+  const cover = pickImg(coverImg);
+  // Kandidat cover: versi proxy dulu, lalu URL mentah (host alternatif).
+  const coverCandidates: string[] = [];
+  for (const v of [cover, pickImgSrc(coverImg)]) {
+    if (v && !coverCandidates.includes(v)) coverCandidates.push(v);
+  }
   const title =
     $("section#Informasi table.inftable tr")
       .filter((_, tr) => $(tr).find("td").first().text().trim().toLowerCase().startsWith("judul:"))
@@ -609,6 +623,18 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     const date = $tr.find("td.tanggalseries").first().text().trim() || undefined;
     if (url && chTitle) chapters.push({ title: chTitle, url, ...(date ? { date } : {}) });
   });
+  // Urutkan berdasar NOMOR chapter (terbaru dulu), bukan urutan tabel/tanggal.
+  // Tabel upstream kadang tidak urut setelah ada chapter baru disisipkan,
+  // sehingga "terbaru" bisa menunjuk chapter lama. Nomor tak terparse tetap
+  // di belakang dengan urutan asli (sort stabil).
+  chapters.sort((a, b) => {
+    const na = chapterNum(a.title);
+    const nb = chapterNum(b.title);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return nb - na;
+    if (Number.isFinite(na)) return -1;
+    if (Number.isFinite(nb)) return 1;
+    return 0;
+  });
 
   if (!title) {
     throw new KomikuError("Halaman komik tidak memuat data yang dikenali.", `${KOMIKU_BASE}/manga/${clean}/`);
@@ -619,6 +645,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     title,
     ...(altTitle ? { altTitle } : {}),
     cover,
+    ...(coverCandidates.length > 1 ? { coverCandidates } : {}),
     synopsis,
     ...(type ? { type } : {}),
     ...(theme ? { theme } : {}),

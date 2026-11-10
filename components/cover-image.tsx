@@ -2,7 +2,8 @@
 
 import { KonohaMark } from "@/components/konoha-mark";
 import { UzumakiMark } from "@/components/uzumaki-mark";
-import { useCallback, useState } from "react";
+import { alternateImageUrls } from "@/lib/api/img-proxy";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Gambar cover dengan placeholder modern — pengganti <img> polos.
@@ -199,11 +200,27 @@ export function CoverImage({
    */
   fallbackSrcs?: string[];
 }) {
-  // Rantai kandidat: cover utama dulu, lalu cadangan (dedupe, tanpa kosong).
+  // Rantai kandidat: cover utama dulu, lalu cadangan (dedupe, tanpa kosong),
+  // lalu HOST ALTERNATIF untuk tiap kandidat (imageN.komiku.to â‡„
+  // img.komiku.org, dst). Tanpa alternatif, satu host gambar yang mati
+  // membuat slot cover menjadi placeholder PERMANEN walau host lain yang
+  // menyajikan file sama masih hidup â€” inilah sebab sampul seperti
+  // Limit Breaker hilang di Lanjut Membaca dan Riwayat.
   const candidates: string[] = [];
-  for (const u of [src ?? "", ...(fallbackSrcs ?? [])]) {
+  const pushCand = (u: string | undefined | null) => {
     const v = (u ?? "").trim();
     if (v && !candidates.includes(v)) candidates.push(v);
+  };
+  const primarySrcs: string[] = [];
+  for (const u of [src ?? "", ...(fallbackSrcs ?? [])]) {
+    const v = (u ?? "").trim();
+    if (v && !primarySrcs.includes(v)) primarySrcs.push(v);
+  }
+  for (const u of primarySrcs) {
+    pushCand(u);
+    // Hanya SATU alternatif per kandidat (host pasangannya) agar rantai
+    // tidak meledak jadi puluhan percobaan untuk satu slot kecil.
+    for (const alt of alternateImageUrls(u).slice(0, 1)) pushCand(alt);
   }
   const key = candidates.join("|");
   const initialStatus: Status = candidates.length > 0 ? "loading" : "error";
@@ -221,6 +238,12 @@ export function CoverImage({
   // Cover di layar (N pertama) dimuat eager; sisanya lazy.
   const [autoPriority] = useState(claimPrioritySlot);
   const eager = priority || autoPriority;
+
+  // Satu kali "mulai ulang rantai" setelah gagal total. Proxy gambar bisa
+  // 502 sesaat (cold start / upstream lemot) dan hasil buruk itu dulu
+  // menetap selamanya sebagai kotak "Cover tidak tersedia" sampai halaman
+  // dimuat ulang. Dengan retry tertunda, slot pulih sendiri.
+  const restartedFor = useRef<string | null>(null);
 
   const fail = useCallback(
     (el: HTMLImageElement) => {
@@ -251,6 +274,20 @@ export function CoverImage({
     },
     [key, cur.i, fail],
   );
+
+  // Bila seluruh rantai kandidat gagal, coba ulang SEKALI dari kandidat
+  // pertama setelah jeda singkat (sumber proxy sering pulih sendiri).
+  useEffect(() => {
+    if (status !== "error") return;
+    if (candidates.length === 0) return;
+    if (restartedFor.current === key) return;
+    const id = window.setTimeout(() => {
+      restartedFor.current = key;
+      setSt({ key, i: 0, status: "loading" });
+    }, 1200);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, key, candidates.length]);
 
   return (
     <span className="cover-frame" data-status={status}>
@@ -356,8 +393,10 @@ export function ReaderPageImage({
         src={src}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
+        // Halaman pertama = kritis (LCP reader): prioritas tinggi + decode
+        // sinkron. Halaman 2-3 "auto" agar tidak berebut dengan halaman 1.
         fetchPriority={index === 0 ? "high" : index < 3 ? "auto" : "low"}
-        decoding={index < 3 ? "sync" : "async"}
+        decoding={index === 0 ? "sync" : "async"}
         draggable={false}
         onLoad={() => setLoaded(true)}
         onError={(e) => fail(e.currentTarget)}

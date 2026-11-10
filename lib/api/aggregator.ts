@@ -2,8 +2,9 @@ import type { ChapterItem, ChapterRef, GenreRef, MangaCard, MangaDetail } from "
 // ID source terpusat di types (satu definisi, dipakai client + server).
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
-import { canonicalGenre, genreDisplayName, genreSlug } from "./genre-canonical";
+import { canonicalGenre, genreDisplayName, genreSlug, themeDisplayName } from "./genre-canonical";
 import { cleanSynopsis } from "./text";
+import { splitRating } from "./rating";
 
 /**
  * Aggregator multi-source: Shinigami + Komiku → satu bentuk data gabungan.
@@ -112,6 +113,22 @@ export function normalizeTitle(raw: string): string {
     .trim();
 }
 
+/**
+ * Kunci DEDUPE judul: normalizeTitle + buang ekor penanda duplikat yang
+ * ditambahkan sumber untuk membedakan slug ("-id", "-id2", " id 3").
+ *
+ * Latar: sumber yang sama kadang memuat satu judul dua kali dengan slug
+ * berbeda ("sumisaka-san" dan "sumisaka-san-id") sehingga setelah
+ * ternormalisasi menjadi dua kunci berbeda dan judul tampil ganda. Hanya
+ * ekor penanda yang dibuang; judul yang memang berakhiran kata "id" tetap
+ * aman karena polanya menuntut pemisah + angka/akhir.
+ */
+export function dedupeKey(raw: string): string {
+  const t = normalizeTitle(raw);
+  if (!t) return "";
+  return t.replace(/\s+id\s*\d*$/, "").trim() || t;
+}
+
 /** "Chapter 224" / "Ch. 224" → "224" (kunci dedupe chapter). */
 export function normalizeChapterKey(raw: string): string {
   // Subjudul dibuang SEBELUM tanda baca dibersihkan: "Chapter 180: End" dan
@@ -200,12 +217,12 @@ function firstWithSource<K extends keyof MangaCard>(
 export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): MergedMangaCard[] {
   const groups = new Map<string, { cards: Partial<Record<ComicSourceId, MangaCard>> }>();
   const keyOf = (c: MangaCard): string => {
-    const t = normalizeTitle(c.title);
+    const t = dedupeKey(c.title);
     return t ? `t:${t}` : "";
   };
   const altKeyOf = (c: MangaCard): string => {
-    const a = c.altTitle ? normalizeTitle(c.altTitle) : "";
-    return a && a !== normalizeTitle(c.title) ? `t:${a}` : "";
+    const a = c.altTitle ? dedupeKey(c.altTitle) : "";
+    return a && a !== dedupeKey(c.title) ? `t:${a}` : "";
   };
   // Pass 1: grup per judul utama.
   for (const s of SOURCE_PRIORITY) {
@@ -295,14 +312,31 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
     const mergedType = (recallTitleMeta(metaKey, "type")?.value ?? cardType) as
       | NonNullable<MangaCard["type"]>
       | undefined;
-    const synopsisText = cleanSynopsis(getCard("synopsis") as string | undefined);
+    // Sinopsis: pakai sumber PRIORITAS PERTAMA yang sinopsisnya benar-benar
+    // bersih setelah dibersihkan. Dulu `getCard` hanya melewati string
+    // kosong, sehingga sinopsis sumber utama yang isinya cuma placeholder
+    // ("Belum ada isi.") berakhir undefined TANPA fallback ke sumber
+    // berikutnya yang punya sinopsis sungguhan.
+    let synopsisText: string | undefined;
+    for (const s of SOURCE_PRIORITY) {
+      const cand = cleanSynopsis(g.cards[s]?.synopsis);
+      if (cand) {
+        synopsisText = cand;
+        break;
+      }
+    }
     // Kandidat cover lintas sumber (prioritas dulu): klien mencoba berurutan
     // bila cover utama gagal dimuat, dan kotak error baru muncul bila semua
     // kandidat sudah dicoba.
     const thumbCandidates: string[] = [];
-    for (const s of SOURCE_PRIORITY) {
-      const v = g.cards[s]?.thumbnail;
+    const pushThumb = (v?: string) => {
       if (v && !thumbCandidates.includes(v)) thumbCandidates.push(v);
+    };
+    for (const s of SOURCE_PRIORITY) {
+      pushThumb(g.cards[s]?.thumbnail);
+      // Kandidat per-sumber (portrait/landscape) ikut dirantai â€” dulu hanya
+      // `thumbnail` satu per sumber sehingga URL cadangan terbuang.
+      for (const v of g.cards[s]?.thumbnailCandidates ?? []) pushThumb(v);
     }
     // firstChapter: Komiku (dari HTML, nomor asli) menang atas tebakan
     // "Chapter 1" kartu list Shinigami; fallback ke getCard bila Komiku absen.
@@ -604,6 +638,35 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   for (const s of SOURCE_PRIORITY) {
     const c = details[s]?.cover;
     if (c && !covers.includes(c)) covers.push(c);
+    // Kandidat per-sumber (portrait/landscape, host alternatif) ikut masuk
+    // rantai fallback â€” tanpa ini detail hanya punya satu URL per sumber.
+    for (const v of details[s]?.coverCandidates ?? []) {
+      if (v && !covers.includes(v)) covers.push(v);
+    }
+  }
+
+  // Sinopsis: sumber prioritas pertama yang HASIL BERSIHNYA ada (bukan
+  // sekadar string tidak kosong) â€” placeholder upstream tidak boleh
+  // menghalangi fallback ke sumber berikutnya.
+  let synopsisText = "";
+  for (const s of SOURCE_PRIORITY) {
+    const cand = cleanSynopsis(details[s]?.synopsis);
+    if (cand) {
+      synopsisText = cand;
+      break;
+    }
+  }
+  // Tema: field terpisah dari Genre, tetap kanonis Bahasa Inggris.
+  const themeText = themeDisplayName(get("theme") as string | undefined);
+  // Rating: pisahkan skor dari batas usia. Skor diambil dari sumber
+  // prioritas tertinggi yang benar-benar memberi SKOR ("17+" bukan skor).
+  let ratingScore: string | undefined;
+  let ageLimit: string | undefined;
+  for (const s of SOURCE_PRIORITY) {
+    const r = splitRating(details[s]?.rating);
+    if (!ratingScore && r.score) ratingScore = r.score;
+    if (!ageLimit && r.ageLimit) ageLimit = r.ageLimit;
+    if (ratingScore && ageLimit) break;
   }
 
   const chapters = mergeChapters(
@@ -645,13 +708,14 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
     ...(get("altTitle") ? { altTitle: get("altTitle") as string } : {}),
     cover: (get("cover") as string) ?? primary.cover,
     ...(covers.length > 1 ? { coverCandidates: covers } : {}),
-    synopsis: cleanSynopsis(get("synopsis") as string | undefined) ?? "",
+    synopsis: synopsisText,
     ...(get("type") ? { type: get("type") as string } : {}),
-    ...(get("theme") ? { theme: get("theme") as string } : {}),
+    ...(themeText ? { theme: themeText } : {}),
     genres,
     ...(get("author") ? { author: get("author") as string } : {}),
     ...(get("status") ? { status: get("status") as string } : {}),
-    ...(get("rating") ? { rating: get("rating") as string } : {}),
+    ...(ratingScore ? { rating: ratingScore } : {}),
+    ...(ageLimit ? { ageLimit } : {}),
     ...(get("readingDirection") ? { readingDirection: get("readingDirection") as string } : {}),
     ...(firstCh ? { firstChapter: rewriteShiniUrl(firstCh, displaySlug) } : {}),
     ...(latestCh ? { latestChapter: rewriteShiniUrl(latestCh, displaySlug) } : {}),

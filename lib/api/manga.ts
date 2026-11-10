@@ -364,6 +364,9 @@ async function buildLatestPaged(
   // Potong dulu baru perkaya agar enrich detail hanya mengejar kartu yang
   // benar-benar tampil (lebih hemat upstream). Default 15 (/terbaru);
   // beranda meminta 16 agar grid 8-kolom terisi penuh dua baris.
+  // Jumlah kartu gabungan sebelum dipotong ke ukuran halaman (dipakai UI
+  // untuk label jumlah hasil).
+  const total = ordered.length;
   const items = hasNext ? ordered.slice(0, limit) : ordered;
   // Perkaya kartu komikcast-only yang tampil — termasuk saat probe live.
   // Tanpa ini, halaman 1 yang selalu live=1 tidak pernah mendapat genre/
@@ -376,7 +379,7 @@ async function buildLatestPaged(
     enrichKomikcastOnly(items),
     opts.live ? 1500 : 2500,
   );
-  return { items, hasNextPage: hasNext };
+  return { items, hasNextPage: hasNext, total };
 }
 
 const SHINI_TOP_BY_PERIOD: Record<RankPeriod, ShiniTopFilter> = {

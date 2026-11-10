@@ -1,16 +1,16 @@
 import type { NextRequest } from "next/server";
-import { isAllowedImageHost } from "@/lib/api/img-proxy";
+import { alternateImageUrls, isAllowedImageHost } from "@/lib/api/img-proxy";
 import { guard } from "../_lib";
 
 /**
  * GET /api/img?u=<url-gambar-upstream-encode>
  * Proxy gambar upstream (cover + reader) lewat origin sendiri.
  *
- * Latar: host gambar Shinigami (assets.shngm.id) me-reset koneksi TLS
- * dari jaringan Indonesia (ECONNRESET/000) â€” browser me-render slot
- * abu-abu kosong walau URL cover dari API valid. Lewat proxy ini,
- * browser memuat dari origin KomikFrost (relatif, tanpa CORS/hotlink),
- * dan fetch server-side (Vercel, jaringan luar) mencapai host-nya.
+ * Latar: host gambar sumber (assets.shngm.id, imageN.komiku.to,
+ * komikcast.top) sering diblokir/reset dari jaringan Indonesia â€” browser
+ * me-render slot abu-abu kosong walau URL dari API valid. Lewat proxy ini,
+ * browser memuat dari origin KomikFrost (relatif, tanpa CORS/hotlink), dan
+ * fetch server-side mencapai host-nya.
  *
  * Keamanan: hanya host upstream yang dikenal (termasuk subdomainnya);
  * path dibatasi ke gambar; tanpa cookie/auth ke upstream; timeout 15 dtk;
@@ -27,9 +27,6 @@ export const maxDuration = 30;
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-
-// Allowlist fetch upstream = daftar host/sufiks domain di img-proxy
-// (satu sumber, ikut mencakup subdomain seperti cdn.shngm.io).
 
 const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
 
@@ -56,11 +53,76 @@ function imageResponse(body: Buffer, ct: string): Response {
       // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
       "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
       "X-Content-Type-Options": "nosniff",
-      // Konten sudah final â†’ izinkan browser menyimpan salinan decode agar
-      // paint berikutnya instan.
       "Content-Length": String(body.byteLength),
     },
   });
+}
+
+/**
+ * Ambil satu URL gambar upstream dan validasi hasilnya benar-benar gambar.
+ * Gambar chapter bersifat abadi (URL berisi nama file unik) â†’ cache HTTP
+ * Next/Data Cache 7 hari agar proxy menyajikan dari cache server tanpa
+ * menyentuh upstream berulang kali.
+ */
+async function fetchImage(
+  target: string,
+  signal: AbortSignal,
+): Promise<{ body: Buffer; contentType: string }> {
+  const parsed = new URL(target);
+  const upstream = await fetch(target, {
+    headers: {
+      "User-Agent": UA,
+      Accept: "image/*,*/*;q=0.8",
+      Referer: `${parsed.protocol}//${parsed.host}/`,
+    },
+    signal,
+    next: { revalidate: IMG_CACHE_SECONDS },
+  });
+  if (!upstream.ok || !upstream.body) {
+    throw new Error("upstream-unavailable");
+  }
+  const ct = (upstream.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  if (!ct.startsWith("image/")) {
+    throw new Error("upstream-not-image");
+  }
+  // Baca PENUH ke buffer: respons upstream berupa stream sekali-pakai;
+  // buffer bisa dipakai bersama request yang menunggu di dedupe di atas.
+  const body = Buffer.from(await upstream.arrayBuffer());
+  return { body, contentType: ct };
+}
+
+/**
+ * Daftar URL yang akan dicoba, berurutan: URL yang diminta, lalu host
+ * alternatif yang menyajikan file yang sama (imageN.komiku.to â‡„
+ * img.komiku.org, thumbnail.to â‡„ thumbnail.org, assets â‡„ cdn Shinigami).
+ *
+ * Tanpa rantai ini, satu host yang mati membuat sampul berakhir placeholder
+ * PERMANEN (kegagalan di-cache 7 hari) walau host lain masih hidup â€” inilah
+ * sebab sampul seperti Limit Breaker hilang di Lanjut Membaca & Riwayat.
+ */
+function candidateUrls(key: string): string[] {
+  const out: string[] = [key];
+  const push = (u: string) => {
+    if (!out.includes(u)) out.push(u);
+  };
+  for (const alt of alternateImageUrls(key)) {
+    try {
+      const p = new URL(alt);
+      if (p.protocol !== "https:" || !isAllowedImageHost(p.hostname)) continue;
+      const inner = p.searchParams.get("u");
+      if (inner) {
+        const t = new URL(inner);
+        if (t.protocol === "https:" && isAllowedImageHost(t.hostname) && IMG_EXT.test(t.pathname)) {
+          push(t.toString());
+        }
+      } else if (IMG_EXT.test(p.pathname)) {
+        push(p.toString());
+      }
+    } catch {
+      // alternatif tidak valid â€” lewati
+    }
+  }
+  return out;
 }
 
 export async function GET(req: NextRequest) {
@@ -115,26 +177,17 @@ export async function GET(req: NextRequest) {
   req.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
 
   const job = (async (): Promise<{ body: Buffer; contentType: string }> => {
-    // Gambar chapter bersifat abadi (URL berisi nama file unik). Gunakan
-    // cache HTTP Next/Data Cache 7 hari agar proxy bisa menyajikan dari
-    // cache server tanpa menyentuh upstream berulang kali - jauh lebih cepat
-    // dan menghemat bandwidth. `IMG_CACHE_SECONDS` = 7 hari.
-    const upstream = await fetch(key, {
-      headers: { "User-Agent": UA, Accept: "image/*,*/*;q=0.8", Referer: `${url.protocol}//${url.host}/` },
-      signal: ctrl.signal,
-      next: { revalidate: IMG_CACHE_SECONDS },
-    });
-    if (!upstream.ok || !upstream.body) {
-      throw new Error("upstream-unavailable");
+    let lastErr: unknown = null;
+    for (const target of candidateUrls(key)) {
+      try {
+        return await fetchImage(target, ctrl.signal);
+      } catch (e) {
+        lastErr = e;
+        // Timeout/abort = seluruh rantai berhenti (tidak ada waktu tersisa).
+        if (ctrl.signal.aborted) break;
+      }
     }
-    const ct = (upstream.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-    if (!ct.startsWith("image/")) {
-      throw new Error("upstream-not-image");
-    }
-    // Baca PENUH ke buffer: respons upstream berupa stream sekali-pakai;
-    // buffer bisa dipakai bersama request yang menunggu di dedupe di atas.
-    const body = Buffer.from(await upstream.arrayBuffer());
-    return { body, contentType: ct };
+    throw lastErr ?? new Error("upstream-unavailable");
   })();
 
   imgInflight.set(key, job);

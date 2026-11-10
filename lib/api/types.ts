@@ -92,6 +92,11 @@ export interface MangaDetail {
   author?: string;
   status?: string;
   rating?: string;
+  /**
+   * Batas usia konten (mis. "17+"), dipisah dari `rating` (skor 0-10).
+   * Sumber mencampur keduanya di satu kolom; lihat lib/api/rating.ts.
+   */
+  ageLimit?: string;
   readingDirection?: string;
   firstChapter?: ChapterRef;
   latestChapter?: ChapterRef;
@@ -160,6 +165,12 @@ export interface PagedResult<T> {
   items: T[];
   /** false bila tidak ada halaman berikut (deteksi dari span hx-get page/N) */
   hasNextPage: boolean;
+  /**
+   * Jumlah hasil gabungan untuk halaman ini (sebelum dipotong ke ukuran
+   * halaman UI). Dipakai UI untuk menampilkan "N hasil". Opsional agar
+   * respons lama tetap valid.
+   */
+  total?: number;
 }
 
 /** Error terstruktur dari lapisan API (diteruskan ke UI sebagai error state). */

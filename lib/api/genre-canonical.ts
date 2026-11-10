@@ -60,6 +60,30 @@ const CANON_NAMES = [
   "Thriller",
   "Vampire",
   "Zombie",
+  // Genre/tema tambahan yang muncul sebagai GENRE di sumber (dan sebelumnya
+  // hanya lolos sebagai teks bebas berbahasa Indonesia di kartu).
+  "Coming of Age",
+  "Delinquents",
+  "Dungeon",
+  "Family",
+  "Friendship",
+  "Gore",
+  "Kingdom",
+  "Medical",
+  "Office Workers",
+  "Police",
+  "Prison",
+  "Racing",
+  "Revenge",
+  "Samurai",
+  "Superhero",
+  "Superpower",
+  "Survival",
+  "Time Travel",
+  "Tragedy",
+  "Video Games",
+  "Villainess",
+  "War",
 ] as const;
 
 /** "Sci-Fi" â†’ "sci-fi", "Slice of Life" â†’ "slice-of-life". */
@@ -177,6 +201,32 @@ const ALIASES: Record<string, string> = {
   shounen: "Shounen",
   seinen: "Seinen",
   smut: "Smut",
+  // Varian BAHASA INDONESIA yang datang sebagai genre/tema dari sumber.
+  // Tanpa entri di sini, nilai mentahnya lolos ke UI lewat genreDisplayName
+  // (Title Case) sehingga masih ada "Sekolah"/"Balas Dendam" di situs.
+  "kehidupan sekolah": "School",
+  "seni bela diri": "Martial Arts",
+  "dunia lain": "Isekai",
+  "dunia fantasi": "Fantasy",
+  "dunia sihir": "Magic",
+  "balas dendam": "Revenge",
+  "kekuatan super": "Superpower",
+  "pahlawan super": "Superhero",
+  perang: "War",
+  kerajaan: "Kingdom",
+  keluarga: "Family",
+  persahabatan: "Friendship",
+  "masa muda": "Coming of Age",
+  "perjalanan waktu": "Time Travel",
+  "bertahan hidup": "Survival",
+  tragedi: "Tragedy",
+  "video game": "Video Games",
+  penjara: "Prison",
+  balapan: "Racing",
+  "cinta segitiga": "Romance",
+  "anak anak": "Family",
+  "kehidupan sehari hari": "Slice of Life",
+  keseharian: "Slice of Life",
 };
 
 const CANON_BY_KEY = new Map(CANONICAL_GENRES.map((g) => [keyOf(g.name), g]));
@@ -282,4 +332,44 @@ export function upstreamGenreSlugs(genre: string): string[] {
     if (v === c.name) push(k);
   }
   return out;
+}
+
+/**
+ * Tema tambahan yang bukan genre di daftar kanonis. Sisi kiri = kunci
+ * ternormalisasi (keyOf), sisi kanan = bentuk Inggris yang ditampilkan.
+ * Hanya dipakai themeDisplayName; tidak menambah entri di /genre.
+ */
+const THEME_EXTRA: Record<string, string> = {
+  "cinta segitiga": "Love Triangle",
+  "keluarga kerajaan": "Royal Family",
+  "sekolah menengah": "High School",
+  "sekolah tinggi": "High School",
+  "penjelajahan": "Exploration",
+  "anak anak": "Children",
+  "keseharian": "Slice of Life",
+  "kehidupan sehari hari": "Slice of Life",
+  "dunia game": "Video Games",
+  "dunia maya": "Virtual Reality",
+  "kembali ke masa lalu": "Time Travel",
+  "sistem": "System",
+};
+
+/**
+ * Nama TEMA untuk ditampilkan: kanonis Bahasa Inggris.
+ *
+ * Tema adalah field TERPISAH dari Genre (kolom "Tema" di halaman detail),
+ * tetapi sumber mengisinya dengan ejaan Indonesia ("Sekolah", "Kehidupan
+ * Sekolah"). Normalisasi dilakukan di sini â€” satu tempat â€” supaya komponen
+ * tidak perlu tahu apa pun soal bahasa sumber.
+ */
+export function themeDisplayName(raw?: string | null): string | undefined {
+  const base = (raw ?? "").replace(/^\s*tema\s*[:\-]\s*/i, "").trim();
+  if (!base) return undefined;
+  const c = canonicalGenre(base);
+  if (c) return c.name;
+  const k = keyOf(base);
+  const extra = THEME_EXTRA[k];
+  if (extra) return extra;
+  if (!usableKey(base)) return undefined;
+  return titleCaseGenre(base);
 }

@@ -10,6 +10,7 @@ import type {
 import { KomikuError } from "./komiku";
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis } from "./text";
+import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
 /**
  * Lapisan HTTP + mapping JSON publik Shinigami (dipakai frontend mereka sendiri).
@@ -238,9 +239,20 @@ export function parseNumToken(tok: string): number {
 }
 
 function genreNames(m: ShiniManga): GenreRef[] {
+  // Nilai mentah sumber dipetakan ke bentuk kanonis INGGRIS di sini (satu
+  // lapisan), jadi varian ejaan tidak pernah lolos ke komponen. Entri yang
+  // bukan genre dikenal (mis. nama tema) dibiarkan lewat sebagai teks bebas
+  // agar data tidak hilang â€” agregator tetap memprioritaskan genre kanonis.
   const out: GenreRef[] = [];
+  const seen = new Set<string>();
   for (const g of m.taxonomy?.Genre ?? []) {
-    if (g.slug && g.name) out.push({ name: g.name, slug: g.slug });
+    const name = genreDisplayName(g.name || g.slug);
+    if (!name) continue;
+    const canon = canonicalGenre(name);
+    const slug = canon?.slug ?? g.slug;
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ name: canon?.name ?? name, slug });
   }
   return out;
 }
@@ -301,7 +313,12 @@ function toCard(m: ShiniManga): MangaCard {
     ...(coverCandidates(m).length > 1 ? { thumbnailCandidates: coverCandidates(m) } : {}),
     ...(m.alternative_title ? { altTitle: m.alternative_title } : {}),
     ...(mapType(m) ? { type: mapType(m) as KomikType } : {}),
-    ...(m.taxonomy?.Genre?.[0]?.name ? { genre: m.taxonomy.Genre[0].name } : {}),
+    // Genre kartu = bentuk KANONIS (Inggris). Dulu nama mentah sumber
+    // ditempel apa adanya sehingga satu judul bisa tampil "Fantasi" di satu
+    // bagian dan "Fantasy" di bagian lain.
+    ...(genreDisplayName(m.taxonomy?.Genre?.[0]?.name)
+      ? { genre: genreDisplayName(m.taxonomy?.Genre?.[0]?.name) as string }
+      : {}),
     ...(timeAgoId(m.latest_chapter_time) ? { updatedAt: timeAgoId(m.latest_chapter_time) as string } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(cleanSynopsis(m.description) ? { synopsis: cleanSynopsis(m.description) as string } : {}),

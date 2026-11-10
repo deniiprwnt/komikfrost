@@ -27,7 +27,7 @@ import type {
 } from "./types";
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis } from "./text";
-import { genreDisplayName } from "./genre-canonical";
+import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
@@ -219,10 +219,24 @@ function toChapterItem(r: KcChapterRow): ChapterItem {
   };
 }
 
+/**
+ * Genre sumber â†’ bentuk kanonis Inggris. Nilai yang tidak dikenali
+ * dibuang (bukan diteruskan mentah), sehingga ejaan Indonesia tidak
+ * pernah lolos ke UI lewat jalur detail Komikcast.
+ */
 function toGenres(raw?: { slug: string; name: string }[]): GenreRef[] {
-  return (raw ?? [])
-    .filter((g) => g?.slug)
-    .map((g) => ({ name: g.name || g.slug, slug: g.slug.toLowerCase() }));
+  const out: GenreRef[] = [];
+  const seen = new Set<string>();
+  for (const g of raw ?? []) {
+    const name = genreDisplayName(g?.name || g?.slug);
+    if (!name) continue;
+    const canon = canonicalGenre(name);
+    const slug = canon?.slug ?? (g.slug || "").toLowerCase();
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ name: canon?.name ?? name, slug });
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -281,15 +295,14 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
   if (!s?.slug) throw new KomikcastError("Detail Komikcast tidak ditemukan.", `${KC_API}/series/${clean}`);
 
   const rows = await fetchKcChaptersAll(s.slug);
-  const chapters = rows
-    .map(toChapterItem)
+  // Urut berdasarkan NOMOR (bukan string tanggal/urutan API): `number` asli
+  // dari upstream, jadi 9 < 10 < 10.5 dan urutannya sama dengan mergeChapters.
+  const chapters = [...rows]
     .sort((a, b) => {
-      // Nomor tertinggi dulu (konsisten dengan mergeChapters).
-      const na = parseFloat(a.title.replace(/^(chapter|ch\.?)\s*/i, ""));
-      const nb = parseFloat(b.title.replace(/^(chapter|ch\.?)\s*/i, ""));
-      if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return nb - na;
+      if (a.number !== b.number) return b.number - a.number;
       return 0;
-    });
+    })
+    .map(toChapterItem);
 
   const latestRow = rows.length > 0 ? rows.reduce((m, r) => (r.number > m.number ? r : m), rows[0]) : undefined;
   const latest: ChapterRef | undefined = latestRow
@@ -307,6 +320,8 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
     cover: proxiedImage(s.poster_url),
     synopsis: cleanSynopsis(s.synopsis) ?? "",
     ...(s.type ? { type: s.type } : {}),
+    // Tema Komikcast ikut kolom genre; nilai yang BUKAN genre kanonis tidak
+    // dipakai sebagai genre â€” biarkan agregator mengisinya dari sumber lain.
     genres: toGenres(s.genres),
     ...(s.status ? { status: s.status } : {}),
     ...(typeof s.score === "number" ? { rating: String(s.score) } : {}),

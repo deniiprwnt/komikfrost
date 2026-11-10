@@ -116,13 +116,43 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
       .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, " ")
       .replace(/<[^>]*>/g, " ");
   }
+  // `&amp;` didekode PALING AKHIR: "&amp;quot;" adalah teks literal
+  // "&quot;", bukan tanda kutip, jadi urutan ini yang benar.
   s = s
     .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/&apos;/gi, "'")
     .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
+    .replace(/&gt;/gi, ">")
+    .replace(/&hellip;/gi, "â€¦")
+    .replace(/&mdash;/gi, "â€”")
+    .replace(/&ndash;/gi, "â€“")
+    .replace(/&[lr]squo;/gi, "'")
+    .replace(/&[lr]dquo;/gi, '"')
+    .replace(/&amp;/gi, "&");
+  // Entitas NUMERIK (desimal & heksadesimal). Sumber memakai &#x20; untuk
+  // spasi dan &#8217; untuk apostrof; dulu keduanya lolos mentah ke UI
+  // ("Chapter&#x20;1"). Didekode sebelum tidyText agar spasinya ikut rapi.
+  // Karakter kontrol / di luar rentang unicode dibuang jadi spasi.
+  s = s.replace(/&#(x[0-9a-f]+|\d+);/gi, (_m, code: string) => {
+    const n =
+      code[0].toLowerCase() === "x"
+        ? parseInt(code.slice(1), 16)
+        : parseInt(code, 10);
+    if (!Number.isFinite(n) || n < 32 || n > 0x10ffff) return " ";
+    try {
+      return String.fromCodePoint(n);
+    } catch {
+      return " ";
+    }
+  });
+  // Escape sisa JSON/atribut: \" dan \' tidak boleh tampil sebagai
+  // garis miring terbalik di tengah sinopsis.
+  s = s.replace(/\\(["'\\/])/g, "$1");
+  // Kalimat yang menempel akibat tag dibuang ("berakhir.Dia"): beri spasi
+  // setelah tanda akhir kalimat bila diikuti huruf besar. Hanya untuk
+  // huruf, jadi angka desimal ("11.5") tidak tersentuh.
+  s = s.replace(/([a-z]{2}[.!?â€¦])([A-Z])/g, "$1 $2");
   // IDEMPOTEN: dipanggil ulang pada teks yang sudah bersih (nilai cache lama,
   // sinopsis yang sudah lolos blockText) tidak boleh mengubah apa pun.
   // tidyText sendiri idempoten, jadi aman dijalankan pada data lama.
@@ -130,4 +160,22 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
   if (!s) return undefined;
   if (/^belum ada (isi|sinopsis|deskripsi)/i.test(s)) return undefined;
   return s;
+}
+
+/**
+ * Ringkas teks pada BATAS KALIMAT, bukan di tengah kata/kalimat.
+ * Dipakai untuk sinopsis kartu: kalimat terakhir yang utuh di dalam batas
+ * dipertahankan; bila tidak ada, potong di batas kata + elipsis.
+ */
+export function shortenAtSentence(raw: string | undefined | null, max: number): string {
+  const s = (raw ?? "").trim();
+  if (!s || !Number.isFinite(max) || max <= 0 || s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastStop = cut.search(/[.!?â€¦](?=[\s"')\]]|$)(?![\s\S]*[.!?â€¦](?=[\s"')\]]|$))/);
+  if (lastStop > 0 && lastStop + 1 >= Math.floor(max * 0.4)) {
+    return cut.slice(0, lastStop + 1).trim();
+  }
+  const sp = cut.lastIndexOf(" ");
+  const base = (sp > 0 ? cut.slice(0, sp) : cut).replace(/[\s,;:â€“-]+$/, "");
+  return base ? base + "â€¦" : s.slice(0, max);
 }

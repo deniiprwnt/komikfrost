@@ -122,6 +122,9 @@ export async function searchManga(
   );
   // 15 kartu per halaman UI — potong dulu baru perkaya agar enrich detail
   // hanya mengejar kartu yang benar-benar tampil (lebih hemat upstream).
+  // Jumlah hasil gabungan SEBELUM dipotong ke ukuran halaman â€” UI memakai
+  // ini untuk menampilkan "N hasil" (dulu jumlah tidak pernah dikirim).
+  const total = ranked.length;
   const items = more ? ranked.slice(0, 15) : ranked;
   // Cap 5 seperti enrichKomikcastOnly di manga.ts — tiap kartu 1 request
   // detail berantai, tanpa cap jadi hambatan ekor respons search.
@@ -153,5 +156,5 @@ export async function searchManga(
       2500,
     );
   }
-  return { items, hasNextPage: more };
+  return { items, hasNextPage: more, total };
 }
