@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, peekApiCache } from "@/lib/client";
+import { DATA_VERSION } from "@/lib/api/cache";
 import { usePageTitle } from "@/lib/page-title";
+
+/** Path ber-versi: respons /api/genres lama (label Bahasa Indonesia) di
+ *  cache browser/CDN tidak dipakai lagi setelah versi data naik. */
+const GENRES_PATH = `/api/genres?v=${DATA_VERSION}`;
 import type { GenreRef } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { GenreGridSkeleton } from "@/components/skeletons";
@@ -11,7 +16,7 @@ import { GenreGridSkeleton } from "@/components/skeletons";
 export default function GenreListPage() {
   usePageTitle("Daftar Genre");
   const [genres, setGenres] = useState<GenreRef[] | null>(
-    () => peekApiCache<GenreRef[]>("/api/genres") ?? null,
+    () => peekApiCache<GenreRef[]>(GENRES_PATH) ?? null,
   );
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -22,9 +27,9 @@ export default function GenreListPage() {
     setError(null);
     // Cache prefetch (menu/hover) langsung dipakai; skeleton hanya bila
     // memang belum ada data sama sekali.
-    if (!peekApiCache<GenreRef[]>("/api/genres")) setGenres(null);
+    if (!peekApiCache<GenreRef[]>(GENRES_PATH)) setGenres(null);
     try {
-      setGenres(await apiGet<GenreRef[]>("/api/genres"));
+      setGenres(await apiGet<GenreRef[]>(GENRES_PATH));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal memuat data.");
     }

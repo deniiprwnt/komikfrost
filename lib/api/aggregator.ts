@@ -2,8 +2,9 @@ import type { ChapterItem, ChapterRef, GenreRef, MangaCard, MangaDetail } from "
 // ID source terpusat di types (satu definisi, dipakai client + server).
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
-import { canonicalGenre, genreDisplayName, genreSlug, themeDisplayName } from "./genre-canonical";
+import { canonicalGenre, genreDisplayName, themeDisplayName } from "./genre-canonical";
 import { cleanSynopsis } from "./text";
+import { DATA_VERSION } from "./cache";
 import { splitRating } from "./rating";
 
 /**
@@ -68,14 +69,17 @@ function rememberTitleMeta(
   rank: number,
 ): void {
   if (!key || !value) return;
-  let entry = titleMetaMemory.get(key);
+  // Key ber-versi: nilai hasil normalisasi versi lama (mis. label Bahasa
+  // Indonesia) tidak pernah dipakai lagi setelah DATA_VERSION naik.
+  const memKey = `${DATA_VERSION}:${key}`;
+  let entry = titleMetaMemory.get(memKey);
   if (!entry) {
     if (titleMetaMemory.size >= TITLE_META_MAX) {
       const oldest = titleMetaMemory.keys().next().value;
       if (oldest !== undefined) titleMetaMemory.delete(oldest);
     }
     entry = {};
-    titleMetaMemory.set(key, entry);
+    titleMetaMemory.set(memKey, entry);
   }
   const prev = entry[field];
   // Hanya nilai dari sumber yang LEBIH dipercaya yang menggantikan; nilai
@@ -84,7 +88,7 @@ function rememberTitleMeta(
 }
 
 function recallTitleMeta(key: string, field: "genre" | "type"): TitleMetaValue | undefined {
-  return key ? titleMetaMemory.get(key)?.[field] : undefined;
+  return key ? titleMetaMemory.get(`${DATA_VERSION}:${key}`)?.[field] : undefined;
 }
 
 /* ------------------------------------------------------------------ */
@@ -126,7 +130,15 @@ export function normalizeTitle(raw: string): string {
 export function dedupeKey(raw: string): string {
   const t = normalizeTitle(raw);
   if (!t) return "";
-  return t.replace(/\s+id\s*\d*$/, "").trim() || t;
+  return (
+    t
+      .replace(/\s+id\s*\d*$/, "")
+      // Varian ejaan yang dikenal beda di sumber: "Albrechtrecht" dan
+      // "Albrecht" adalah judul yang sama. Dipetakan SEBELUM dedupe agar
+      // keduanya jatuh ke grup yang sama (data sumber prioritas menang).
+      .replace(/\balbrechtrecht\b/g, "albrecht")
+      .trim() || t
+  );
 }
 
 /** "Chapter 224" / "Ch. 224" → "224" (kunci dedupe chapter). */
@@ -266,6 +278,35 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         if (g.cards[s] && !tg.cards[s]) tg.cards[s] = g.cards[s]!;
       }
       absorbed.add(k);
+    }
+  }
+  // Pass 3: judul yang hanya beda EKOR sangat pendek akibat typo upstream
+  // (mis. "...Albrecht" vs "...Albrechtrecht"). Konservatif: kunci pendek
+  // minimal 9 huruf, sisa <= 3 huruf, dan judul panjang tidak berakhir
+  // angka ("One Piece 2" bukan duplikat "One Piece"). Grup penyerap = yang
+  // lebih pendek; slot sumber yang sudah terisi tidak ditimpa.
+  {
+    const keys = [...groups.keys()]
+      .filter((k) => !absorbed.has(k))
+      .sort((a, b) => a.length - b.length);
+    for (let i = 0; i < keys.length; i++) {
+      const shortK = keys[i];
+      if (absorbed.has(shortK)) continue;
+      const gs = groups.get(shortK);
+      if (!gs || shortK.length < 9) continue;
+      for (let j = i + 1; j < keys.length; j++) {
+        const longK = keys[j];
+        if (absorbed.has(longK)) continue;
+        if (longK.length - shortK.length > 3) continue;
+        if (!longK.startsWith(shortK)) continue;
+        if (/\d$/.test(longK)) continue;
+        const gl = groups.get(longK);
+        if (!gl) continue;
+        for (const src of SOURCE_PRIORITY) {
+          if (gl.cards[src] && !gs.cards[src]) gs.cards[src] = gl.cards[src]!;
+        }
+        absorbed.add(longK);
+      }
     }
   }
   for (const k of absorbed) groups.delete(k);
@@ -422,10 +463,15 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         if (Number.isFinite(m)) mergedUpdatedAtTs = now - m * 60_000;
       }
     }
+    // Sampul: jalur pengambilan yang SAMA dengan halaman detail (URL sudah
+    // lewat proxiedImage di adapter) dan sumber prioritas tertinggi yang
+    // benar-benar punya sampul. Bila semua `thumbnail` kosong, kandidat
+    // per-sumber tetap dipakai agar slot tidak berakhir placeholder.
+    const thumbPrimary = ((getCard("thumbnail") as string) || thumbCandidates[0] || "").trim();
     out.push({
       slug: displaySlug,
       title: (getCard("title") as string) ?? p.title,
-      thumbnail: (getCard("thumbnail") as string) ?? p.thumbnail,
+      thumbnail: thumbPrimary,
       ...(thumbCandidates.length > 1 ? { thumbnailCandidates: thumbCandidates } : {}),
       ...(getCard("altTitle") ? { altTitle: getCard("altTitle") as string } : {}),
       ...(mergedType ? { type: mergedType } : {}),
@@ -603,13 +649,13 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   const genres: GenreRef[] = [];
   for (const s of SOURCE_PRIORITY) {
     for (const g of details[s]?.genres ?? []) {
-      const name = genreDisplayName(g.name) ?? genreDisplayName(g.slug);
-      if (!name) continue;
-      const canon = canonicalGenre(name);
-      const slug = canon?.slug ?? (g.slug || genreSlug(name));
-      if (seen.has(slug)) continue;
-      seen.add(slug);
-      genres.push(canon ? { name: canon.name, slug: canon.slug } : { name, slug });
+      // HANYA genre kanonis (Inggris). Nilai tak dikenal / label Bahasa
+      // Indonesia tidak pernah lolos ke daftar genre halaman detail, jadi
+      // daftar ini selalu sama bentuknya dengan label di kartu.
+      const canon = canonicalGenre(g.name) ?? canonicalGenre(g.slug);
+      if (!canon || seen.has(canon.slug)) continue;
+      seen.add(canon.slug);
+      genres.push({ name: canon.name, slug: canon.slug });
     }
   }
 
@@ -644,6 +690,11 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
       if (v && !covers.includes(v)) covers.push(v);
     }
   }
+  // Cover utama = sumber prioritas tertinggi yang PUNYA cover. Bila field
+  // `cover` semua sumber kosong, kandidat pertama tetap dipakai (dulu hasil
+  // akhirnya string kosong = "Cover tidak tersedia" permanen di riwayat).
+  const coverPrimary = ((get("cover") as string) || covers[0] || primary.cover || "").trim();
+  if (coverPrimary && !covers.includes(coverPrimary)) covers.unshift(coverPrimary);
 
   // Sinopsis: sumber prioritas pertama yang HASIL BERSIHNYA ada (bukan
   // sekadar string tidak kosong) â€” placeholder upstream tidak boleh
@@ -706,7 +757,7 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
     slug: displaySlug,
     title: (get("title") as string) ?? primary.title,
     ...(get("altTitle") ? { altTitle: get("altTitle") as string } : {}),
-    cover: (get("cover") as string) ?? primary.cover,
+    cover: coverPrimary,
     ...(covers.length > 1 ? { coverCandidates: covers } : {}),
     synopsis: synopsisText,
     ...(get("type") ? { type: get("type") as string } : {}),

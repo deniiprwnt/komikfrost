@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { anchorTs, chapterNum, updatedAtMinutes } from "./aggregator";
 import { proxiedImage } from "./img-proxy";
+import { withDataVersion } from "./cache";
 import { blockText, cleanSynopsis } from "./text";
 import type {
   ApiError,
@@ -68,6 +69,9 @@ function takeUpstreamAge(url: string): number {
 }
 
 async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<string> {
+  // URL ber-versi data: HTML lama (sinopsis/sampul/genre mentah sebelum
+  // normalisasi) di cache HTTP/CDN tidak dipakai ulang setelah versi naik.
+  const target = withDataVersion(url);
   const ctrl = new AbortController();
   // Komiku kadang lambat merespons; gagal cepat (8 dtk) agar UI bisa
   // menampilkan error/retry daripada menggantung tanpa batas.
@@ -88,7 +92,7 @@ async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<s
     // di signature). Beranda dan /terbaru sudah di-refresh oleh probe `fresh`
     // dan auto-refresh klien, jadi nilai default tidak perlu lebih pendek.
     else init.next = { revalidate };
-    res = await fetch(url, init);
+    res = await fetch(target, init);
   } catch (e) {
     throw new KomikuError(
       e instanceof DOMException && e.name === "AbortError"

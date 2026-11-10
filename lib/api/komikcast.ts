@@ -27,6 +27,7 @@ import type {
 } from "./types";
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis } from "./text";
+import { DATA_VERSION, withDataVersion } from "./cache";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
 const KC_BASE = "https://komikcast.top";
@@ -50,6 +51,9 @@ export class KomikcastError extends Error {
 }
 
 async function fetchJson<T>(url: string, revalidate = 30, fresh = false): Promise<T> {
+  // URL ber-versi data: cache HTTP lama (JSON sebelum normalisasi) tidak
+  // dipakai ulang setelah aturan normalisasi berubah.
+  const target = withDataVersion(url);
   const ctrl = new AbortController();
   // Gagal cepat (8 dtk, dulu 12): merge menunggu source terlambat.
   const timer = setTimeout(() => ctrl.abort(), 8_000);
@@ -62,7 +66,7 @@ async function fetchJson<T>(url: string, revalidate = 30, fresh = false): Promis
     // `fresh` = probe live: lewati cache HTTP Next.
     if (fresh) init.cache = "no-store";
     else init.next = { revalidate };
-    res = await fetch(url, init);
+    res = await fetch(target, init);
   } catch (e) {
     throw new KomikcastError(
       e instanceof DOMException && e.name === "AbortError"
@@ -228,13 +232,14 @@ function toGenres(raw?: { slug: string; name: string }[]): GenreRef[] {
   const out: GenreRef[] = [];
   const seen = new Set<string>();
   for (const g of raw ?? []) {
-    const name = genreDisplayName(g?.name || g?.slug);
-    if (!name) continue;
-    const canon = canonicalGenre(name);
-    const slug = canon?.slug ?? (g.slug || "").toLowerCase();
-    if (!slug || seen.has(slug)) continue;
-    seen.add(slug);
-    out.push({ name: canon?.name ?? name, slug });
+    // Hanya genre kanonis yang dipakai; nilai tak dikenal (termasuk label
+    // Bahasa Indonesia / nama Tema) dibuang, bukan diteruskan mentah dengan
+    // slug sumber â€” dulu fallback slug itulah yang membuat "Fiksi Sains"
+    // dan tema lain tampil sebagai genre di halaman detail.
+    const canon = canonicalGenre(g?.name || g?.slug);
+    if (!canon || seen.has(canon.slug)) continue;
+    seen.add(canon.slug);
+    out.push({ name: canon.name, slug: canon.slug });
   }
   return out;
 }
@@ -352,7 +357,8 @@ const kcBriefCache = new Map<string, { at: number; brief: KcBrief }>();
 
 export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
   const clean = slug.replace(/^\/+|\/+$/g, "");
-  const hit = kcBriefCache.get(clean);
+  const cacheKey = `${DATA_VERSION}:${clean}`;
+  const hit = kcBriefCache.get(cacheKey);
   if (hit && Date.now() - hit.at < KC_BRIEF_TTL) return hit.brief;
   const json = await fetchJson<{ data: KcSeries }>(`${KC_API}/series/${encodeURIComponent(clean)}`);
   const s = json.data;
@@ -371,7 +377,7 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
     ...(type ? { type } : {}),
     ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
   };
-  kcBriefCache.set(clean, { at: Date.now(), brief });
+  kcBriefCache.set(cacheKey, { at: Date.now(), brief });
   if (kcBriefCache.size > 1000) {
     const oldest = kcBriefCache.keys().next().value;
     if (oldest !== undefined) kcBriefCache.delete(oldest);
@@ -388,7 +394,7 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
  * praktis tanpa request tambahan.
  */
 function kcBriefFromCache(slug: string): KcBrief | undefined {
-  const hit = kcBriefCache.get(slug);
+  const hit = kcBriefCache.get(`${DATA_VERSION}:${slug}`);
   return hit && Date.now() - hit.at < KC_BRIEF_TTL ? hit.brief : undefined;
 }
 

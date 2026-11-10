@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import { KomikuError } from "./komiku";
 import { proxiedImage } from "./img-proxy";
+import { withDataVersion } from "./cache";
 import { cleanSynopsis } from "./text";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
@@ -117,6 +118,9 @@ async function fetchShini<T>(
   fresh = false,
 ): Promise<{ data: T; meta?: ShiniMeta }> {
   const url = `${SHINI_API}${path}`;
+  // URL ber-versi data: cache HTTP lama tidak dipakai ulang setelah aturan
+  // normalisasi (genre/sinopsis/sampul) berubah.
+  const target = withDataVersion(url);
   const ctrl = new AbortController();
   // Gagal cepat (8 dtk, dulu 12): merge menunggu source terlambat.
   const timer = setTimeout(() => ctrl.abort(), 8_000);
@@ -131,7 +135,7 @@ async function fetchShini<T>(
     // sumber utama tidak jadi yang paling lambat.
     if (fresh) init.cache = "no-store";
     else init.next = { revalidate };
-    res = await fetch(url, init);
+    res = await fetch(target, init);
   } catch (e) {
     throw new KomikuError(
       e instanceof DOMException && e.name === "AbortError"

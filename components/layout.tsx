@@ -8,6 +8,7 @@ import { BrandMark } from "./brand-mark";
 import { PromoYukiHead, PromoYukiPaw } from "./promo-yuki";
 import { NavLink } from "./nav-link";
 import { warmPrimaryNav } from "@/lib/nav-prefetch";
+import { ClientDataVersion } from "./client-cache-version";
 
 const NAV = [
   { href: "/", label: "Beranda", icon: IconHome },
@@ -352,6 +353,7 @@ export function Main({ children }: { children: React.ReactNode }) {
         reading ? "pb-4" : "pb-28 md:pb-6"
       }`}
     >
+      <ClientDataVersion />
       {!reading && <div aria-hidden className="scroll-progress" />}
       <div key={pathname} className="page-in min-w-0">
         {children}

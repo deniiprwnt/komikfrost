@@ -227,6 +227,19 @@ const ALIASES: Record<string, string> = {
   "anak anak": "Family",
   "kehidupan sehari hari": "Slice of Life",
   keseharian: "Slice of Life",
+  // Label Bahasa Indonesia yang sebelumnya TIDAK punya alias sehingga
+  // lolos apa adanya ke kartu (mis. "Fiksi Sains"). Semua varian di
+  // sini dipetakan ke bentuk Inggris kanonis.
+  "fiksi sains": "Sci-Fi",
+  "fiksi ilmiah": "Sci-Fi",
+  sains: "Sci-Fi",
+  ilmiah: "Sci-Fi",
+  "potongan kehidupan": "Slice of Life",
+  "cerita pendek": "One Shot",
+  "seni beladiri": "Martial Arts",
+  beladiri: "Martial Arts",
+  "beladiri campuran": "Martial Arts",
+  "ilmu bela diri": "Martial Arts",
 };
 
 const CANON_BY_KEY = new Map(CANONICAL_GENRES.map((g) => [keyOf(g.name), g]));
@@ -281,10 +294,12 @@ export function titleCaseGenre(raw: string): string {
  * dibuang); sampah/terlalu pendek â†’ undefined.
  */
 export function genreDisplayName(raw?: string | null): string | undefined {
-  const c = canonicalGenre(raw);
-  if (c) return c.name;
-  if (!usableKey(raw)) return undefined;
-  return titleCaseGenre((raw ?? "").trim());
+  // HANYA bentuk kanonis (Inggris). Nilai tak dikenal â€” termasuk label
+  // Bahasa Indonesia yang belum punya alias â€” tidak pernah diteruskan
+  // mentah ke kartu. Sebelumnya nilai seperti "Fiksi Sains" lolos lewat
+  // titleCaseGenre lalu tampil sebagai genre di kartu. Agregator kini
+  // mengisinya dari sumber berprioritas lebih tinggi / halaman detail.
+  return canonicalGenre(raw)?.name;
 }
 
 /**

@@ -147,8 +147,32 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
     }
   });
   // Escape sisa JSON/atribut: \" dan \' tidak boleh tampil sebagai
-  // garis miring terbalik di tengah sinopsis.
-  s = s.replace(/\\(["'\\/])/g, "$1");
+  // garis miring terbalik di tengah sinopsis. Backslash berlipat
+  // (mis. \\\"Nether Lord\\\") ikut dibersihkan.
+  s = s.replace(/\\+(["'\\/])/g, "$1");
+  // Kata sambung ganda ("dan dan") â€” dibatasi ke kata sambung umum,
+  // jadi reduplikasi sah ("laki-laki", "hati-hati") tidak tersentuh.
+  s = s.replace(
+    /\b(dan|yang|itu|ini|juga|lalu|tetapi|namun|karena|untuk|dengan|dari|akan|telah|sudah|para|atau|serta)\s+\1\b/gi,
+    "$1",
+  );
+  // Kata menempel akibat tag batas hilang ("lakilaki",
+  // "bersenangsenang", "orangorangbaru"): sisipkan spasi pada pengulangan
+  // kata. Diulang sampai stabil karena satu kalimat bisa memuat lebih dari
+  // satu pengulangan ("orangorangbaru").
+  for (let i = 0; i < 5; i++) {
+    const next = s.replace(/([a-z]{3,})\1/gi, "$1 $1");
+    if (next === s) break;
+    s = next;
+  }
+  // Ekor kata yang menempel pada kata umum ("orangbaru" â†’ "orang baru").
+  s = s.replace(
+    /\b([A-Za-z\u00C0-\u00FF]{4,})(baru|lama|yang|itu|ini|juga|lalu|tetapi|namun|karena|untuk|dengan|dari|akan|sudah|masih|kembali|tersebut)\b/gi,
+    "$1 $2",
+  );
+  // Reduplikasi hasil pemisahan ditulis dengan tanda hubung
+  // ("laki laki" â†’ "laki-laki", "orang orang" â†’ "orang-orang").
+  s = s.replace(/(^|[^\w-])([A-Za-z\u00C0-\u00FF]{3,}) \2(?![\w-])/g, "$1$2-$2");
   // Kalimat yang menempel akibat tag dibuang ("berakhir.Dia"): beri spasi
   // setelah tanda akhir kalimat bila diikuti huruf besar. Hanya untuk
   // huruf, jadi angka desimal ("11.5") tidak tersentuh.
@@ -159,7 +183,30 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
   s = tidyText(s);
   if (!s) return undefined;
   if (/^belum ada (isi|sinopsis|deskripsi)/i.test(s)) return undefined;
-  return s;
+  // Jangan pernah tampilkan sinopsis yang berakhir di tengah kalimat.
+  return trimToLastSentence(s);
+}
+
+/**
+ * Potong teks pada AKHIR KALIMAT utuh terakhir bila teks berakhir di tengah
+ * kalimat. Hanya berlaku untuk teks panjang (>=160 huruf) dan bila akhir
+ * kalimat terakhir masih mencakup >=60% teks â€” jadi sinopsis satu kalimat
+ * tanpa titik penutup tidak ikut dikosongkan.
+ *
+ * Idempoten: dipanggil ulang pada teks yang sudah berakhir di tanda baca
+ * tidak mengubah apa pun (akhir kalimat terakhir = panjang teks).
+ */
+export function trimToLastSentence(raw: string): string {
+  const s = (raw ?? "").trim();
+  if (s.length < 160) return s;
+  const re = /[.!?\u2026]["')\]]?(?=\s|$)/g;
+  let end = -1;
+  for (let m = re.exec(s); m; m = re.exec(s)) {
+    end = (m.index ?? 0) + m[0].length;
+  }
+  if (end < 0 || end >= s.length) return s;
+  if (end < s.length * 0.6) return s;
+  return s.slice(0, end).trim();
 }
 
 /**
