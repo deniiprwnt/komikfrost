@@ -573,10 +573,19 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     $("h1").first().text().trim().replace(/^Komik\s+/i, "");
   // blockText menyisipkan spasi di batas <br>/tag blok sebelum teks diambil,
   // sehingga sinopsis tidak lagi menempel ("lakilaki bernamaMonkey D Luffy").
+  // Beberapa halaman tidak memakai itemprop="description" atau memindahkan
+  // sinopsis ke section lain — coba selektor cadangan, urut dari yang paling
+  // spesifik. Hanya teks halaman itu sendiri yang dipakai (tidak dikarang).
   const synopsis =
-    cleanSynopsis(
-      blockText($, $("section#Informasi p.desc[itemprop='description']").first()),
-    ) ?? "";
+    [
+      "section#Informasi p.desc[itemprop='description']",
+      "section#Informasi p.desc",
+      "section#Sinopsis p",
+      "#Sinopsis p",
+      "[itemprop='description']",
+    ]
+      .map((sel) => cleanSynopsis(blockText($, $(sel).first())))
+      .find((v): v is string => Boolean(v)) ?? "";
 
   const info: Record<string, string> = {};
   $("section#Informasi table.inftable tr").each((_, tr) => {

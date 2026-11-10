@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { apiGet, invalidateApi } from "@/lib/client";
 import { DATA_VERSION } from "@/lib/api/cache";
 import { useHistory } from "@/lib/history";
+import { EMPTY_KEY, markCoverPending, markCoverSettled, onBrokenCover, resetCoverKey } from "@/components/cover-heal";
 import type { MangaDetail } from "@/lib/api/types";
 
 /**
@@ -32,6 +33,75 @@ const HEAL_TTL_MS = 24 * 60 * 60_000;
 const HEAL_CAP = 12;
 const MAX_TRIES = 2;
 
+/** Sampul yang jelas tidak valid: bukan string, placeholder, atau bukan URL. */
+function isBadCover(c: unknown): boolean {
+  if (typeof c !== "string") return true;
+  const v = c.trim();
+  if (!v) return true;
+  if (/^(undefined|null|nan)$/i.test(v)) return true;
+  if (/placeholder|no-?image|noimage|default[-_.]?cover/i.test(v)) return true;
+  return !(/^https?:\/\//i.test(v) || v.startsWith("/") || v.startsWith("data:image/"));
+}
+
+/**
+ * Bersihkan entri riwayat cacat saat DATA_VERSION naik:
+ * - entri tanpa slug/route/judul valid dibuang (tak bisa dibuka/ditampilkan);
+ * - slug ganda digabung (entri terbaru menang, sampul valid dipertahankan);
+ * - sampul rusak dikosongkan agar dipulihkan dari detail gabungan —
+ *   progres, bab, dan waktu baca TIDAK disentuh.
+ */
+function sanitizeHistory(): void {
+  const raw = window.localStorage.getItem(HISTORY_KEY);
+  if (!raw) return;
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    window.localStorage.removeItem(HISTORY_KEY);
+    return;
+  }
+  if (!Array.isArray(arr)) {
+    window.localStorage.removeItem(HISTORY_KEY);
+    return;
+  }
+  const seen = new Map<string, StoredEntry>();
+  const order: string[] = [];
+  let changed = false;
+  for (const item of arr as unknown[]) {
+    const e = item as StoredEntry & { route?: unknown };
+    const okShape =
+      !!e &&
+      typeof e === "object" &&
+      typeof e.slug === "string" &&
+      e.slug.trim() !== "" &&
+      typeof e.route === "string" &&
+      (e.route as string).startsWith("/") &&
+      typeof e.title === "string" &&
+      e.title.trim() !== "";
+    if (!okShape) {
+      changed = true;
+      continue;
+    }
+    const out: StoredEntry = { ...e };
+    if (isBadCover(out.cover)) {
+      if (out.cover !== "") changed = true;
+      out.cover = "";
+    }
+    const prev = seen.get(out.slug);
+    if (prev) {
+      changed = true;
+      if (!prev.cover && out.cover) prev.cover = out.cover;
+      continue;
+    }
+    seen.set(out.slug, out);
+    order.push(out.slug);
+  }
+  if (!changed) return;
+  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(order.map((k) => seen.get(k))));
+  // useHistory sudah membaca data lama saat mount — beri tahu agar memuat ulang.
+  window.dispatchEvent(new CustomEvent("bk-history-changed"));
+}
+
 function wipeClientCaches(): void {
   try {
     if (window.localStorage.getItem(VERSION_KEY) === DATA_VERSION) return;
@@ -46,6 +116,9 @@ function wipeClientCaches(): void {
       if (key && key.startsWith(SNAP_PREFIX)) doomed.push(key);
     }
     for (const key of doomed) window.localStorage.removeItem(key);
+    // Entri riwayat cacat dibersihkan juga (bukan hanya kf.snap:).
+    sanitizeHistory();
+    window.localStorage.removeItem(HEAL_KEY);
     window.localStorage.setItem(VERSION_KEY, DATA_VERSION);
   } catch {
     // kuota/mode privat — cache memori sudah dikosongkan
@@ -89,12 +162,12 @@ interface StoredEntry {
  * dari storage tepat sebelum menulis, jadi progres yang baru disimpan
  * pembaca tidak tertimpa data basi.
  */
-function patchHistoryEntry(slug: string, patch: { cover?: string; title?: string }): void {
+function patchHistoryEntry(slug: string, patch: { cover?: string; title?: string }): boolean {
   try {
     const raw = window.localStorage.getItem(HISTORY_KEY);
-    if (!raw) return;
+    if (!raw) return false;
     const arr = JSON.parse(raw) as unknown;
-    if (!Array.isArray(arr)) return;
+    if (!Array.isArray(arr)) return false;
     let changed = false;
     const next = (arr as StoredEntry[]).map((e) => {
       if (!e || e.slug !== slug) return e;
@@ -109,11 +182,13 @@ function patchHistoryEntry(slug: string, patch: { cover?: string; title?: string
       }
       return out;
     });
-    if (!changed) return;
+    if (!changed) return false;
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent("bk-history-changed"));
+    return true;
   } catch {
     // storage penuh/diblokir — riwayat tetap apa adanya
+    return false;
   }
 }
 
@@ -142,7 +217,12 @@ export function ClientDataVersion() {
   // pembaca menyimpan entri baru tanpa sampul), entri yang belum
   // diselaraskan diproses — konkurensi 2 agar ramah rate limit.
   useEffect(() => {
-    if (entries.length === 0) return;
+    if (entries.length === 0) {
+      // Riwayat kosong (atau belum terbaca): beri jeda singkat lalu lepaskan
+      // skeleton agar cover kosong di tempat lain tidak menunggu pemulih.
+      const id = window.setTimeout(() => markCoverSettled(EMPTY_KEY), 1500);
+      return () => window.clearTimeout(id);
+    }
     const healed = readHealed();
     const now = Date.now();
     const todo = entries
@@ -158,7 +238,15 @@ export function ClientDataVersion() {
       })
       // Yang kosong dulu.
       .sort((a, b) => Number(Boolean(a.cover)) - Number(Boolean(b.cover)));
-    if (todo.length === 0) return;
+    if (todo.length === 0) {
+      // Tidak ada yang perlu dipulihkan: lepaskan skeleton entri tanpa sampul
+      // (yang gagal dipulihkan menampilkan placeholder), kecuali masih ada
+      // fetch yang berjalan untuk entri kosong.
+      const inflight = entries.some((e) => !e.cover && busy.current.has(e.slug));
+      if (!inflight) markCoverSettled(EMPTY_KEY);
+      return;
+    }
+    if (todo.some((e) => !e.cover)) markCoverPending(EMPTY_KEY);
     for (const e of todo) busy.current.add(e.slug);
     const queue = [...todo];
     const worker = async (): Promise<void> => {
@@ -191,8 +279,48 @@ export function ClientDataVersion() {
       // Sisa antrean (komponen dilepas) dilepaskan dari penanda sibuk.
       for (const e of queue) busy.current.delete(e.slug);
     };
-    void Promise.all([worker(), worker()]);
+    void Promise.all([worker(), worker()]).then(() => {
+      // Semua upaya untuk entri tanpa sampul selesai: yang masih kosong
+      // (gagal total) boleh menampilkan placeholder.
+      if (alive.current) markCoverSettled(EMPTY_KEY);
+    });
   }, [entries]);
+
+  // Sampul yang SEMUA kandidatnya gagal (dilaporkan CoverImage): cari sampul
+  // pengganti dari detail gabungan (cover + coverCandidates) dan tulis ke
+  // entri riwayat yang memakainya. Placeholder baru tampil bila tak ada
+  // pengganti. Kunci diselesaikan SETELAH patch agar tidak berkedip.
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+  useEffect(() => {
+    const off = onBrokenCover((src) => {
+      const owners = entriesRef.current.filter((e) => e.cover === src);
+      if (owners.length === 0) {
+        markCoverSettled(src);
+        return;
+      }
+      void (async () => {
+        let replaced = false;
+        for (const e of owners.slice(0, 3)) {
+          try {
+            const d = await apiGet<MangaDetail>(`/api/manga/${encodeURIComponent(e.slug)}`);
+            const next = [d?.cover, ...(d?.coverCandidates ?? [])].find(
+              (c): c is string => typeof c === "string" && c.trim() !== "" && c !== src,
+            );
+            if (next && patchHistoryEntry(e.slug, { cover: next, ...(d?.title ? { title: d.title } : {}) })) {
+              replaced = true;
+              markHealed(e.slug);
+            }
+          } catch {
+            // dicoba lagi hanya bila sampul dilaporkan ulang pada sesi baru
+          }
+        }
+        if (replaced) resetCoverKey(src);
+        markCoverSettled(src);
+      })();
+    });
+    return off;
+  }, []);
 
   return null;
 }

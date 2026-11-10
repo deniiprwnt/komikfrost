@@ -108,6 +108,8 @@ interface KcSeries {
   year?: number;
   score?: number;
   synopsis?: string;
+  description?: string;
+  sinopsis?: string;
   poster_url?: string;
   genres?: { slug: string; name: string }[];
   latest_chapter?: { slug: string; number: number; number_label: string } | null;
@@ -175,6 +177,11 @@ function fmtDateId(iso?: string): string | undefined {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+/** Sinopsis mentah: `synopsis`, cadangan `description`/`sinopsis`. */
+function rawSynopsis(s: KcSeries): string | undefined {
+  return s.synopsis || s.description || s.sinopsis || undefined;
+}
+
 function toCard(s: KcSeries): MangaCard {
   const latest: ChapterRef | undefined = s.latest_chapter
     ? {
@@ -207,7 +214,7 @@ function toCard(s: KcSeries): MangaCard {
     thumbnail: proxiedImage(s.poster_url),
     ...(normalizeType(s.type) ? { type: normalizeType(s.type)! } : {}),
     ...(genreOne ? { genre: genreOne } : {}),
-    ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
+    ...(cleanSynopsis(rawSynopsis(s)) ? { synopsis: cleanSynopsis(rawSynopsis(s)) as string } : {}),
     ...(timeAgoId(s.updated_at) ? { updatedAt: timeAgoId(s.updated_at)! } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(first ? { firstChapter: first } : {}),
@@ -323,8 +330,8 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
     title: s.title,
     ...(s.title_english ? { altTitle: s.title_english } : {}),
     cover: proxiedImage(s.poster_url),
-    synopsis: cleanSynopsis(s.synopsis) ?? "",
-    ...(s.type ? { type: s.type } : {}),
+    synopsis: cleanSynopsis(rawSynopsis(s)) ?? "",
+    ...(normalizeType(s.type) ? { type: normalizeType(s.type) as KomikType } : {}),
     // Tema Komikcast ikut kolom genre; nilai yang BUKAN genre kanonis tidak
     // dipakai sebagai genre â€” biarkan agregator mengisinya dari sumber lain.
     genres: toGenres(s.genres),
@@ -346,7 +353,11 @@ export interface KcBrief {
   title?: string;
   cover?: string;
   genre?: string;
+  /** Daftar genre kanonis berurutan (sama dengan detail: toGenres). */
+  genres?: GenreRef[];
   type?: KomikType;
+  /** Alias EN dari sumber (dipakai pencocokan judul). */
+  altTitle?: string;
   synopsis?: string;
 }
 
@@ -365,17 +376,18 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
   if (!s?.slug) throw new KomikcastError("Ringkasan Komikcast tidak ditemukan.", `${KC_API}/series/${clean}`);
   // Genre ringkasan juga kanonis â€” nilai mentah sumber tidak boleh lolos ke
   // kartu lewat jalur enrich.
-  const genreCanon =
-    (s.genres ?? [])
-      .map((x) => genreDisplayName(x?.name || x?.slug))
-      .find((v): v is string => Boolean(v)) ?? undefined;
+  const genreList = toGenres(s.genres);
+  const genreCanon = genreList[0]?.name;
   const type = normalizeType(s.type);
+  const syn = cleanSynopsis(rawSynopsis(s));
   const brief: KcBrief = {
     ...(s.title ? { title: s.title } : {}),
+    ...(s.title_english ? { altTitle: s.title_english } : {}),
     ...(s.poster_url ? { cover: proxiedImage(s.poster_url) } : {}),
     ...(genreCanon ? { genre: genreCanon } : {}),
+    ...(genreList.length > 0 ? { genres: genreList } : {}),
     ...(type ? { type } : {}),
-    ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
+    ...(syn ? { synopsis: syn } : {}),
   };
   kcBriefCache.set(cacheKey, { at: Date.now(), brief });
   if (kcBriefCache.size > 1000) {
@@ -499,46 +511,67 @@ export async function fetchKomikcastChapter(chapterPath: string): Promise<Chapte
 
 /**
  * Resolve via judul (dipakai agregator saat slug Komiku/Shinigami tidak
- * dikenal Komikcast): search → exact match ternormalisasi → detail.
- * Kandidat dari bersih (kupas ekor "-id") ke mentah, tanpa fuzzy.
- * AltTitle (EN) ikut dicoba: judul utama Komikcast kadang beda ejaan
- * satu-dua huruf dari judul source lain ("...Desu" vs "...Des") tapi
- * judul EN-nya identik dengan alternative_title Shinigami.
+ * dikenal Komikcast): slug tebakan → search → exact match ternormalisasi →
+ * detail. Kandidat dari bersih (kupas ekor "-id") ke mentah, tanpa fuzzy.
+ * ALIAS (altTitle EN) ikut dipakai di SEMUA tahap — sebagai slug tebakan,
+ * kueri pencarian, dan pencocokan judul/alias hasil: judul utama Komikcast
+ * kadang beda dari sumber lain ("...Desu" vs "...Des", atau judul EN vs
+ * romaji) tapi alias-nya identik.
  */
-export async function resolveKomikcastDetailForTitle(
+function titleCandidates(rawTitle: string, altTitle?: string): string[] {
+  const cands: string[] = [];
+  for (const raw of [rawTitle, altTitle ?? ""]) {
+    const base = raw.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+    for (const v of [base.replace(/\s+id\s*\d*$/i, "").trim(), base]) {
+      if (v && !cands.includes(v)) cands.push(v);
+    }
+  }
+  return cands;
+}
+
+/**
+ * Cari slug Komikcast lewat judul + alias. Tahap 0 = slug tebakan (1 request
+ * ringkas, tercache 6 jam), lalu pencarian. Mengembalikan brief + slug, atau
+ * throw KomikcastError 404 bila tidak ada.
+ */
+export async function resolveKomikcastBriefForTitle(
   rawTitle: string,
   norm: (s: string) => string,
   altTitle?: string,
-): Promise<MangaDetail> {
-  const base = rawTitle.replace(/-/g, " ").replace(/\s+/g, " ").trim();
-  const cands: string[] = [];
-  for (const v of [base.replace(/\s+id\s*\d*$/i, "").trim(), base]) {
-    if (v && !cands.includes(v)) cands.push(v);
-  }
-  // Tahap 0: slug tebakan langsung ("Limit Breaker" jadi "limit-breaker").
-  // Jauh lebih murah & tepat daripada pencarian yang bisa mengarah ke
-  // database Anime. Brief 1 request, tercache 6 jam.
+): Promise<{ slug: string; brief: KcBrief }> {
+  const cands = titleCandidates(rawTitle, altTitle);
+  const want = cands.map((c) => norm(c)).filter(Boolean);
+  const matches = (title?: string, alt?: string): boolean =>
+    (!!title && want.includes(norm(title))) || (!!alt && want.includes(norm(alt)));
   for (const q of cands) {
     const guess = q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     if (!guess) continue;
     try {
       const brief = await fetchKomikcastBrief(guess);
-      if (brief.title && norm(brief.title) === norm(q)) return fetchKomikcastDetail(guess);
+      if (matches(brief.title, brief.altTitle)) return { slug: guess, brief };
     } catch {
-      // tidak ada, lanjut ke pencarian biasa
+      // tidak ada, lanjut
     }
   }
-  for (const q of cands) {
+  for (const q of cands.slice(0, 3)) {
     const { items } = await searchKomikcastRemote(q, 1);
-    const target = norm(q);
-    const hit = items.find((c) => norm(c.title) === target);
-    if (hit) return fetchKomikcastDetail(hit.slug);
-    // Jembatan altTitle: EN Komikcast == EN/alt sisi lain (exact).
-    if (altTitle) {
-      const normAlt = norm(altTitle);
-      const hitAlt = items.find((c) => c.altTitle && norm(c.altTitle) === normAlt);
-      if (hitAlt) return fetchKomikcastDetail(hitAlt.slug);
+    const hit = items.find((c) => matches(c.title, c.altTitle));
+    if (hit) {
+      try {
+        return { slug: hit.slug, brief: await fetchKomikcastBrief(hit.slug) };
+      } catch {
+        // coba kueri berikutnya
+      }
     }
   }
   throw new KomikcastError(`Tidak ditemukan di Komikcast: ${rawTitle}.`, `${KC_API}/search`, 404);
+}
+
+export async function resolveKomikcastDetailForTitle(
+  rawTitle: string,
+  norm: (s: string) => string,
+  altTitle?: string,
+): Promise<MangaDetail> {
+  const { slug } = await resolveKomikcastBriefForTitle(rawTitle, norm, altTitle);
+  return fetchKomikcastDetail(slug);
 }

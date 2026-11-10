@@ -1,4 +1,4 @@
-import type { ChapterItem, ChapterRef, GenreRef, MangaCard, MangaDetail } from "./types";
+import type { ChapterItem, ChapterRef, GenreRef, KomikType, MangaCard, MangaDetail } from "./types";
 // ID source terpusat di types (satu definisi, dipakai client + server).
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
@@ -61,15 +61,20 @@ export function fixTitle(raw: string): string {
 }
 
 /**
- * Identitas FILE sampul: URL proxy (/api/img?u=...) dibuka ke URL asal,
- * query dibuang, dan keluarga host yang saling cadangan (thumbnail .to/.org,
- * imageN.komiku.to/img.komiku.org) disamakan — dua URL yang menunjuk file
- * sama menghasilkan identitas sama.
+ * Identitas FILE sampul. Dua URL yang menunjuk file gambar yang sama harus
+ * menghasilkan identitas yang sama walau berbeda:
+ *  - bungkus proxy (/api/img?u=...), termasuk yang ter-encode ganda;
+ *  - protokol (http/https/protokol-relatif), `www.`, port, query, fragment;
+ *  - host cadangan (thumbnail.komiku.to/.org, imageN.komiku.to, img.komiku.org;
+ *    assets/cdn.shngm.*) dan CDN gambar pembungkus (i0.wp.com/<host>/...);
+ *  - varian ukuran ("-300x400", "_150x150", "-scaled", "-thumb", segmen
+ *    "/w300/", "/300x400/") dan ekstensi (jpg/jpeg/png/webp/avif).
  */
 export function coverIdentity(raw?: string | null): string {
   let u = (raw ?? "").trim();
   if (!u) return "";
-  if (u.startsWith("/api/img")) {
+  // Buka bungkus proxy (maks 2 lapis).
+  for (let i = 0; i < 2 && u.startsWith("/api/img"); i++) {
     const m = u.match(/[?&]u=([^&]+)/);
     if (!m) return "";
     try {
@@ -79,12 +84,37 @@ export function coverIdentity(raw?: string | null): string {
     }
   }
   if (u.startsWith("//")) u = "https:" + u;
+  else if (!/^[a-z][a-z0-9+.-]*:/i.test(u) && /^[\w.-]+\.[a-z]{2,}\//i.test(u)) u = "https://" + u;
   try {
     const p = new URL(u);
-    let host = p.hostname.toLowerCase();
-    if (host === "thumbnail.komiku.to") host = "thumbnail.komiku.org";
-    if (/^image\d*\.komiku\.to$/.test(host)) host = "img.komiku.org";
-    return `${host}${p.pathname}`.toLowerCase();
+    let host = p.hostname.toLowerCase().replace(/^www\./, "");
+    let path = p.pathname;
+    // CDN pembungkus gambar: i0.wp.com/<host-asli>/<path>
+    if (/^i\d\.wp\.com$/.test(host)) {
+      const m = path.match(/^\/([^/]+)(\/.*)$/);
+      if (m) {
+        host = m[1].toLowerCase().replace(/^www\./, "");
+        path = m[2];
+      }
+    }
+    // Keluarga host yang menyajikan file yang sama.
+    if (/^(thumbnail|img|image\d*)\.komiku\.(to|org|com)$/.test(host)) host = "komiku-img";
+    else if (/(^|\.)shngm\.(id|io|co)$/.test(host)) host = "shngm-img";
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      // biarkan apa adanya
+    }
+    path = path
+      .toLowerCase()
+      .replace(/\/{2,}/g, "/")
+      .replace(/\/(?:w|h|width|height)[-_]?\d{2,4}(?=\/)/g, "") // /w300/
+      .replace(/\/\d{2,4}x\d{2,4}(?=\/)/g, "") // /300x400/
+      .replace(/\.(?:jpe?g|png|webp|avif|gif)$/, "")
+      .replace(/[-_]\d{2,4}x\d{2,4}$/, "")
+      .replace(/[-_](?:scaled|thumb(?:nail)?|small|medium|large|cover|full|resized?)$/, "")
+      .replace(/\/+$/, "");
+    return path ? `${host}${path}` : "";
   } catch {
     return "";
   }
@@ -155,6 +185,37 @@ export function pickLatest<T extends { label: string }>(
   return best ? { ref: best.ref, source: best.source } : firstAny;
 }
 
+/**
+ * Tipe komik kanonis (Manga/Manhwa/Manhua) dari teks mentah sumber
+ * ("manhwa", "MANHUA", "Manhwa (KR)", "Komik Manga"). Selain tiga nilai itu
+ * (mis. "Comic", "Novel", "Webtoon") dianggap TIDAK punya tipe.
+ */
+export function normalizeKomikType(raw?: string | null): KomikType | undefined {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (!v) return undefined;
+  if (/\bmanhwa\b/.test(v)) return "Manhwa";
+  if (/\bmanhua\b/.test(v)) return "Manhua";
+  if (/\bmanga\b/.test(v)) return "Manga";
+  return undefined;
+}
+
+/**
+ * Tipe = milik sumber berprioritas TERTINGGI yang punya tipe valid
+ * (Shinigami → Komiku → Komikcast). Sumber berikutnya dipakai HANYA bila
+ * sumber pemenang tidak punya tipe. Satu fungsi ini dipakai mergeCards,
+ * mergeDetails, getMangaSummary, dan enrich kartu — jadi tipe satu judul
+ * sama di Update terbaru, Rekomendasi, Peringkat, pencarian, dan detail.
+ */
+export function pickType(
+  by: Partial<Record<ComicSourceId, { type?: string | null } | undefined>>,
+): { type: KomikType; source: ComicSourceId } | undefined {
+  for (const s of SOURCE_PRIORITY) {
+    const t = normalizeKomikType(by[s]?.type);
+    if (t) return { type: t, source: s };
+  }
+  return undefined;
+}
+
 /* ------------------------------------------------------------------ */
 /* Normalisasi judul                                                    */
 /* ------------------------------------------------------------------ */
@@ -203,6 +264,22 @@ export function dedupeKey(raw: string): string {
   const t = normalizeTitle(stripped);
   if (!t) return "";
   return t.replace(/\s+id\s*\d*$/, "").trim() || t;
+}
+
+/**
+ * Himpunan kunci judul (judul + alias) untuk pencocokan lintas sumber:
+ * tiap nilai lewat `dedupeKey` (normalizeTitle + buang ekor "-id"/rentang
+ * chapter). Dua judul dianggap sama bila himpunan kuncinya BERIRISAN.
+ * Exact — tidak ada fuzzy.
+ */
+export function aliasKeys(...titles: Array<string | null | undefined>): string[] {
+  const out: string[] = [];
+  for (const t of titles) {
+    if (!t) continue;
+    const k = dedupeKey(t);
+    if (k && !out.includes(k)) out.push(k);
+  }
+  return out;
 }
 
 /** "Chapter 224" / "Ch. 224" → "224" (kunci dedupe chapter). */
@@ -255,6 +332,8 @@ export interface MergedChapterItem extends ChapterItem {
 export interface MergedMangaCard extends MangaCard {
   /** Sumber pemenang genre utama (lihat pickPrimaryGenre). */
   genreSource?: ComicSourceId;
+  /** Sumber pemenang tipe (lihat pickType). */
+  typeSource?: ComicSourceId;
   sources: ComicSourceId[];
   sourceSlug: Partial<Record<ComicSourceId, string>>;
 }
@@ -278,20 +357,6 @@ export interface MergedMangaDetail extends Omit<MangaDetail, "chapters"> {
  * bukan fuzzy) — menangani upstream yang memotong judul utama
  * ("...Desu" → "...Des") tapi menyimpan judul EN lengkap yang identik.
  */
-/** Nilai field pertama (urutan prioritas sumber) + sumber asalnya. */
-function firstWithSource<K extends keyof MangaCard>(
-  cards: Partial<Record<ComicSourceId, MangaCard>>,
-  key: K,
-): { value: NonNullable<MangaCard[K]>; source: ComicSourceId } | undefined {
-  for (const s of SOURCE_PRIORITY) {
-    const v = cards[s]?.[key];
-    if (v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0)) {
-      return { value: v as NonNullable<MangaCard[K]>, source: s };
-    }
-  }
-  return undefined;
-}
-
 export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): MergedMangaCard[] {
   const groups = new Map<
     string,
@@ -394,25 +459,53 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       }
     }
   }
-  // Pass 3b: URL SAMPUL IDENTIK. Dua grup yang menunjuk file sampul yang
-  // sama adalah judul yang sama walau ejaan/slug-nya beda (mis. varian
-  // "Sumisaka-san" ganda). Penyerap = grup dengan chapter TERBANYAK, dan
-  // entri tersebut jugalah yang menentukan judul tampilan. Pengaman:
-  // sampul placeholder diabaikan, satu sampul yang dipakai >3 grup dianggap
-  // generik, dan kedua judul harus berbagi satu kata (>=4 huruf).
+  // Pass 3b: SAMPUL IDENTIK + RENTANG CHAPTER TUMPANG TINDIH. Dua grup yang
+  // menunjuk file sampul yang sama (setelah normalisasi host, protokol,
+  // parameter, dan varian ukuran — lihat coverIdentity) dan rentang
+  // chapternya beririsan adalah judul yang sama walau ejaan/slug-nya beda
+  // (mis. varian "Sumisaka-san" ganda). Penyerap = grup dengan chapter
+  // TERBANYAK; kartu dengan chapter terbanyak (seri → sumber berprioritas
+  // lebih tinggi) menentukan judul/slug tampilan. Pengaman: sampul
+  // placeholder diabaikan dan satu sampul yang dipakai >4 grup dianggap
+  // generik.
   {
-    const bare = (k: string): string => k.replace(/^t:/, "");
-    const tokensOf = (k: string): Set<string> =>
-      new Set(bare(k).split(" ").filter((w) => w.length >= 4));
     const live = [...groups.keys()].filter((k) => !absorbed.has(k));
+    // Rentang chapter grup: [awal, terbaru] lintas semua sumbernya. Awal
+    // yang tak diketahui dianggap Chapter 1 (seri dimulai dari awal).
+    // null = tak ada data chapter sama sekali (tidak bisa dibandingkan).
+    const rangeOf = (k: string): { lo: number; hi: number } | null => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const s of SOURCE_PRIORITY) {
+        const c = groups.get(k)!.cards[s];
+        if (!c) continue;
+        const f = chapterNum(c.firstChapter?.label);
+        const l = chapterNum(c.latestChapter?.label);
+        if (Number.isFinite(f)) lo = Math.min(lo, f);
+        if (Number.isFinite(l)) hi = Math.max(hi, l);
+      }
+      if (!Number.isFinite(hi)) return null;
+      if (!Number.isFinite(lo) || lo > hi) lo = Math.min(CHAPTER_SUB_BASE, hi);
+      return { lo, hi };
+    };
+    const overlaps = (a: string, b: string): boolean => {
+      const ra = rangeOf(a);
+      const rb = rangeOf(b);
+      if (!ra || !rb) return true; // tanpa data chapter: sampul sama sudah cukup kuat
+      return ra.lo <= rb.hi && rb.lo <= ra.hi;
+    };
     const byCover = new Map<string, string[]>();
     for (const k of live) {
       const ids = new Set<string>();
+      const g = groups.get(k)!;
       for (const s of SOURCE_PRIORITY) {
-        const th = groups.get(k)!.cards[s]?.thumbnail;
-        if (!th || isPlaceholderCover(th)) continue;
-        const id = coverIdentity(th);
-        if (id) ids.add(id);
+        const c = g.cards[s];
+        if (!c) continue;
+        for (const th of [c.thumbnail, ...(c.thumbnailCandidates ?? [])]) {
+          if (!th || isPlaceholderCover(th)) continue;
+          const id = coverIdentity(th);
+          if (id) ids.add(id);
+        }
       }
       for (const id of ids) {
         const arr = byCover.get(id);
@@ -427,11 +520,10 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       return r;
     };
     for (const [, ks] of byCover) {
-      if (ks.length < 2 || ks.length > 3) continue;
+      if (ks.length < 2 || ks.length > 4) continue;
       for (let a = 0; a < ks.length; a++) {
         for (let b = a + 1; b < ks.length; b++) {
-          const ta = tokensOf(ks[a]);
-          if (![...tokensOf(ks[b])].some((w) => ta.has(w))) continue;
+          if (!overlaps(ks[a], ks[b])) continue;
           const ra = find(ks[a]);
           const rb = find(ks[b]);
           if (ra !== rb) parent.set(rb, ra);
@@ -468,7 +560,8 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         }
         absorbed.add(k);
       }
-      // Kartu dengan chapter terbanyak = identitas tampilan (judul/slug).
+      // Kartu dengan chapter terbanyak = identitas tampilan (judul/slug);
+      // seri → sumber berprioritas lebih tinggi (urutan SOURCE_PRIORITY).
       let pin: MangaCard | undefined;
       for (const s of SOURCE_PRIORITY) {
         const c = tg.cards[s];
@@ -501,9 +594,9 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
     // sumber prioritas tertinggi yang punya tipe; sinopsis = KUALITAS terbaik
     // dari semua sumber. Murni fungsi dari data kartu — tanpa memori proses.
     const genrePick = pickPrimaryGenre(g.cards);
-    const typeSrc = firstWithSource(g.cards, "type");
+    const typePick = pickType(g.cards);
     const genreName = genrePick?.genre.name;
-    const mergedType = typeSrc?.value as NonNullable<MangaCard["type"]> | undefined;
+    const mergedType = typePick?.type;
     const synopsisText = pickBestSynopsis(SOURCE_PRIORITY.map((s) => g.cards[s]?.synopsis));
     // Kandidat cover lintas sumber (prioritas dulu): klien mencoba berurutan
     // bila cover utama gagal dimuat, dan kotak error baru muncul bila semua
@@ -612,6 +705,7 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       ...(thumbCandidates.length > 1 ? { thumbnailCandidates: thumbCandidates } : {}),
       ...(getCard("altTitle") ? { altTitle: getCard("altTitle") as string } : {}),
       ...(mergedType ? { type: mergedType } : {}),
+      ...(typePick ? { typeSource: typePick.source } : {}),
       ...(genreName ? { genre: genreName } : {}),
       ...(genrePick ? { genreSource: genrePick.source } : {}),
       ...(mergedUpdatedAt ? { updatedAt: mergedUpdatedAt } : {}),
@@ -787,7 +881,9 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   const genrePick = pickPrimaryGenre(details);
   const genres: GenreRef[] = genrePick ? genrePick.list : [];
   const mergedTitle = fixTitle((get("title") as string) ?? primary.title);
-  const typeValue = (get("type") as string | undefined) ?? undefined;
+  // Tipe: sumber prioritas tertinggi yang punya tipe valid (pickType) —
+  // aturan yang sama dengan mergeCards dan getMangaSummary.
+  const typeValue: string | undefined = pickType(details)?.type;
 
   // Kandidat cover lintas sumber (prioritas dulu) untuk fallback onError.
   const covers: string[] = [];
@@ -894,27 +990,63 @@ function parseIdDate(raw?: string): number | undefined {
  * agar daftar tidak menampilkan tanggal yang menyesatkan.
  */
 function hideInconsistentDates(items: MergedChapterItem[]): MergedChapterItem[] {
-  const dated: { n: number; d: number }[] = [];
-  for (const it of items) {
-    const d = parseIdDate(it.date);
-    const n = chapterNum(it.title);
-    if (typeof d === "number" && Number.isFinite(n)) dated.push({ n, d });
-  }
-  let inconsistent = false;
-  for (let i = 1; i < dated.length; i++) {
-    const a = dated[i - 1];
-    const b = dated[i];
-    if (a.n > b.n && a.d < b.d) {
-      inconsistent = true;
-      break;
-    }
-  }
-  if (!inconsistent) return items;
-  return items.map((it) => {
+  const strip = (it: MergedChapterItem): MergedChapterItem => {
+    if (it.date === undefined) return it;
     const copy = { ...it };
     delete (copy as { date?: string }).date;
     return copy;
+  };
+  // Tanggal tepercaya = parse valid (dd/mm/yyyy nyata, bukan tanggal masa
+  // depan). Sisanya dibuang per item (hanya field `date`, chapter utuh).
+  const now = Date.now() + 24 * 60 * 60_000;
+  const parsed = items.map((it) => {
+    const d = parseIdDate(it.date);
+    const n = chapterNum(it.title);
+    const ok = typeof d === "number" && d <= now && d >= Date.UTC(2000, 0, 1);
+    return { d: ok ? (d as number) : undefined, n };
   });
+  const bad = new Array<boolean>(items.length).fill(false);
+  parsed.forEach((p, i) => {
+    if (p.d === undefined && items[i].date) bad[i] = true;
+  });
+
+  // 1) Tanggal identik pada >= 3 chapter BERURUTAN (stempel massal sumber).
+  let i = 0;
+  while (i < parsed.length) {
+    if (parsed[i].d === undefined) {
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < parsed.length && parsed[j].d === parsed[i].d) j++;
+    if (j - i >= 3) for (let k = i; k < j; k++) bad[k] = true;
+    i = j;
+  }
+
+  // 2) Urutan bertentangan: daftar = nomor tertinggi dulu, jadi tanggal
+  // harus menurun (non-increasing) ke bawah. Untuk tiap pasangan yang
+  // bertentangan, tanggal item yang terlibat dibuang.
+  const idx: number[] = [];
+  parsed.forEach((p, k) => {
+    if (!bad[k] && p.d !== undefined && Number.isFinite(p.n)) idx.push(k);
+  });
+  for (let a = 1; a < idx.length; a++) {
+    const p0 = parsed[idx[a - 1]];
+    const p1 = parsed[idx[a]];
+    if ((p0.n as number) > (p1.n as number) && (p0.d as number) < (p1.d as number)) {
+      bad[idx[a - 1]] = true;
+      bad[idx[a]] = true;
+    }
+  }
+  // Nomor tak terparse tapi bertanggal tidak bisa diverifikasi → buang.
+  parsed.forEach((p, k) => {
+    if (p.d !== undefined && !Number.isFinite(p.n)) bad[k] = true;
+  });
+
+  // 3) Tanpa tanggal tepercaya sama sekali → sembunyikan semuanya.
+  const trusted = items.some((it, k) => !bad[k] && parsed[k].d !== undefined);
+  if (!trusted) return items.map(strip);
+  return items.map((it, k) => (bad[k] ? strip(it) : it));
 }
 
 export function mergeChapters(

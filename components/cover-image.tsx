@@ -3,6 +3,7 @@
 import { KonohaMark } from "@/components/konoha-mark";
 import { UzumakiMark } from "@/components/uzumaki-mark";
 import { alternateImageUrls } from "@/lib/api/img-proxy";
+import { EMPTY_KEY, markCoverSettled, reportBrokenCover, useCoverHealing } from "@/components/cover-heal";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -289,18 +290,41 @@ export function CoverImage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, key, candidates.length]);
 
+  // Semua kandidat gagal (atau tidak ada sama sekali): JANGAN langsung
+  // placeholder. Laporkan ke pemulih riwayat dan tampilkan skeleton sambil
+  // sampul pengganti dicari dari detail gabungan. Placeholder hanya muncul
+  // setelah pemulihan selesai tanpa hasil.
+  const healKey = candidates.length > 0 ? primarySrcs[0] : EMPTY_KEY;
+  const healing = useCoverHealing(healKey, status === "error");
+  const restarted = candidates.length === 0 || restartedFor.current === key;
+  useEffect(() => {
+    if (status !== "error" || candidates.length === 0 || !restarted) return;
+    reportBrokenCover(healKey);
+  }, [status, candidates.length, restarted, healKey]);
+  // Pengaman: skeleton tanpa pemulih terpasang tidak boleh menggantung.
+  useEffect(() => {
+    if (!healing || candidates.length > 0) return;
+    const id = window.setTimeout(() => markCoverSettled(EMPTY_KEY), 6000);
+    return () => window.clearTimeout(id);
+  }, [healing, candidates.length]);
+  // Selama masih ada upaya (mulai ulang rantai / pemulihan), tahan skeleton.
+  const hold = healing || (candidates.length > 0 && !restarted);
+  const showSkeleton = status === "loading" || (status === "error" && hold);
+
   return (
-    <span className="cover-frame" data-status={status}>
-      {status === "loading" && (
+    <span className="cover-frame" data-status={showSkeleton ? "loading" : status}>
+      {showSkeleton && (
         <span className="cover-ph cover-ph--load" aria-hidden="true">
           <AnimeLoading />
         </span>
       )}
 
       {status === "error" ? (
+        hold ? null : (
         <span className="cover-ph cover-ph--err" role="img" aria-label={label}>
           <AnimeError label={label} />
         </span>
+        )
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img

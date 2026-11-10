@@ -261,8 +261,36 @@ export function cleanSynopsis(raw?: string | null): string | undefined {
   if (/^(belum ada|tidak ada|no) (isi|sinopsis|deskripsi|synopsis|description)/i.test(s)) {
     return undefined;
   }
+  if (!isMeaningfulSynopsis(s)) return undefined;
   // Jangan pernah tampilkan sinopsis yang berakhir di tengah kalimat.
   return trimToLastSentence(s);
+}
+
+/**
+ * Sinopsis BERMAKNA? Sumber kadang mengisi kolom sinopsis dengan penanda
+ * kosong ("-", "...", "N/A", "TBA", "Sinopsis", "Coming soon") atau hanya
+ * satu-dua kata. Teks seperti itu dulu lolos sebagai sinopsis valid, jadi
+ * sinopsis dianggap SUDAH ADA dan pencarian sinopsis di sumber lain
+ * (fallback lintas sumber/alias) tidak pernah dijalankan — halaman detail
+ * dan cuplikan pencarian akhirnya kosong/berisi "-".
+ * Tidak ada sinopsis yang dikarang: yang bermakna diambil dari sumber,
+ * yang tidak bermakna dianggap kosong.
+ */
+export function isMeaningfulSynopsis(raw?: string | null): boolean {
+  const s = (raw ?? "").trim();
+  if (!s) return false;
+  const letters = s.replace(/[^\p{L}]/gu, "");
+  // Kurang dari 15 huruf / kurang dari 3 kata = bukan sinopsis.
+  if (letters.length < 15) return false;
+  if (s.split(/\s+/).length < 3) return false;
+  if (
+    /^(n\/?a|tba|tbd|none|null|undefined|coming soon|sinopsis|synopsis|deskripsi|description|segera hadir|-+|\.+|…+)[\s.!:-]*$/i.test(
+      s,
+    )
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**

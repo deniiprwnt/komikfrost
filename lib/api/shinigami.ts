@@ -11,6 +11,7 @@ import { KomikuError } from "./komiku";
 import { proxiedImage } from "./img-proxy";
 import { withDataVersion } from "./cache";
 import { cleanSynopsis } from "./text";
+import { aliasKeys } from "./aggregator";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
 /**
@@ -195,6 +196,12 @@ function mapType(m: ShiniManga): KomikType | undefined {
   return undefined;
 }
 
+/** Sinopsis mentah: `description`, cadangan `synopsis`/`sinopsis` bila API memakai nama lain. */
+function rawDescription(m: ShiniManga): string | undefined {
+  const x = m as ShiniManga & { synopsis?: string; sinopsis?: string };
+  return m.description || x.synopsis || x.sinopsis || undefined;
+}
+
 function mapStatus(status?: number): string | undefined {
   if (status === 1) return "Ongoing";
   if (status === 2) return "Completed";
@@ -325,7 +332,7 @@ function toCard(m: ShiniManga): MangaCard {
     ...(genreNames(m)[0] ? { genre: genreNames(m)[0].name } : {}),
     ...(timeAgoId(m.latest_chapter_time) ? { updatedAt: timeAgoId(m.latest_chapter_time) as string } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
-    ...(cleanSynopsis(m.description) ? { synopsis: cleanSynopsis(m.description) as string } : {}),
+    ...(cleanSynopsis(rawDescription(m)) ? { synopsis: cleanSynopsis(rawDescription(m)) as string } : {}),
     ...(typeof n === "number"
       ? {
           // manga/list tidak memberi nomor chapter pertama — tebak Chapter 1
@@ -448,18 +455,6 @@ export function isShiniId(slug: string): boolean {
   );
 }
 
-function normTitle(raw: string): string {
-  return raw
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[’‘`´]/g, "'")
-    .replace(/[-------_]+/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 /**
  * Resolve slug Komiku (mis. "solo-leveling") → detail Shinigami.
  * Cari via ?q= lalu cocokkan normalizeTitle EXACT (konservatif, tanpa fuzzy).
@@ -489,25 +484,19 @@ export async function resolveShiniDetailForSlug(slug: string, altTitle?: string)
     const words = target.split(" ");
     const queries = [target];
     if (words.length > 3) queries.push(words.slice(0, 3).join(" "));
-    const normTarget = normTitle(target);
+    // Alias (EN) pemanggil ikut jadi kueri: judul utama sumber lain kadang
+    // beda total dari judul Shinigami, tapi alias-nya sama.
+    if (altTitle && !queries.includes(altTitle)) queries.push(altTitle);
     // Kandidat target: judul + altTitle pemanggil (exact, tanpa fuzzy).
-    const normAlts: string[] = [];
-    if (altTitle) {
-      const na = normTitle(altTitle);
-      if (na && na !== normTarget) normAlts.push(na);
-    }
+    const want = aliasKeys(target, altTitle);
     for (const query of queries) {
       const params = new URLSearchParams({ page: "1", page_size: "10", q: query });
       const { data } = await fetchShini<ShiniManga[]>(`/manga/list?${params}`);
       if (!Array.isArray(data)) continue;
-      // Judul utama ATAU judul alternatif (EN) yang cocok exact → hit.
-      // Upstream kadang memotong judul utama ("...Desu" → "...Des") tapi
-      // menyimpan judul EN lengkap di alternative_title.
-      const hit = data.find(
-        (m) =>
-          normTitle(m.title) === normTarget ||
-          (m.alternative_title && normTitle(m.alternative_title) === normTarget) ||
-          (m.alternative_title && normAlts.includes(normTitle(m.alternative_title))),
+      // Judul utama ATAU judul alternatif yang cocok exact (setelah
+      // normalisasi) dengan salah satu alias → hit.
+      const hit = data.find((m) =>
+        aliasKeys(m.title, m.alternative_title).some((k) => want.includes(k)),
       );
       if (hit) return fetchShiniDetail(hit.manga_id);
     }
@@ -517,6 +506,90 @@ export async function resolveShiniDetailForSlug(slug: string, altTitle?: string)
     `${SHINI_API}/manga/list`,
     404,
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Meta ringan (tipe / genre / sinopsis) tanpa daftar chapter           */
+/* ------------------------------------------------------------------ */
+
+/** Meta kanonis satu judul Shinigami — nilai SAMA dengan fetchShiniDetail. */
+export interface ShiniBrief {
+  id: string;
+  title: string;
+  altTitle?: string;
+  type?: KomikType;
+  genres: GenreRef[];
+  synopsis?: string;
+  cover: string;
+}
+
+function toMeta(m: ShiniManga): ShiniBrief {
+  const type = mapType(m);
+  const synopsis = cleanSynopsis(rawDescription(m));
+  return {
+    id: m.manga_id,
+    title: m.title,
+    ...(m.alternative_title ? { altTitle: m.alternative_title } : {}),
+    ...(type ? { type } : {}),
+    genres: genreNames(m),
+    ...(synopsis ? { synopsis } : {}),
+    cover: coverUrl(m),
+  };
+}
+
+/**
+ * Meta satu judul lewat endpoint detail (1 request, TANPA chapter). Dipakai
+ * kartu & ringkasan agar tipe/genre/sinopsis identik dengan halaman detail —
+ * data daftar (manga/list) bisa membawa taxonomy yang lebih sedikit.
+ */
+export async function fetchShiniMeta(mangaId: string): Promise<ShiniBrief> {
+  const id = mangaId.replace(/^\/+|\/+$/g, "");
+  const { data: m } = await fetchShini<ShiniManga>(`/manga/detail/${encodeURIComponent(id)}`, 3600);
+  return toMeta(m);
+}
+
+/**
+ * Cari ID Shinigami lewat judul + alias (exact setelah normalisasi, tanpa
+ * fuzzy). null = tidak ada di Shinigami; melempar bila SEMUA kueri gagal
+ * (gangguan sementara — jangan dianggap "tidak ada").
+ */
+export async function findShiniIdByTitles(
+  titles: ReadonlyArray<string | null | undefined>,
+): Promise<string | null> {
+  const want = aliasKeys(...titles);
+  if (want.length === 0) return null;
+  const queries: string[] = [];
+  for (const t of titles) {
+    const q = (t ?? "")
+      .replace(/\s*[(\[][^)\]]*[)\]]\s*$/, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (q.length >= 2 && !queries.includes(q)) queries.push(q);
+    const words = q.split(" ");
+    if (words.length > 3) {
+      const short = words.slice(0, 3).join(" ");
+      if (!queries.includes(short)) queries.push(short);
+    }
+  }
+  let ok = 0;
+  let lastErr: unknown;
+  for (const query of queries.slice(0, 4)) {
+    try {
+      const params = new URLSearchParams({ page: "1", page_size: "10", q: query });
+      const { data } = await fetchShini<ShiniManga[]>(`/manga/list?${params}`);
+      ok++;
+      if (!Array.isArray(data)) continue;
+      const hit = data.find((m) =>
+        aliasKeys(m.title, m.alternative_title).some((k) => want.includes(k)),
+      );
+      if (hit) return hit.manga_id;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (ok === 0 && lastErr) throw lastErr;
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -571,7 +644,7 @@ export async function fetchShiniDetail(mangaId: string): Promise<MangaDetail> {
     ...(m.alternative_title ? { altTitle: m.alternative_title } : {}),
     cover: coverUrl(m),
     ...(coverCandidates(m).length > 1 ? { coverCandidates: coverCandidates(m) } : {}),
-    synopsis: cleanSynopsis(m.description) ?? "",
+    synopsis: cleanSynopsis(rawDescription(m)) ?? "",
     ...(type ? { type } : {}),
     genres: genreNames(m),
     ...(author ? { author } : {}),

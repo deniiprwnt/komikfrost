@@ -21,18 +21,23 @@ import {
   fetchKomikcastDetail,
   fetchKomikcastLatest,
   fetchKomikcastTrending,
+  resolveKomikcastBriefForTitle,
   resolveKomikcastDetailForTitle,
+  type KcBrief,
 } from "./komikcast";
 import {
   fetchShiniLatest,
+  fetchShiniMeta,
   fetchShiniRecommended,
   fetchShiniTop,
+  findShiniIdByTitles,
   isShiniId,
   resolveShiniDetailForSlug,
   type ShiniFormat,
   type ShiniTopFilter,
 } from "./shinigami";
 import {
+  aliasKeys,
   fetchAllSettled,
   fixTitle,
   mergeCards,
@@ -40,6 +45,7 @@ import {
   normalizeTitle,
   pickLatest,
   pickPrimaryGenre,
+  pickType,
   rewriteShiniUrl,
   sortByFresh,
   SOURCE_PRIORITY,
@@ -47,9 +53,9 @@ import {
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache } from "./cache";
-import { pickBestSynopsis } from "./text";
+import { isMeaningfulSynopsis, pickBestSynopsis, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
-import type { MangaCard, MangaDetail, PagedResult } from "./types";
+import type { GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
 
 /** Batas waktu kerja tambahan agar respons tidak tertahan upstream.
  *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
@@ -112,110 +118,225 @@ function komikuDetailSafe(slug: string): Promise<MangaDetail | null> {
   );
 }
 
-/** Maks kartu yang dilengkapi per panggilan (tiap kartu 1-3 request). */
-const COMPLETE_CAP = 10;
+/* ------------------------------------------------------------------ */
+/* Resolusi KANONIS tipe / genre / sinopsis (satu aturan untuk semua)    */
+/* ------------------------------------------------------------------ */
 
 /**
- * Lengkapi kartu hasil mergeCards supaya label & sinopsisnya SAMA dengan
- * halaman detail, tanpa memori per instance:
+ * Tipe, genre utama, dan sinopsis satu judul HARUS sama di Beranda (Update
+ * terbaru, Rekomendasi), Peringkat, pencarian, halaman genre, Serupa, dan
+ * detail. Daftar (list) tiap sumber hanya memuat sebagian: kartu yang
+ * lahir dari Komiku saja membawa label daftar yang bisa berupa TEMA
+ * (mis. "Comedy"), dan kartu tanpa Shinigami tidak tahu tipe/genre milik
+ * Shinigami — padahal detail selalu dimenangkan Shinigami lebih dulu.
  *
- *  - Genre utama = genres[0] sumber prioritas tertinggi yang valid. Label
- *    genre di KARTU Komiku berasal dari daftar (bisa berisi Tema), jadi
- *    kartu yang genre-nya dimenangkan Komiku ditegaskan lewat detail Komiku
- *    (field Genre terpisah dari Tema) — aturan sama dengan mergeDetails.
- *  - Sinopsis kosong → fallback lintas sumber (detail Komiku, Komikcast,
- *    Shinigami) dengan pencocokan judul `normalizeTitle`; sinopsis dipilih
- *    lewat kualitas, bukan siapa yang datang dulu.
- *  - Kartu Komikcast-only dicari padanannya di Komiku (exact normalizeTitle).
+ * Di sini nilai kartu diturunkan dari META DETAIL sumber, dengan fungsi
+ * pemilih yang SAMA dengan mergeDetails (pickPrimaryGenre, pickType,
+ * pickBestSynopsis) dan urutan tetap Shinigami → Komiku → Komikcast. Sumber
+ * berikutnya hanya dibaca bila sumber di atasnya belum punya nilai.
+ * Semua pencarian lintas sumber memakai judul + ALIAS (altTitle) lewat
+ * `aliasKeys`, dan hasilnya di-cache (versi data) — kartu yang belum sempat
+ * dilengkapi di request pertama terisi dari cache di request berikutnya.
+ */
+const CANON_TTL = 30 * 60_000;
+
+/** Semaphore sederhana: batasi request upstream paralel dari enrich. */
+let canonActive = 0;
+const canonWaiters: Array<() => void> = [];
+const CANON_MAX = 8;
+async function canonSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (canonActive >= CANON_MAX) await new Promise<void>((r) => canonWaiters.push(r));
+  canonActive++;
+  try {
+    return await fn();
+  } finally {
+    canonActive--;
+    canonWaiters.shift()?.();
+  }
+}
+
+const aliasId = (aliases: string[]): string => aliasKeys(...aliases).sort().join("|");
+
+const shiniIdCache = createKeyedCache<{ id: string | null }>(CANON_TTL, 800);
+const shiniIdForTitles = (aliases: string[]): Promise<string | null> =>
+  shiniIdCache
+    .load(aliasId(aliases), async () => ({ id: await findShiniIdByTitles(aliases) }))
+    .then((r) => r.id);
+
+const shiniMetaCache = createKeyedCache<Awaited<ReturnType<typeof fetchShiniMeta>>>(60 * 60_000, 800);
+const shiniMetaById = (id: string) => shiniMetaCache.load(id, () => fetchShiniMeta(id));
+
+const komikuSlugCache = createKeyedCache<{ slug: string | null }>(CANON_TTL, 800);
+const komikuSlugForTitles = (aliases: string[]): Promise<string | null> =>
+  komikuSlugCache
+    .load(aliasId(aliases), async () => {
+      const want = aliasKeys(...aliases);
+      for (const q of aliases.filter(Boolean).slice(0, 2)) {
+        const { items } = await searchMangaRemote(q, 1);
+        const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.includes(x)));
+        if (hit) return { slug: hit.slug };
+      }
+      return { slug: null };
+    })
+    .then((r) => r.slug);
+
+const kcBriefCache = createKeyedCache<{ slug: string; brief: KcBrief } | null>(CANON_TTL, 800);
+const kcBriefForTitles = (title: string, alt?: string): Promise<{ slug: string; brief: KcBrief } | null> =>
+  kcBriefCache.load(aliasId([title, alt ?? ""]), async () => {
+    try {
+      return await resolveKomikcastBriefForTitle(title, normalizeTitle, alt);
+    } catch (e) {
+      // 404 = memang tidak ada (boleh di-cache); lainnya = gangguan sementara.
+      if ((e as { status?: number } | null)?.status === 404) return null;
+      throw e;
+    }
+  });
+
+/** Meta seragam per sumber untuk pemilih kanonis. */
+interface SrcMeta {
+  type?: string;
+  genres?: GenreRef[];
+  synopsis?: string;
+}
+
+interface CanonResult {
+  type?: { type: NonNullable<MangaCard["type"]>; source: (typeof SOURCE_PRIORITY)[number] };
+  genre?: { name: string; source: (typeof SOURCE_PRIORITY)[number] };
+  synopsis?: string;
+  /**
+   * Pilihan genre/tipe boleh diterapkan: tak ada sumber yang gagal SEMENTARA
+   * dan berprioritas lebih tinggi dari pemenang (bisa saja ia pemenang
+   * sebenarnya — mis. Shinigami timeout → jangan menerapkan genre Komiku).
+   */
+  genreCertain: boolean;
+  typeCertain: boolean;
+}
+
+/** Sinopsis dianggap "cukup baik" (tak perlu mencari lebih jauh) di skor ini. */
+const GOOD_SYNOPSIS = 250;
+
+/**
+ * Turunkan tipe/genre/sinopsis kanonis satu judul. Sumber dibaca BERURUTAN
+ * Shinigami → Komiku → Komikcast dan berhenti begitu semua kebutuhan
+ * terpenuhi. `known` = slug sumber yang sudah diketahui kartu.
+ */
+async function resolveCanon(input: {
+  title: string;
+  altTitle?: string;
+  slugs?: Partial<Record<(typeof SOURCE_PRIORITY)[number], string>>;
+  listSynopsis?: string;
+}): Promise<CanonResult> {
+  const aliases = [input.title, input.altTitle ?? ""].filter(Boolean);
+  const metas: Partial<Record<(typeof SOURCE_PRIORITY)[number], SrcMeta>> = {};
+  const failed: Array<(typeof SOURCE_PRIORITY)[number]> = [];
+  const isTransient = (e: unknown): boolean => {
+    const st = (e as { status?: number } | null)?.status;
+    return st !== 404 && st !== 400;
+  };
+  const synopses: Array<string | undefined> = [undefined, undefined, undefined];
+  const done = (): boolean => {
+    if (!pickType(metas) || !pickPrimaryGenre(metas)) return false;
+    const best = pickBestSynopsis(synopses);
+    return !!best && synopsisQuality(best) >= GOOD_SYNOPSIS;
+  };
+  const record = (s: (typeof SOURCE_PRIORITY)[number], m: SrcMeta) => {
+    metas[s] = m;
+    synopses[SOURCE_PRIORITY.indexOf(s)] = m.synopsis;
+  };
+
+  // 1) Shinigami
+  try {
+    const id = input.slugs?.shinigami ?? (await canonSlot(() => shiniIdForTitles(aliases)));
+    if (id) {
+      const m = await canonSlot(() => shiniMetaById(id));
+      record("shinigami", { type: m.type, genres: m.genres, synopsis: m.synopsis });
+    }
+  } catch (e) {
+    if (isTransient(e)) failed.push("shinigami");
+  }
+  // 2) Komiku
+  if (!done()) {
+    try {
+      const slug = input.slugs?.komiku ?? (await canonSlot(() => komikuSlugForTitles(aliases)));
+      if (slug) {
+        const d = await canonSlot(() => komikuDetailSafe(slug));
+        if (d) record("komiku", { type: d.type, genres: d.genres, synopsis: d.synopsis });
+        else failed.push("komiku");
+      }
+    } catch (e) {
+      if (isTransient(e)) failed.push("komiku");
+    }
+  }
+  // 3) Komikcast
+  if (!done()) {
+    try {
+      const kc = input.slugs?.komikcast
+        ? { slug: input.slugs.komikcast, brief: await canonSlot(() => fetchKomikcastBrief(input.slugs!.komikcast!)) }
+        : await canonSlot(() => kcBriefForTitles(input.title, input.altTitle));
+      if (kc) record("komikcast", { type: kc.brief.type, genres: kc.brief.genres, synopsis: kc.brief.synopsis });
+    } catch {
+      // Komikcast = prioritas terendah: kegagalannya tidak mengubah pemenang di atasnya.
+    }
+  }
+  const tp = pickType(metas);
+  const gp = pickPrimaryGenre(metas);
+  // Daftar sendiri (list) ikut jadi kandidat sinopsis, sebagai yang terakhir.
+  const synopsis = pickBestSynopsis([...synopses, input.listSynopsis]);
+  const rank = (x: (typeof SOURCE_PRIORITY)[number]) => SOURCE_PRIORITY.indexOf(x);
+  const safe = (winner?: (typeof SOURCE_PRIORITY)[number]): boolean =>
+    failed.every((f) => winner !== undefined && rank(f) > rank(winner));
+  return {
+    ...(tp ? { type: tp } : {}),
+    ...(gp ? { genre: { name: gp.genre.name, source: gp.source } } : {}),
+    ...(synopsis ? { synopsis } : {}),
+    genreCertain: safe(gp?.source),
+    typeCertain: safe(tp?.source),
+  };
+}
+
+/** Maks kartu yang dilengkapi per panggilan. */
+const COMPLETE_CAP = 24;
+
+/**
+ * Lengkapi kartu hasil mergeCards supaya tipe, genre utama, dan sinopsisnya
+ * SAMA dengan halaman detail (lihat resolveCanon). Aturan:
+ *  - genre kartu = genres[0] sumber pemenang (Shinigami → Komiku →
+ *    Komikcast), BUKAN Tema; Tema tetap terpisah di detail;
+ *  - tipe = sumber pemenang; sumber berikutnya hanya bila pemenang tak
+ *    punya tipe;
+ *  - sinopsis = kualitas terbaik, fallback lintas sumber lewat alias.
+ * Hasil resolusi yang valid TIDAK pernah ditimpa lagi oleh langkah lain
+ * (enrich pencarian tidak mengubah genre pemenang).
  *
  * Aman dipanggil dengan batas waktu: kartu yang belum sempat dilengkapi
- * tetap tampil dengan data daftar.
+ * tetap tampil dengan data daftar, dan terisi dari cache pada request
+ * berikutnya (kerja upstream tetap berjalan di latar).
  */
 export async function completeCards(cards: MergedMangaCard[]): Promise<void> {
-  const needy = cards
-    .filter(
-      (c) =>
-        c.genreSource === "komiku" ||
-        c.genreSource === "komikcast" ||
-        !c.genre ||
-        !c.synopsis,
-    )
-    // Yang paling miskin dulu (tanpa genre/sinopsis), lalu urutan tampil.
-    .map((c, i) => ({ c, i, miss: (c.genre ? 0 : 1) + (c.synopsis ? 0 : 1) }))
-    .sort((a, b) => b.miss - a.miss || a.i - b.i)
-    .slice(0, COMPLETE_CAP)
-    .map((x) => x.c);
-  if (needy.length === 0) return;
+  const todo = cards.slice(0, COMPLETE_CAP);
   await Promise.all(
-    needy.map(async (c) => {
-      const norm = normalizeTitle(c.title);
-      if (!norm) return;
-      const wantsGenre = c.genreSource !== "shinigami";
-      // 1) Padanan Komiku: slug yang sudah ada, atau cari exact-match judul.
-      let kSlug = c.sourceSlug?.komiku;
-      if (!kSlug && (wantsGenre || !c.synopsis)) {
-        try {
-          const { items } = await searchMangaRemote(c.title, 1);
-          const hit = items.find((k) => normalizeTitle(fixTitle(k.title)) === norm);
-          if (hit) {
-            kSlug = hit.slug;
-            if (!c.sources.includes("komiku")) {
-              c.sources.push("komiku");
-              c.sourceSlug = { ...c.sourceSlug, komiku: hit.slug };
-              c.sources.sort((a, b) => SOURCE_PRIORITY.indexOf(a) - SOURCE_PRIORITY.indexOf(b));
-            }
-            if (!c.firstChapter && hit.firstChapter) c.firstChapter = hit.firstChapter;
-          }
-        } catch {
-          // biarin — lanjut ke fallback sumber lain
-        }
-      }
-      if (kSlug) {
-        const d = await komikuDetailSafe(kSlug);
-        if (d) {
-          if (wantsGenre) {
-            const pick = pickPrimaryGenre({ komiku: d });
-            if (pick) {
-              c.genre = pick.genre.name;
-              c.genreSource = "komiku";
-            }
-          }
-          const syn = pickBestSynopsis([c.synopsis, d.synopsis]);
-          if (syn) c.synopsis = syn;
-          if (!c.type && d.type) c.type = d.type as NonNullable<MangaCard["type"]>;
-        }
-      }
-      if (c.genre && c.synopsis) return;
-      // 2) Komikcast: ringkasan series (slug sendiri, atau slug tebakan judul).
+    todo.map(async (c) => {
+      if (!normalizeTitle(c.title)) return;
+      let r: CanonResult;
       try {
-        const kcSlug =
-          c.sourceSlug?.komikcast ??
-          norm.replace(/\s+/g, "-");
-        const brief = await fetchKomikcastBrief(kcSlug);
-        if (brief.title && normalizeTitle(fixTitle(brief.title)) !== norm && !c.sourceSlug?.komikcast) {
-          throw new Error("judul tidak cocok");
-        }
-        if (!c.genre && brief.genre) {
-          c.genre = genreDisplayName(brief.genre) ?? c.genre;
-          if (c.genre) c.genreSource = "komikcast";
-        }
-        if (!c.type && brief.type) c.type = brief.type;
-        const syn = pickBestSynopsis([c.synopsis, brief.synopsis]);
-        if (syn) c.synopsis = syn;
+        r = await resolveCanon({
+          title: c.title,
+          altTitle: c.altTitle,
+          slugs: c.sourceSlug,
+          listSynopsis: c.synopsis,
+        });
       } catch {
-        // tidak ada di Komikcast — normal
+        return;
       }
-      if (c.synopsis) return;
-      // 3) Terakhir: Shinigami lewat judul (exact, tanpa fuzzy).
-      if (!c.sourceSlug?.shinigami) {
-        try {
-          const d = await resolveShiniDetailForSlug(c.title, c.altTitle);
-          const syn = pickBestSynopsis([d.synopsis]);
-          if (syn) c.synopsis = syn;
-        } catch {
-          // absen di Shinigami — normal
-        }
+      if (r.genre && r.genreCertain) {
+        c.genre = r.genre.name;
+        c.genreSource = r.genre.source;
       }
+      if (r.type && r.typeCertain) {
+        c.type = r.type.type;
+        c.typeSource = r.type.source;
+      }
+      if (r.synopsis) c.synopsis = r.synopsis;
     }),
   );
 }
@@ -468,10 +589,12 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     const n = parseInt(digits, 10);
     return Number.isFinite(n) && digits ? n : -1;
   };
-  const ranked = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a));
-  // Genre/tipe/sampul kanonis â€” peringkat menampilkan nilai yang sama dengan
-  // beranda, pencarian, dan halaman detail.
-  return ranked.slice(0, 20).map((m, i) => ({ ...m, rank: i + 1 }));
+  const top = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a)).slice(0, 20);
+  // Tipe/genre/sinopsis kanonis: peringkat menampilkan nilai yang SAMA dengan
+  // beranda, pencarian, dan halaman detail (dulu tidak diperkaya sama sekali,
+  // sehingga label Komiku/Tema bocor dan tipe diambil terpisah lewat ringkasan).
+  await withTimeout(completeCards(top), 2500).catch(() => null);
+  return top.map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
 /** Acak array (Fisher-Yates) — agar rekomendasi tampil beda tiap muat. */
@@ -516,7 +639,12 @@ export async function getRecommended(): Promise<MangaCard[]> {
     shinigami: data.shinigami ?? [],
     komikcast: data.komikcast ?? [],
   });
-  return shuffle(merged);
+  const shuffled = shuffle(merged);
+  // Rekomendasi memakai aturan kanonis yang sama dengan Update terbaru
+  // (tipe/genre sumber pemenang). Hanya bagian yang tampil (urutan acak awal)
+  // yang diperkaya; batas waktu menjaga beranda tetap cepat.
+  await withTimeout(completeCards(shuffled), 2500).catch(() => null);
+  return shuffled;
 }
 
 /** Update chapter terbaru (alias getLatest halaman pertama, untuk homepage). */
@@ -556,30 +684,36 @@ export async function getMangaDetail(
 }
 
 /**
- * Cari sinopsis di sumber yang belum terambil, dicocokkan lewat judul
- * (normalizeTitle exact). Paralel, gagal = diabaikan; hasil dipilih lewat
- * kualitas (pickBestSynopsis) dengan urutan prioritas sumber.
+ * Cari sinopsis lewat JUDUL + ALIAS di semua sumber (termasuk sumber yang
+ * sudah terambil tetapi sinopsisnya kosong — bisa jadi ada entri lain untuk
+ * judul yang sama dengan slug berbeda). Paralel, gagal = diabaikan; hasil
+ * dipilih lewat kualitas (pickBestSynopsis) dengan urutan prioritas sumber.
+ * Tidak ada sinopsis yang dikarang: hanya teks dari sumber.
  */
-async function fallbackSynopsisByTitle(
-  title: string,
-  altTitle: string | undefined,
-  have: Set<string>,
+async function fallbackSynopsisByAliases(
+  aliases: string[],
+  have: Partial<Record<(typeof SOURCE_PRIORITY)[number], { slug: string }>>,
 ): Promise<string | undefined> {
-  const norm = normalizeTitle(title);
-  if (!norm) return undefined;
-  const tryKomiku = async (): Promise<string | undefined> => {
-    const { items } = await searchMangaRemote(title, 1);
-    const hit = items.find((k) => normalizeTitle(fixTitle(k.title)) === norm);
-    return hit ? (await fetchMangaDetail(hit.slug)).synopsis : undefined;
+  const list = aliases.filter(Boolean);
+  if (list.length === 0) return undefined;
+  const jobs: Record<(typeof SOURCE_PRIORITY)[number], () => Promise<string | undefined>> = {
+    shinigami: async () => {
+      const id = await findShiniIdByTitles(list);
+      if (!id || id === have.shinigami?.slug) return undefined;
+      return (await shiniMetaById(id)).synopsis;
+    },
+    komiku: async () => {
+      const slug = await komikuSlugForTitles(list);
+      if (!slug || slug === have.komiku?.slug) return undefined;
+      return (await komikuDetailSafe(slug))?.synopsis;
+    },
+    komikcast: async () => {
+      const kc = await kcBriefForTitles(list[0], list[1]);
+      if (!kc || kc.slug === have.komikcast?.slug) return undefined;
+      return kc.brief.synopsis;
+    },
   };
-  const jobs: Record<string, () => Promise<string | undefined>> = {
-    shinigami: async () => (await resolveShiniDetailForSlug(title, altTitle)).synopsis,
-    komiku: tryKomiku,
-    komikcast: async () =>
-      (await resolveKomikcastDetailForTitle(title, normalizeTitle, altTitle)).synopsis,
-  };
-  const order = SOURCE_PRIORITY.filter((s) => !have.has(s));
-  const results = await Promise.allSettled(order.map((s) => jobs[s]()));
+  const results = await Promise.allSettled(SOURCE_PRIORITY.map((s) => jobs[s]()));
   return pickBestSynopsis(
     results.map((r) => (r.status === "fulfilled" ? r.value : undefined)),
   );
@@ -621,17 +755,19 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
       // absen di Komikcast — normal, bukan error
     }
   }
-  // Tahap 2b: slug Komikcast-only → coba resolve Shinigami via judul+alt
-  // Komikcast (exact). Berhasil = halaman detail ikut dapat chapter + cover
-  // Shinigami; gagal = tetap serve Komiku+Komikcast.
-  if (deep && !data.shinigami && data.komikcast && !isShiniId(slug)) {
-    try {
-      data.shinigami = await resolveShiniDetailForSlug(
-        data.komikcast.slug,
-        data.komikcast.altTitle,
-      );
-    } catch {
-      // absen di Shinigami — normal, bukan error
+  // Tahap 2b: Shinigami belum ketemu lewat slug → resolve via JUDUL + ALIAS
+  // (dari Komiku, bila tidak ada dari Komikcast; exact, tanpa fuzzy). Aturan
+  // ini SAMA dengan resolveCanon (kartu), sehingga kartu dan halaman detail
+  // memilih sumber pemenang yang sama untuk tipe/genre/sinopsis. Gagal =
+  // tetap serve sumber yang ada.
+  if (deep && !data.shinigami && !isShiniId(slug)) {
+    const base = data.komiku ?? data.komikcast;
+    if (base) {
+      try {
+        data.shinigami = await resolveShiniDetailForSlug(base.title, base.altTitle);
+      } catch {
+        // absen di Shinigami — normal, bukan error
+      }
     }
   }
   const merged: MergedMangaDetail | null = mergeDetails({
@@ -640,15 +776,28 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
     ...(data.komikcast ? { komikcast: data.komikcast } : {}),
   });
   if (!merged) throw new Error("Gagal memuat detail komik.");
-  // Sinopsis kosong di SEMUA sumber yang terambil → cari di sumber yang
-  // belum terambil lewat judul (`normalizeTitle`, exact, tanpa fuzzy). Hanya
-  // sinopsisnya yang dipinjam; slug/chapter detail tidak berubah.
-  if (deep && !merged.synopsis) {
-    const found = await fallbackSynopsisByTitle(
-      merged.title,
-      merged.altTitle,
-      new Set(merged.sources),
-    );
+  // Sinopsis kosong/placeholder di SEMUA sumber yang terambil → cari lewat
+  // judul + ALIAS (semua judul/altTitle dari tiap sumber + judul dari slug)
+  // di ketiga sumber, juga entri lain bersumber sama dengan slug berbeda.
+  // Hanya sinopsisnya yang dipinjam; slug/chapter detail tidak berubah.
+  if (deep && !isMeaningfulSynopsis(merged.synopsis)) {
+    const aliases: string[] = [];
+    const add = (v?: string | null) => {
+      const t = (v ?? "").trim();
+      if (t && !aliases.includes(t)) aliases.push(t);
+    };
+    add(merged.title);
+    add(merged.altTitle);
+    for (const src of SOURCE_PRIORITY) {
+      add(data[src]?.title);
+      add(data[src]?.altTitle);
+    }
+    if (!isShiniId(slug)) add(slug.replace(/-/g, " ").replace(/\s+id\s*\d*$/i, ""));
+    const found = await fallbackSynopsisByAliases(aliases, {
+      ...(data.shinigami ? { shinigami: data.shinigami } : {}),
+      ...(data.komiku ? { komiku: data.komiku } : {}),
+      ...(data.komikcast ? { komikcast: data.komikcast } : {}),
+    });
     if (found) merged.synopsis = found;
   }
   // Kembalikan sebagai MangaDetail (chapters = MergedChapterItem[] adalah
@@ -699,10 +848,20 @@ function isTransientFailure(r: PromiseSettledResult<unknown>): boolean {
  */
 async function buildSummary(clean: string): Promise<{ summary: MangaSummary; complete: boolean }> {
   const uuid = isShiniId(clean);
-  const [rk, rs] = await Promise.allSettled([
+  const [rk, rs0] = await Promise.allSettled([
     uuid ? Promise.reject(new Error("Slug UUID bukan slug Komiku.")) : fetchMangaDetail(clean),
     resolveShiniDetailForSlug(clean),
   ]);
+  let rs: PromiseSettledResult<MangaDetail> = rs0;
+  // Shinigami tak ketemu lewat slug → coba lewat judul + alias dari Komiku
+  // (aturan yang sama dengan detail & resolveCanon).
+  if (rs.status === "rejected" && !isTransientFailure(rs) && rk.status === "fulfilled" && !uuid) {
+    try {
+      rs = { status: "fulfilled", value: await resolveShiniDetailForSlug(rk.value.title, rk.value.altTitle) };
+    } catch (e) {
+      rs = { status: "rejected", reason: e };
+    }
+  }
   const komiku = rk.status === "fulfilled" ? rk.value : undefined;
   const shinigami = rs.status === "fulfilled" ? rs.value : undefined;
   const complete = !isTransientFailure(rs) && (uuid || !isTransientFailure(rk));
@@ -731,13 +890,32 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
       },
     };
   }
-  const first = (k: "title" | "cover" | "type"): string | undefined => {
+  const first = (k: "title" | "cover"): string | undefined => {
     for (const s of SOURCE_PRIORITY) {
       const v = byDetail[s]?.[k];
       if (typeof v === "string" && v) return v;
     }
     return undefined;
   };
+  // Tipe: aturan tunggal pickType (Shinigami → Komiku → Komikcast), sama
+  // dengan mergeCards/mergeDetails. Komikcast dibaca HANYA bila sumber
+  // pemenang (Shinigami/Komiku) tidak punya tipe.
+  let type: string | undefined = pickType(byDetail)?.type;
+  if (!type) {
+    try {
+      type = (await fetchKomikcastBrief(clean)).type;
+    } catch {
+      try {
+        const kc = await kcBriefForTitles(
+          first("title") ?? clean,
+          byDetail.shinigami?.altTitle ?? byDetail.komiku?.altTitle,
+        );
+        type = kc?.brief.type;
+      } catch {
+        // tidak ada di Komikcast — ringkasan tanpa tipe
+      }
+    }
+  }
   const pick = pickPrimaryGenre(byDetail);
   if (!pick) {
     // Kedua sumber utama tanpa genre valid: Komikcast jadi penentu terakhir.
@@ -746,14 +924,14 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
       const g = brief.genre ? genreDisplayName(brief.genre) : undefined;
       if (g) {
         const displaySlug = komiku?.slug ?? clean;
-        const type = first("type") ?? brief.type;
+        const briefType = type ?? brief.type;
         return {
           complete,
           summary: {
             slug: displaySlug,
             title: fixTitle(first("title") ?? brief.title ?? clean),
             cover: first("cover") ?? brief.cover ?? "",
-            ...(type ? { type } : {}),
+            ...(briefType ? { type: briefType } : {}),
             genre: g,
             ...summaryLatest(byDetail, displaySlug),
           },
@@ -764,7 +942,6 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
     }
   }
   const displaySlug = komiku?.slug ?? clean;
-  const type = first("type");
   return {
     complete,
     summary: {
