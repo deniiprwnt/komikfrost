@@ -49,6 +49,11 @@ function IconUp({ className }: { className?: string }) {
   );
 }
 
+/** Tangga ukuran gambar pembaca (%). 100 = pas lebar kolom bacaan. */
+const ZOOM_STEPS = [50, 65, 80, 90, 100, 115, 130, 150, 175, 200];
+const ZOOM_MIN = ZOOM_STEPS[0];
+const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
+
 /** Hitung href Prev/Next chapter — dipakai nav atas/bawah + overlay tap. */
 function navHrefs(
   data: ChapterData | null,
@@ -184,6 +189,9 @@ export default function ReaderPage({
   // selama animasi smooth-scroll (terasa nyangkut).
   const [fabSuppressed, setFabSuppressed] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
+  // Ukuran gambar (%). 100 = selebar kolom bacaan; >100 menggulir mendatar,
+  // <100 memperkecil gambar di tengah. Tersimpan per perangkat.
+  const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
     try {
@@ -192,7 +200,30 @@ export default function ReaderPage({
     } catch {
       // abaikan — default scroll
     }
+    try {
+      const z = Number(localStorage.getItem("bk-reader-zoom"));
+      if (ZOOM_STEPS.includes(z)) setZoom(z);
+    } catch {
+      // abaikan — default 100%
+    }
   }, []);
+
+  const applyZoom = (v: number) => {
+    setZoom(v);
+    try {
+      localStorage.setItem("bk-reader-zoom", String(v));
+    } catch {
+      // abaikan
+    }
+  };
+
+  /** Geser satu langkah tangga zoom; berhenti di ujung tanpa efek. */
+  const stepZoom = (d: -1 | 1) => {
+    const i = ZOOM_STEPS.indexOf(zoom);
+    const from = i < 0 ? ZOOM_STEPS.indexOf(100) : i;
+    const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, from + d))];
+    if (next !== zoom) applyZoom(next);
+  };
 
   const switchMode = (m: "scroll" | "page") => {
     setMode(m);
@@ -564,30 +595,71 @@ export default function ReaderPage({
         >
           ← {data.mangaSlug.replace(/-/g, " ")}
         </Link>
-        <div className="mt-1 flex min-w-0 items-start justify-between gap-2">
-          <h1 className="min-w-0 flex-1 break-words font-display text-base font-bold leading-tight tracking-[-0.01em] text-fg min-[420px]:text-lg sm:text-xl dark:text-fg-dark">
-            {data.title}
-          </h1>
-          {/* Mode baca — pilihan tersimpan per perangkat */}
+        <h1 className="mt-1 min-w-0 break-words font-display text-base font-bold leading-tight tracking-[-0.01em] text-fg min-[420px]:text-lg sm:text-xl dark:text-fg-dark">
+          {data.title}
+        </h1>
+        {/* Kontrol baca: mode + ukuran gambar — keduanya tersimpan per perangkat. */}
+        <div className="mt-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
           <div
             role="group"
             aria-label="Mode baca"
-            className="flex shrink-0 rounded-lg border border-line p-0.5 text-[11px] font-semibold dark:border-line-dark"
+            className="flex shrink-0 rounded-xl border border-line bg-paper-2 p-1 text-xs font-semibold shadow-sm dark:border-line-dark dark:bg-ink-2"
           >
             {(["scroll", "page"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => switchMode(m)}
                 aria-pressed={mode === m}
-                className={`rounded-lg px-2.5 py-1.5 transition-colors ${
+                className={`touch-manipulation rounded-lg px-3.5 py-1.5 transition-colors ${
                   mode === m
-                    ? "bg-accent text-white"
-                    : "text-muted hover:text-fg dark:text-muted-dark dark:hover:text-fg-dark"
+                    ? "bg-accent text-white shadow-sm"
+                    : "text-muted hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
                 }`}
               >
                 {m === "scroll" ? "Scroll" : "Halaman"}
               </button>
             ))}
+          </div>
+
+          {/* Zoom: − / persen (klik = kembali ke 100%) / + */}
+          <div
+            role="group"
+            aria-label="Ukuran gambar"
+            className="flex shrink-0 items-center rounded-xl border border-line bg-paper-2 p-1 text-xs font-semibold shadow-sm dark:border-line-dark dark:bg-ink-2"
+          >
+            <button
+              type="button"
+              onClick={() => stepZoom(-1)}
+              disabled={zoom === ZOOM_MIN}
+              aria-label="Perkecil gambar"
+              title="Perkecil gambar"
+              className="flex h-8 w-9 touch-manipulation items-center justify-center rounded-lg text-base text-muted transition-colors hover:bg-paper-3 hover:text-fg disabled:opacity-35 disabled:hover:bg-transparent dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() => applyZoom(100)}
+              aria-label={`Ukuran gambar ${zoom} persen — kembalikan ke 100 persen`}
+              title="Kembalikan ke 100%"
+              className={`h-8 min-w-12 touch-manipulation rounded-lg px-2 text-center tabular-nums transition-colors ${
+                zoom === 100
+                  ? "text-muted dark:text-muted-dark"
+                  : "text-accent-strong dark:text-accent"
+              }`}
+            >
+              {zoom}%
+            </button>
+            <button
+              type="button"
+              onClick={() => stepZoom(1)}
+              disabled={zoom === ZOOM_MAX}
+              aria-label="Perbesar gambar"
+              title="Perbesar gambar"
+              className="flex h-8 w-9 touch-manipulation items-center justify-center rounded-lg text-base text-muted transition-colors hover:bg-paper-3 hover:text-fg disabled:opacity-35 disabled:hover:bg-transparent dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
+            >
+              +
+            </button>
           </div>
         </div>
       </div>
@@ -638,33 +710,39 @@ export default function ReaderPage({
       )}
 
       {mode === "scroll" ? (
-        <div ref={pagesRef} className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black">
-        {data.images.map((src, i) =>
-          failed.has(i) ? (
-            <ReaderPageError
-              key={i}
-              index={i}
-              onRetry={() =>
-                setFailed((s) => {
-                  const n = new Set(s);
-                  n.delete(i);
-                  return n;
-                })
-              }
-            />
-          ) : (
-            <ReaderPageImage
-              key={i}
-              src={src}
-              alt={`${data.title} halaman ${i + 1}`}
-              index={i}
-              priority={i < 2}
-              onFail={() => setFailed((s) => new Set(s).add(i))}
-              onClick={tapNav}
-              imgClassName="block w-full cursor-pointer select-none"
-            />
-          ),
-        )}
+        <div className={`min-w-0 ${zoom > 100 ? "overflow-x-auto" : ""}`}>
+          <div
+            ref={pagesRef}
+            className="mx-auto flex min-w-0 flex-col overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black"
+            style={zoom === 100 ? undefined : { width: `${zoom}%` }}
+          >
+            {data.images.map((src, i) =>
+              failed.has(i) ? (
+                <ReaderPageError
+                  key={i}
+                  index={i}
+                  onRetry={() =>
+                    setFailed((s) => {
+                      const n = new Set(s);
+                      n.delete(i);
+                      return n;
+                    })
+                  }
+                />
+              ) : (
+                <ReaderPageImage
+                  key={i}
+                  src={src}
+                  alt={`${data.title} halaman ${i + 1}`}
+                  index={i}
+                  priority={i < 2}
+                  onFail={() => setFailed((s) => new Set(s).add(i))}
+                  onClick={tapNav}
+                  imgClassName="block w-full cursor-pointer select-none"
+                />
+              ),
+            )}
+          </div>
         </div>
       ) : (
         <PageMode
@@ -673,6 +751,7 @@ export default function ReaderPage({
           setPageIdx={setPageIdx}
           failed={failed}
           setFailed={setFailed}
+          zoom={zoom}
         />
       )}
 
@@ -740,12 +819,15 @@ function PageMode({
   setPageIdx,
   failed,
   setFailed,
+  zoom,
 }: {
   data: ChapterData;
   pageIdx: number;
   setPageIdx: (i: number | ((p: number) => number)) => void;
   failed: Set<number>;
   setFailed: (f: Set<number> | ((s: Set<number>) => Set<number>)) => void;
+  /** Ukuran gambar (%) dari kontrol zoom pembaca. */
+  zoom: number;
 }) {
   const total = data.images.length;
   const cur = total === 0 ? 0 : Math.min(Math.max(0, pageIdx), total - 1);
@@ -803,16 +885,25 @@ function PageMode({
             }
           />
         ) : (
-          <div key={cur} className="fade-soft">
-          <ReaderPageImage
-            src={src}
-            alt={`${data.title} halaman ${cur + 1}`}
-            index={cur}
-            priority={cur === 0}
-            mode="page"
-            onFail={() => setFailed((s) => new Set(s).add(cur))}
-            imgClassName="block max-h-[75vh] w-full select-none object-contain"
-          />
+          // Zoom >100%: gambar melebihi layar, jadi wadahnya jadi scroller
+          // dua arah (geser untuk melihat bagian lain). Zona tap tetap di
+          // luar scroller agar tidak ikut tergulir.
+          <div className={zoom > 100 ? "max-h-[78vh] overflow-auto" : "overflow-hidden"}>
+            <div key={cur} className="fade-soft mx-auto" style={zoom === 100 ? undefined : { width: `${zoom}%` }}>
+              <ReaderPageImage
+                src={src}
+                alt={`${data.title} halaman ${cur + 1}`}
+                index={cur}
+                priority={cur === 0}
+                mode="page"
+                onFail={() => setFailed((s) => new Set(s).add(cur))}
+                imgClassName={
+                  zoom > 100
+                    ? "block w-full select-none"
+                    : "block max-h-[75vh] w-full select-none object-contain"
+                }
+              />
+            </div>
           </div>
         )}
         {/* Zona tap: kiri 1/3 mundur, kanan 2/3 maju */}
