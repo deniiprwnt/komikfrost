@@ -31,8 +31,61 @@ const VEST = "#7c9170";
 const VEST_DARK = "#586d50";
 const MOUTH = "#5a1f2b";
 
+/**
+ * Kaki depan kucing/rubah/anjing: telapak padat berbentuk oval membulat, jari-jari PENDEK dan menyatu —
+ * hanya terlihat sebagai empat tonjolan di tepi depan yang dipisah lekukan kecil (tanpa cakar, tanpa ibu jari).
+ * Ujung jari berbulu lebih gelap ("kaus kaki" rubah). Arah depan = +x; pangkal di x≈-9.
+ *  - "paw"  : punggung kaki, santai/menggantung.
+ *  - "palm" : telapak terbuka: satu bantalan besar + empat bantalan jari (melambai).
+ *  - "grip" : kaki yang memeluk/menekan tepi benda: empat jari melengkung rapat di tepi depan.
+ */
+export type PawKind = "paw" | "palm" | "grip";
+const PAD = "#0b6b66"; // bantalan teal tua
+const PAD_DARK = "#07504c";
+const SOCKS = "#12857e"; // bulu ujung jari lebih gelap
+
+function FoxPaw({ kind = "paw" }: { kind?: PawKind }) {
+  const grip = kind === "grip";
+  // badan telapak + empat tonjolan jari pendek di tepi depan
+  const body = grip ? { cx: 2, rx: 9.6, ry: 11.6 } : { cx: 3.4, rx: 12.6, ry: 9.4 };
+  const toes: [number, number, number, number][] = grip
+    ? [[10.8, -8.4, 4.5, 3.9], [12, -2.8, 4.7, 3.9], [12, 2.8, 4.7, 3.9], [10.8, 8.4, 4.5, 3.9]]
+    : [[13.4, -6.6, 4.3, 3.7], [15.6, -2.2, 4.5, 3.8], [15.6, 2.2, 4.5, 3.8], [13.4, 6.6, 4.3, 3.7]];
+  const grooves = grip
+    ? "M8 -5.6 L13.4 -5.6 M8.6 0 L14.6 0 M8 5.6 L13.4 5.6"
+    : "M12 -4.4 L16.4 -4.6 M13 0 L18 0 M12 4.4 L16.4 4.6";
+  return (
+    <g>
+      {/* siluet tinta */}
+      <g fill={INK} stroke={INK} strokeWidth={4.6} strokeLinejoin="round">
+        <ellipse cx={body.cx} cy={0} rx={body.rx} ry={body.ry} />
+        {toes.map(([x, y, rx, ry]) => <ellipse key={y + "" + x} cx={x} cy={y} rx={rx} ry={ry} />)}
+      </g>
+      {/* isian bulu */}
+      <ellipse cx={body.cx} cy={0} rx={body.rx} ry={body.ry} fill={FUR} />
+      {toes.map(([x, y, rx, ry]) => <ellipse key={y + "" + x} cx={x} cy={y} rx={rx} ry={ry} fill={kind === "palm" ? FUR : SOCKS} />)}
+      {kind === "palm" ? (
+        <>
+          {/* bantalan besar (segitiga membulat) + empat bantalan jari */}
+          <path d="M-3.6 1.2 C-4.4 -3.4 0.6 -6 3.6 -4 C7 -6 11 -3.4 9.8 1.2 C8.8 5.4 5.6 7.8 3.6 7.8 C1.2 7.8 -2.8 5.6 -3.6 1.2 Z" fill={PAD} />
+          <path d="M-1.6 3.8 C0.6 6.8 6.8 6.8 9 3.6 C8 6.6 5.4 7.8 3.6 7.8 C1.4 7.8 -0.8 6.2 -1.6 3.8 Z" fill={PAD_DARK} opacity={0.7} />
+          {toes.map(([x, y]) => <ellipse key={"p" + y + x} cx={x - 0.8} cy={y * 0.92} rx={2} ry={2.3} fill={PAD} />)}
+        </>
+      ) : (
+        <>
+          {/* bayangan sel di bawah + kilau di atas */}
+          <path d={grip ? "M-6.6 4 C-5 10.4 2.6 11.8 7 10.6 C1 8.2 -3.6 5.4 -6.6 4 Z" : "M-8.4 3.4 C-5 9 4 10.2 9 8.8 C3 7.6 -4 5 -8.4 3.4 Z"} fill={FUR_SHADE} opacity={0.65} />
+          <path d={grip ? "M-5.4 -8.6 C-3 -10.8 1 -11 3.6 -10" : "M-7.4 -5.4 C-3 -8.2 3 -8.8 8 -7.6"} fill="none" stroke={FUR_LIGHT} strokeWidth={1.7} strokeLinecap="round" opacity={0.9} />
+          {/* lekukan pemisah jari */}
+          <path d={grooves} fill="none" stroke={INK} strokeWidth={1.4} strokeLinecap="round" />
+        </>
+      )}
+    </g>
+  );
+}
+
 /** Lengan mungil dengan telapak/paw bulat agar setiap pose punya tangan yang jelas. */
-function Arm({ d, anim }: { d: string; anim?: string }) {
+function Arm({ d, anim, kind = "paw" }: { d: string; anim?: string; kind?: PawKind }) {
   // Arah lengan dari dua titik terakhir path → telapak diputar searah lengan (menyatu, bukan tempelan).
   const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
   const [cx, cy, ex, ey] = n.slice(-4);
@@ -51,26 +104,7 @@ function Arm({ d, anim }: { d: string; anim?: string }) {
         <path d="M-15.4 -9 L-12.4 9 M-10.2 -9 L-7.2 9" fill="none" stroke={BANDAGE_LINE} strokeWidth={1.6} strokeLinecap="round" />
         <path d="M-19 5.6 L-5 5.6" fill="none" stroke={BANDAGE_LINE} strokeWidth={1.4} strokeLinecap="round" opacity={0.55} />
         </g>
-        {/* telapak: siluet menyatu (telapak + tiga jari), garis tepi hanya di luar */}
-        <g fill={INK} stroke={INK} strokeWidth={5.6} strokeLinejoin="round">
-          <ellipse cx={7} cy={0} rx={11} ry={9.4} />
-          <circle cx={17.6} cy={-5.6} r={4.6} />
-          <circle cx={20} cy={0} r={4.8} />
-          <circle cx={17.6} cy={5.6} r={4.6} />
-        </g>
-        <g fill={FUR}>
-          <ellipse cx={7} cy={0} rx={11} ry={9.4} />
-          <circle cx={17.6} cy={-5.6} r={4.6} />
-          <circle cx={20} cy={0} r={4.8} />
-          <circle cx={17.6} cy={5.6} r={4.6} />
-        </g>
-        {/* bayangan sel di sisi bawah + kilau atas */}
-        <path d="M0 6.4 C7 9.6 15 9.2 20.6 5 C19.4 9.2 14 11 8 10.6 C4 10.2 1.4 8.6 0 6.4 Z" fill={FUR_SHADE} opacity={0.7} />
-        <path d="M0.5 -7 C5 -8.8 10 -8.8 14 -8" fill="none" stroke={FUR_LIGHT} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
-        {/* celah antar jari */}
-        <path d="M13.8 -2.9 L18.6 -2.9 M13.8 2.9 L18.6 2.9" stroke={INK} strokeWidth={1.8} strokeLinecap="round" />
-        {/* bantalan telapak */}
-        <path d="M3.6 0 C3.6 -3 6 -4 8 -3.2 C10.4 -2.4 10.4 2.4 8 3.2 C6 4 3.6 3 3.6 0 Z" fill={CREAM_SHADE} opacity={0.95} />
+        <FoxPaw kind={kind} />
       </g>
     </g>
   );
@@ -466,7 +500,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           <path d="M96 174 C94 192 100 203 110 204 C120 203 126 192 124 174 Z" fill={CREAM} />
 
           {/* lengan belakang (pose) */}
-          {(mood === "happy" || mood === "guard") && <Arm d="M70 174 Q50 172 38 150" anim="yk-wave" />}
+          {(mood === "happy" || mood === "guard") && <Arm d="M70 176 Q48 180 30 160" anim="yk-wave" kind="palm" />}
           {mood === "lost" && <Arm d="M70 176 Q62 190 63 204" anim="yk-sway-l" />}
           {mood === "puzzled" && <Arm d="M70 176 Q62 190 63 204" anim="yk-sway-l" />}
           {mood === "tired" && (
@@ -477,8 +511,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           )}
           {mood === "dizzy" && (
             <>
-              <Arm d="M70 174 Q54 170 46 146" anim="yk-flail-l" />
-              <Arm d="M150 174 Q166 170 174 146" anim="yk-flail-r" />
+              <Arm d="M70 176 Q50 178 32 158" anim="yk-flail-l" kind="palm" />
+              <Arm d="M150 176 Q170 178 188 158" anim="yk-flail-r" kind="palm" />
             </>
           )}
           {mood === "faint" && (
@@ -679,18 +713,18 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <path d="M-11 -13 H-5 L-8 0 L-5 13 H-11 Z M1 -13 H9 V13 H1 L-3 0 Z" fill="#fff" />
                 <Star x={12} y={-23} s={0.95} />
               </g>
-              <Arm d="M152 174 Q174 174 190 156" />
+              <Arm d="M152 174 Q186 180 190 163" kind="grip" />
             </Hold>
           )}
           {mood === "lost" && (
             <g className="yk-aim"><Hold at={[152, 174]} anim="yk-search">
               <g fill="none" strokeLinecap="round" transform="translate(11 0)">
-                <path d="M186 140 L177 158" stroke={INK} strokeWidth={10} />
-                <path d="M186 140 L177 158" stroke="#9a6a3a" strokeWidth={5} />
+                <path d="M186 140 L172 172" stroke={INK} strokeWidth={10} />
+                <path d="M186 140 L172 172" stroke="#9a6a3a" strokeWidth={5} />
                 <circle cx={198} cy={120} r={20} fill="#bfe0f5" fillOpacity={0.85} stroke={INK} strokeWidth={5.5} />
                 <g transform="translate(198 120)"><g className="yk-glint"><path d="M-9 -6 Q-6.5 -11.5 0 -12.5" stroke="#fff" strokeWidth={3.5} /></g></g>
               </g>
-              <Arm d="M152 174 Q174 174 190 160" />
+              <Arm d="M152 176 Q168 163 185 159" kind="grip" />
             </Hold></g>
           )}
           {mood === "puzzled" && (
@@ -700,7 +734,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <path d="M-10 -14 L8 -16 M-9 -6 L12 -9 M-9 2 L4 0" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
                 <text x={4} y={-3} fontSize={26} fontWeight={900} fontFamily="var(--font-display), Arial Black, sans-serif" fill="#e5483f" stroke={INK} strokeWidth={3} paintOrder="stroke" textAnchor="middle">?!</text>
               </g>
-              <Arm d="M152 174 Q174 176 188 160" />
+              <Arm d="M152 174 Q186 176 192 144" kind="grip" />
             </Hold>
           )}
           {mood === "guard" && (
@@ -713,13 +747,13 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                   <path d="M-3 0 H16 M-3 7 H11" stroke={INK} strokeWidth={2.6} strokeLinecap="round" opacity={0.55} />
                 </g>
               </g>
-              <Arm d="M152 174 Q174 174 190 156" />
+              <Arm d="M152 174 Q186 178 191 152" kind="grip" />
             </Hold>
           )}
           {mood === "stern" && (
             <>
-              <Arm d="M82 182 Q96 204 134 172" anim="yk-breathe" />
-              <Arm d="M138 182 Q124 204 86 172" anim="yk-breathe" />
+              <Arm d="M82 182 Q96 204 134 172" kind="grip" anim="yk-breathe" />
+              <Arm d="M138 182 Q124 204 86 172" kind="grip" anim="yk-breathe" />
             </>
           )}
         </g>

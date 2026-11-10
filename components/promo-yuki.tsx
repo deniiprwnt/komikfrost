@@ -86,27 +86,27 @@ export function PromoYukiHead({
   );
 }
 
-/** Telapak rubah yang mencengkeram tepi atas papan (jari menjuntai ke depan papan). */
+/** Kaki depan kucing/rubah/anjing yang bertumpu di tepi atas papan: telapak oval padat, empat jari pendek menyatu di tepi bawah (dipisah lekukan kecil), ujung jari berbulu lebih gelap, tanpa cakar. */
 export function PromoYukiPaw({ className = "" }: { className?: string }) {
-  const shapes = (
-    <>
-      <ellipse cx="17" cy="11" rx="12.500" ry="8.600" />
-      <circle cx="9.800" cy="19.800" r="3.900" />
-      <circle cx="17" cy="21" r="4.100" />
-      <circle cx="24.200" cy="19.800" r="3.900" />
-    </>
-  );
+  const toes: [number, number, number, number][] = [
+    [8.6, 17.2, 4, 3.6],
+    [14, 19.4, 4.2, 3.8],
+    [20, 19.4, 4.2, 3.8],
+    [25.4, 17.2, 4, 3.6],
+  ];
   return (
     <svg className={className} viewBox="0 0 34 30" aria-hidden="true" focusable="false">
-      <g fill={INK} stroke={INK} strokeWidth="5" strokeLinejoin="round">{shapes}</g>
-      <g fill={FUR}>{shapes}</g>
+      <g fill={INK} stroke={INK} strokeWidth="4.400" strokeLinejoin="round">
+        <ellipse cx="17" cy="10" rx="12.600" ry="8.200" />
+        {toes.map(([x, y, rx, ry]) => <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} />)}
+      </g>
+      <ellipse cx="17" cy="10" rx="12.600" ry="8.200" fill={FUR} />
+      {toes.map(([x, y, rx, ry]) => <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} fill="#12857e" />)}
       {/* bayangan sel + kilau */}
-      <path d="M6 14.500C12 18.200 22 18.200 28 14.500 27 18 22 19.200 17 19.200S7 18 6 14.500Z" fill={FUR_SHADE} opacity=".65" />
-      <path d="M9 5.800C13 3.600 21 3.600 25 5.800" fill="none" stroke={FUR_LIGHT} strokeWidth="2" strokeLinecap="round" opacity=".9" />
-      {/* celah jari */}
-      <path d="M13.400 18.200v3.400M20.600 18.200v3.400" stroke={INK} strokeWidth="1.600" strokeLinecap="round" />
-      {/* bantalan telapak */}
-      <path d="M13.500 9.600c0-2.600 2.200-3.400 3.500-3 1.400-.4 3.500.4 3.500 3 0 2.200-1.800 3-3.500 3s-3.500-.8-3.500-3Z" fill={CREAM_SHADE} opacity=".95" />
+      <path d="M5.600 12.400C11 16 23 16 28.400 12.400 27.600 15.600 22 16.600 17 16.600S6.400 15.600 5.600 12.400Z" fill={FUR_SHADE} opacity=".5" />
+      <path d="M8.500 5.200C13 3 21 3 25.500 5.200" fill="none" stroke={FUR_LIGHT} strokeWidth="1.700" strokeLinecap="round" opacity=".9" />
+      {/* lekukan pemisah jari */}
+      <path d="M11.300 18.400L11.500 22M17 20.200V24M22.700 18.400L22.500 22" stroke={INK} strokeWidth="1.100" strokeLinecap="round" />
     </svg>
   );
 }
