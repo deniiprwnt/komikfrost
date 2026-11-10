@@ -64,9 +64,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Zoom dikunci agar terasa seperti aplikasi native.
-  maximumScale: 1,
-  userScalable: false,
+  // Zoom TIDAK dikunci: pembaca perlu memperbesar sinopsis/judul chapter
+  // (WCAG 1.4.4). Gambar reader sudah `w-full`, jadi tidak ada regresi tata
+  // letak saat di-zoom.
   viewportFit: "cover",
   // Satu nilai default gelap (tema default aplikasi). Nilai media-query
   // dihapus — yang berlaku adalah meta theme-color yang ditulis ulang

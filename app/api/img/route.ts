@@ -16,9 +16,12 @@ import { guard } from "../_lib";
  * tanpa cookie/auth ke upstream; timeout 15 dtk; Content-Type dari
  * respons upstream yang tervalidasi; Cache-Control private 7 hari.
  */
-export const dynamic = "force-dynamic";
-// Upstream gambar bisa lambat (abort 15 dtk di bawah) — jangan biarkan
-// batas fungsi default memutus stream sebelum itu.
+// Route ini tetap dinamis (membaca `req.nextUrl.searchParams`), tapi JANGAN
+// dipaksa `force-dynamic`: opsi itu setara `fetchCache = "force-no-store"` dan
+// mematikan `next.revalidate` di bawah, sehingga cache server 7 hari tidak
+// pernah terpakai.
+// Upstream gambar bisa lambat (abort 15 dtk di bawah) — jangan biarkan batas
+// fungsi default memutus stream sebelum itu.
 export const maxDuration = 30;
 
 const UA =

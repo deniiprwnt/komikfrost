@@ -764,6 +764,13 @@ function PageMode({
   // Keyboard: panah kanan/spasi = maju, panah kiri = mundur.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Jangan bajak ketikan/aktivasi keyboard di elemen interaktif. Kotak
+      // cari dropdown chapter di-portal ke <body>, jadi event-nya tetap
+      // menggelembung ke window — tanpa penjagaan ini spasi tidak bisa
+      // diketik dan tombol tidak bisa diaktifkan dengan keyboard.
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.("input, textarea, select, [contenteditable], button, a")) return;
       if (e.key === "ArrowRight" || e.key === " ") {
         e.preventDefault();
         go(1);

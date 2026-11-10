@@ -5,7 +5,9 @@ import { checkPassword, gateCookie, rateLimited } from "@/lib/gate";
 export async function POST(req: Request) {
   // Rate limit dulu — tanpa ini delay 600ms bisa diparalel attacker
   // untuk brute-force password gate tanpa batas dari satu IP.
-  if (rateLimited(req)) {
+  // Bucket sendiri + limit lebih ketat: percobaan login tidak boleh
+  // menghabiskan kuota /api/* (pencarian, gambar reader) milik IP yang sama.
+  if (rateLimited(req, 10, "gate")) {
     return NextResponse.json(
       { error: { message: "Terlalu banyak percobaan. Coba lagi sebentar.", source: "gate" } },
       { status: 429 },

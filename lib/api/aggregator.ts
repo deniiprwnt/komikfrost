@@ -404,14 +404,29 @@ export function sortByFresh<T extends Pick<MangaCard, "updatedAt" | "updatedAtTs
     .map(({ c }) => c);
 }
 
+/** Basis sufiks chapter tambahan. "88-10" harus BERBEDA dari "88-1",
+ *  jadi tidak boleh diwakili desimal (0.1 == 0.10). */
+const CHAPTER_SUB_BASE = 1000;
+
 /**
- * Nomor chapter dari label ("Chapter 23" → 23, "88-1" → 88.1).
- * NaN bila tak terparse — dipakai merge kartu & detail (satu definisi).
+ * Nomor chapter ordinal dari label: "Chapter 23" → 23000, "88-1" → 88001,
+ * "88-10" → 88010, "11.5" → 11005.
+ *
+ * Bukan angka desimal: sufiks "-10" dulu terbaca 88.1 (sama dengan "-1"),
+ * sehingga urutan chapter salah dan pencarian chapter bisa memuat chapter
+ * yang salah. Nilai ini HANYA untuk urutan/pencocokan — jangan ditampilkan.
+ * NaN bila tak terparse.
  */
 export function chapterNum(label?: string): number {
   if (!label) return NaN;
   const k = normalizeChapterKey(label);
-  const n = parseFloat(k.replace(/-(\d+)$/, ".$1"));
+  const m = k.match(/^(\d+)(?:[.-](\d+))?$/);
+  if (m) {
+    const main = Number(m[1]);
+    const sub = m[2] ? Math.min(Number(m[2]), CHAPTER_SUB_BASE - 1) : 0;
+    return main * CHAPTER_SUB_BASE + sub;
+  }
+  const n = parseFloat(k);
   return Number.isFinite(n) ? n : NaN;
 }
 
@@ -556,10 +571,8 @@ export function mergeChapters(
   primaryKeys.forEach((k, i) => {
     if (!order.has(k)) order.set(k, i);
   });
-  const numOf = (k: string) => {
-    const n = parseFloat(k.replace(/-(\d+)$/, ".$1"));
-    return Number.isFinite(n) ? n : NaN;
-  };
+  // Satu definisi dengan chapterNum (ordinal) — "88-10" ≠ "88-1".
+  const numOf = (k: string) => chapterNum(k);
   return [...byKey.values()].sort((a, b) => {
     const ka = normalizeChapterKey(a.title);
     const kb = normalizeChapterKey(b.title);

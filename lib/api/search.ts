@@ -64,7 +64,11 @@ function rankByRelevance(cards: MergedMangaCard[], keyword: string): MergedManga
   const scored = cards
     .map((c, i) => ({ c, i, s: relevanceScore(c.title, c.altTitle, tokens) }))
     .sort((a, b) => b.s - a.s || a.i - b.i);
-  if (tokens.length === 1) return scored.map((x) => ({ ...x.c, exactMatch: true as const }));
+  // Satu token: kartu tanpa satu pun kecocokan (skor 0) BUKAN "hasil persis".
+  // Dulu semuanya ditandai exact, sehingga /cari mengira ada jawaban exact
+  // dan selalu memboroskan satu probe ke halaman 2.
+  if (tokens.length === 1)
+    return scored.map((x) => ({ ...x.c, exactMatch: x.s > 0 }));
   if (scored.some((x) => x.s >= 1))
     return scored.filter((x) => x.s >= 1).map((x) => ({ ...x.c, exactMatch: true as const }));
   return scored.map((x) => ({ ...x.c, exactMatch: false as const }));

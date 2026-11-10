@@ -13,13 +13,38 @@ import {
   resolveShiniDetailForSlug,
 } from "./shinigami";
 import { getMangaDetail } from "./manga";
-import { chapterNum, type ComicSourceId, type MergedMangaDetail } from "./aggregator";
+import { normalizeChapterKey, type ComicSourceId, type MergedMangaDetail } from "./aggregator";
 import { createKeyedCache } from "./cache";
 import type { ChapterData } from "./types";
 
 /** Chapter tidak berubah setelah terbit — cache 5 menit cukup; klik
  *  Prev/Next berulang tidak perlu menyentuh upstream sama sekali. */
 const chapterCache = createKeyedCache<ChapterData>(5 * 60_000, 80);
+
+/**
+ * Kunci pencocokan chapter dari token URL ("88-10", "88-10-bahasa-indonesia",
+ * "Chapter 88-10") → "88-10". String, bukan angka: token bersufiks kelipatan
+ * sepuluh ("-10") dulu bertabrakan dengan "-1" saat diubah ke desimal.
+ */
+function tokenChapterKey(tok: string): string {
+  return normalizeChapterKey(bareChapterToken(tok))
+    .replace(/^[.-]+/, "")
+    // "88.5" dan "88-5" adalah chapter yang sama (token URL memakai "-").
+    .replace(/(\d)[.](\d)/g, "$1-$2");
+}
+
+/**
+ * Token "bersih" untuk merakit URL sumber: buang sufiks "-bahasa-indonesia"
+ * dan prefiks slug/chapter yang terbawa bila token ternyata slug chapter
+ * penuh ("<slug>-chapter-18", "chapter-18"). Tanpa ini URL dirakit ganda —
+ * "/<slug>-chapter-<slug>-chapter-18-bahasa-indonesia/" → 404 upstream.
+ */
+function bareChapterToken(tok: string): string {
+  const out = tok
+    .replace(/-bahasa-indonesia$/i, "")
+    .replace(/^(?:.*-)?chapter-/i, "");
+  return out || tok;
+}
 
 /**
  * Ambil satu chapter.
@@ -45,21 +70,20 @@ async function loadChapter(
   c: string,
   source?: ComicSourceId,
 ): Promise<ChapterData> {
-  const num = parseNumToken(c);
+  const num = parseNumToken(bareChapterToken(c));
 
   // Override eksplisit (dipakai ?source=... saat satu sisi gagal total).
-  if (source === "komiku") return fetchChapter(`/${s}-chapter-${c}/`);
+  if (source === "komiku") return fetchChapter(`/${s}-chapter-${bareChapterToken(c)}/`);
   // Komikcast: slug detail bisa beda dari slug chapter (mis. typo "shitaa"
   // di detail vs "shita" di chapter) → resolve via daftar gabungan dulu,
   // fallback rakit URL hanya bila daftar tidak punya entri Komikcast.
   if (source === "komikcast") {
     try {
-      return await getChapterMerged(s, c, num, "komikcast");
+      return await getChapterMerged(s, c, "komikcast");
     } catch {
-      // Token dari riwayat/URL bisa sudah membawa sufiks slug Komikcast —
+      // Token dari riwayat/URL bisa sudah membawa slug chapter penuh —
       // jangan digandakan ("-bahasa-indonesia-bahasa-indonesia").
-      const tok = c.replace(/-bahasa-indonesia$/i, "");
-      return fetchKomikcastChapter(`/${s}-chapter-${tok}-bahasa-indonesia/`);
+      return fetchKomikcastChapter(`/${s}-chapter-${bareChapterToken(c)}-bahasa-indonesia/`);
     }
   }
   if (source === "shinigami") {
@@ -67,7 +91,7 @@ async function loadChapter(
       if (!Number.isFinite(num)) throw new KomikuError("Nomor chapter tidak valid.", s);
       return fetchShiniChapter(s, num, s, "");
     }
-    return getChapterMerged(s, c, num, "shinigami");
+    return getChapterMerged(s, c, "shinigami");
   }
 
   // Slug UUID murni → langsung Shinigami (tanpa Komiku).
@@ -76,7 +100,7 @@ async function loadChapter(
     return fetchShiniChapter(s, num, s, "");
   }
 
-  return getChapterMerged(s, c, num, undefined);
+  return getChapterMerged(s, c);
 }
 
 /**
@@ -87,21 +111,24 @@ async function loadChapter(
 async function getChapterMerged(
   slug: string,
   token: string,
-  num: number,
   prefer?: ComicSourceId,
 ): Promise<ChapterData> {
   const merged = (await getMangaDetail(slug, { deep: false })) as MergedMangaDetail;
   const shinigamiId = merged.sourceSlug?.shinigami;
-  const item = Number.isFinite(num)
-    ? merged.chapters.find((ch) => Math.abs(chapterNum(ch.title) - num) < 1e-6)
-    : undefined;
+  // Pencocokan per kunci string (bukan selisih angka): "88-10" tidak boleh
+  // cocok dengan "88-1".
+  const key = tokenChapterKey(token);
+  // Angka desimal tetap dipakai HANYA untuk API Shinigami (chapter_number float).
+  const num = parseNumToken(bareChapterToken(token));
+  const item = key ? merged.chapters.find((ch) => tokenChapterKey(ch.title) === key) : undefined;
   const entrySources = item?.sources ?? [];
   const hasShini = shinigamiId && entrySources.some((r) => r.source === "shinigami");
   const komikuUrl =
-    entrySources.find((r) => r.source === "komiku")?.url ?? `/${slug}-chapter-${token}/`;
+    entrySources.find((r) => r.source === "komiku")?.url ??
+    `/${slug}-chapter-${bareChapterToken(token)}/`;
   const komikcastUrl =
     entrySources.find((r) => r.source === "komikcast")?.url ??
-    `/${slug}-chapter-${token.replace(/-bahasa-indonesia$/i, "")}-bahasa-indonesia/`;
+    `/${slug}-chapter-${bareChapterToken(token)}-bahasa-indonesia/`;
 
   // Urutan coba: prefer → pemenang merge → sisi lain (prioritas turun).
   const entryHas = (s: ComicSourceId) => entrySources.some((r) => r.source === s);
@@ -142,7 +169,7 @@ async function getChapterMerged(
           : src === "komikcast"
             ? await fetchKomikcastChapter(komikcastUrl)
             : await fetchChapter(komikuUrl, { nav: false });
-      return withMergedNav(data, merged, num);
+      return withMergedNav(data, merged, token);
     } catch (e) {
       lastErr = e;
     }
@@ -155,9 +182,10 @@ async function getChapterMerged(
  * idx-1 = lebih baru (next), idx+1 = lebih lama (prev). URL sudah
  * displaySlug-based sehingga navigasi lintas source tetap valid.
  */
-function withMergedNav(data: ChapterData, merged: MergedMangaDetail, num: number): ChapterData {
-  if (!Number.isFinite(num)) return data;
-  const idx = merged.chapters.findIndex((ch) => Math.abs(chapterNum(ch.title) - num) < 1e-6);
+function withMergedNav(data: ChapterData, merged: MergedMangaDetail, token: string): ChapterData {
+  const key = tokenChapterKey(token);
+  if (!key) return data;
+  const idx = merged.chapters.findIndex((ch) => tokenChapterKey(ch.title) === key);
   if (idx < 0) return data;
   const next = idx > 0 ? merged.chapters[idx - 1] : undefined;
   const prev = idx + 1 < merged.chapters.length ? merged.chapters[idx + 1] : undefined;

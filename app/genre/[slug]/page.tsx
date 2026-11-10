@@ -86,24 +86,34 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // memicu reset ke halaman 1. Perbandingan nilai, aman dari
   // double-effect StrictMode.
   const appliedFiltersRef = useRef(filtersKey);
-  // Judul yang sudah tampil per kombinasi filter — buang duplikat
-  // lintas-halaman (merge server hanya per-page). Murni client-side.
-  const seenRef = useRef(new Map<string, Set<string>>());
+  // Hasil mentah per halaman, per kombinasi filter — sumber dedupe.
+  // Dedupe dihitung ulang dari halaman SEBELUMNYA setiap kali diterapkan,
+  // jadi membuka ulang halaman mana pun (termasuk halaman 1 lewat pagination
+  // atau tombol Back) tidak pernah mengosongkan daftar. Murni client-side.
+  const pagesRef = useRef(new Map<string, Map<number, MangaCard[]>>());
 
   // Saring item yang judulnya sudah tampil di halaman sebelumnya
-  // (filter aktif), lalu catat sisanya. Urutan + prioritas server utuh.
+  // (filter aktif), lalu catat halaman ini. Urutan + prioritas server utuh.
   const dedupePage = useCallback(
-    (list: MangaCard[]): MangaCard[] => {
-      let seen = seenRef.current.get(filtersKey);
-      if (!seen) {
-        seen = new Set<string>();
-        seenRef.current.set(filtersKey, seen);
+    (p: number, list: MangaCard[]): MangaCard[] => {
+      let pages = pagesRef.current.get(filtersKey);
+      if (!pages) {
+        pages = new Map();
+        pagesRef.current.set(filtersKey, pages);
+      }
+      pages.set(p, list);
+      const seen = new Set<string>();
+      for (const [n, raw] of pages) {
+        if (n >= p) continue;
+        for (const it of raw) {
+          const k = titleKey(it.title);
+          if (k) seen.add(k);
+        }
       }
       const out: MangaCard[] = [];
       for (const item of list) {
         const k = titleKey(item.title);
         if (k && seen.has(k)) continue;
-        if (k) seen.add(k);
         out.push(item);
       }
       return out;
@@ -135,33 +145,55 @@ function GenreDetailContent({ slug }: { slug: string }) {
 
   // Muat satu halaman penuh (mengganti daftar, bukan menumpuk).
   const loadPage = useCallback(
-    async (p: number) => {
+    async (p: number, signal?: AbortSignal) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiGet<LatestPayload>(`/api/latest?${buildQs(p)}`);
-        setItems(dedupePage(res.items));
+        const res = await apiGet<LatestPayload>(
+          `/api/latest?${buildQs(p)}`,
+          signal ? { signal } : undefined,
+        );
+        setItems(dedupePage(p, res.items));
         setHasNext(res.hasNextPage);
         setPage(p);
       } catch (e) {
+        // Dibatalkan (filter/halaman berganti) — bukan kegagalan.
+        if (signal?.aborted) return;
         setError(e instanceof Error ? e.message : "Gagal memuat data.");
       } finally {
-        setLoading(false);
+        if (!signal?.aborted) setLoading(false);
       }
     },
     [buildQs, dedupePage],
   );
+
+  // Satu request aktif: pindah filter/halaman membatalkan yang lama agar
+  // respons lambat tidak menimpa hasil yang lebih baru.
+  const reqRef = useRef<AbortController | null>(null);
+  const run = useCallback(
+    (p: number) => {
+      reqRef.current?.abort();
+      const ctrl = new AbortController();
+      reqRef.current = ctrl;
+      void loadPage(p, ctrl.signal);
+    },
+    [loadPage],
+  );
+  useEffect(() => () => reqRef.current?.abort(), []);
 
   // Mount pertama: buka halaman sesuai URL.
   useEffect(() => {
     if (bootedRef.current) return;
     bootedRef.current = true;
     appliedFiltersRef.current = filtersKey;
-    // Cukup buang memori dedupe halaman untuk filter ini. Dulu di sini
-    // dipanggil invalidateApi() TANPA argumen = cache.clear(): seluruh
-    // cache klien (/api/home, detail komik, genre) ikut terhapus.
-    seenRef.current.delete(filtersKey);
-    void loadPage(parsePage(sp?.get("page")));
+    pagesRef.current.delete(filtersKey);
+    run(parsePage(sp?.get("page")));
+    // Reset penanda saat cleanup: StrictMode dev melepas & menjalankan ulang
+    // efek, jadi run kedua harus tetap memuat data (bukan tertahan booted).
+    return () => {
+      bootedRef.current = false;
+      reqRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -170,15 +202,15 @@ function GenreDetailContent({ slug }: { slug: string }) {
     if (appliedFiltersRef.current === filtersKey) return;
     appliedFiltersRef.current = filtersKey;
     // Buang riwayat dedupe HANYA untuk filter baru ini agar mulai bersih.
-    seenRef.current.delete(filtersKey);
+    pagesRef.current.delete(filtersKey);
     // Batasi jumlah kombinasi filter yang disimpan (maks 20) agar Map
     // tidak tumbuh tanpa batas bila user berganti-ganti filter terus.
-    if (seenRef.current.size > 20) {
-      const oldest = seenRef.current.keys().next().value;
-      if (oldest !== undefined && oldest !== filtersKey) seenRef.current.delete(oldest);
+    if (pagesRef.current.size > 20) {
+      const oldest = pagesRef.current.keys().next().value;
+      if (oldest !== undefined && oldest !== filtersKey) pagesRef.current.delete(oldest);
     }
     scrollToList();
-    void loadPage(1);
+    run(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey]);
 
@@ -188,9 +220,9 @@ function GenreDetailContent({ slug }: { slug: string }) {
       const target = Math.min(Math.max(1, p), 50);
       if (target === page || loading) return;
       scrollToList();
-      void loadPage(target);
+      run(target);
     },
-    [page, loading, loadPage, scrollToList],
+    [page, loading, run, scrollToList],
   );
 
   // Filter + halaman ditulis ke URL (replace, tanpa reload) + sessionStorage
@@ -235,7 +267,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
       </div>
 
       {loading && <KomikListSkeleton count={8} />}
-      {error && <ErrorState message={error} onRetry={() => loadPage(page)} />}
+      {error && <ErrorState message={error} onRetry={() => run(page)} />}
       {!loading && !error && items.length === 0 && (
         <EmptyState message={`Tidak ada komik genre "${title}" dari sumber data.`} />
       )}

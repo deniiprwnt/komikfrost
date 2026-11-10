@@ -7,14 +7,35 @@ import { BareScreen, Scene } from "@/components/bare-screen";
 import { LockedDoor, type DoorState } from "@/components/scene-props";
 import type { Mood } from "@/components/mascot";
 
+/**
+ * Validasi tujuan setelah login. `?next=` datang dari URL dan bisa diisi
+ * siapa saja, jadi hanya path internal yang boleh lolos.
+ *
+ * Pemeriksaan string (`startsWith("/")`) tidak cukup: browser menormalkan
+ * backslash menjadi slash untuk skema http(s), sehingga "/\evil.com"
+ * menjadi "https://evil.com/". Di sini target di-resolve dulu, lalu origin
+ * hasil resolve harus origin internal.
+ */
+function safeNext(raw: string): string {
+  if (raw.includes("\\") || /[\u0000-\u001f]/.test(raw)) return "/";
+  try {
+    const u = new URL(raw, "https://internal.invalid");
+    if (u.origin !== "https://internal.invalid") return "/";
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return "/";
+  }
+}
+
 function MasukForm() {
   usePageTitle("Masuk");
   const router = useRouter();
   const sp = useSearchParams();
-  // Hanya path internal yang diizinkan — tolak URL absolut ("https://…")
-  // dan protocol-relative ("//evil") agar ?next= tidak jadi open-redirect.
+  // Hanya path internal yang diizinkan — tolak URL absolut ("https://…"),
+  // protocol-relative ("//evil"), backslash ("/\evil" → "//evil" di browser),
+  // dan karakter kontrol. Validasi pakai parser URL, bukan potongan string.
   const rawNext = sp?.get("next") || "/";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const next = safeNext(rawNext);
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);

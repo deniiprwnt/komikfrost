@@ -67,13 +67,19 @@ export function readApiSnapshot<T>(path: string): T | null {
 let lastPruneAt = 0;
 const PRUNE_INTERVAL_MS = 30_000;
 
-function pruneSnapshots(): void {
+function pruneSnapshots(force = false): void {
   try {
     const now = Date.now();
     // Jangan pindai seluruh localStorage tiap tulisan; cukup sesekali.
-    if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+    // `force` dipakai saat kuota penuh: prune terakhir < 30 dtk lalu tidak
+    // boleh membuat pembersihan ini jadi no-op.
+    if (!force && now - lastPruneAt < PRUNE_INTERVAL_MS) return;
     lastPruneAt = now;
     const alive: { key: string; at: number }[] = [];
+    // Kumpulkan dulu, hapus SETELAH loop: `removeItem` menggeser indeks
+    // localStorage sehingga entri berikutnya terlewat bila dihapus sambil
+    // iterasi berjalan.
+    const doomed: string[] = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
       if (!key || !key.startsWith(SNAP_PREFIX)) continue;
@@ -83,12 +89,13 @@ function pruneSnapshots(): void {
       } catch {
         at = 0;
       }
-      if (!at || now - at > SNAP_TTL_MS) window.localStorage.removeItem(key);
+      if (!at || now - at > SNAP_TTL_MS) doomed.push(key);
       else alive.push({ key, at });
     }
     // Sisakan 40 snapshot terbaru.
     alive.sort((a, b) => b.at - a.at);
-    for (const { key } of alive.slice(40)) window.localStorage.removeItem(key);
+    for (const { key } of alive.slice(40)) doomed.push(key);
+    for (const key of doomed) window.localStorage.removeItem(key);
   } catch {
     // storage diblokir — abaikan
   }
@@ -103,7 +110,7 @@ function writeApiSnapshot(path: string, data: unknown): void {
     pruneSnapshots();
   } catch {
     // Kuota penuh / mode privat — cache memori tetap bekerja.
-    pruneSnapshots();
+    pruneSnapshots(true);
   }
 }
 
@@ -120,21 +127,10 @@ async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false)
     const here = window.location.pathname + window.location.search;
     if (!here.startsWith("/masuk")) {
       window.location.href = `/masuk?next=${encodeURIComponent(here)}`;
-      // Beri waktu navigasi berjalan sebelum promise ditolak. Timeout
-      // sebagai jaring pengaman: bila navigasi gagal (CSP, iframe, dsb.),
-      // jangan biarkan UI macet selamanya menunggu promise abadi. Timer
-      // dibersihkan bila halaman benar-benar dilepas lebih dulu.
-      await new Promise<never>((_, reject) => {
-        const id = setTimeout(
-          () => reject(new Error("Mengalihkan ke halaman masuk...")),
-          5000,
-        );
-        window.addEventListener(
-          "beforeunload",
-          () => clearTimeout(id),
-          { once: true },
-        );
-      });
+      // Jangan menunggu navigasi selesai: promise yang menggantung membuat
+      // pemanggil (dan spinner) macet 5 detik bila navigasi diblokir
+      // (CSP/iframe). Navigasi tetap berjalan; error ini hanya jaring pengaman.
+      throw new Error("Mengalihkan ke halaman masuk...");
     }
   }
   if (!res.ok || !json || json.error) {

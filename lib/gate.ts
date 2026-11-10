@@ -60,10 +60,14 @@ const LIMIT = 60; // 60 req/menit/IP untuk /api/*
  *   berikutnya dijawab 429 dan halaman tampil kosong.
  */
 export function rateLimited(req: Request, limit = LIMIT, bucket = "api"): boolean {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  // `x-forwarded-for` adalah daftar "client, proxy1, proxy2, …" yang
+  // ditambahkan dari kiri ke kanan. Entri PERTAMA bisa dikirim sendiri oleh
+  // klien (spoof → limit dilewati, atau IP korban dikunci), jadi pakai
+  // entri TERAKHIR yang ditambahkan proxy terdekat.
+  // `x-real-ip` diutamakan bila ada (Vercel/nginx mengisinya sendiri).
+  const xff = req.headers.get("x-forwarded-for");
+  const lastHop = xff ? xff.split(",").map((s) => s.trim()).filter(Boolean).pop() : undefined;
+  const ip = req.headers.get("x-real-ip")?.trim() || lastHop || "unknown";
   const key = `${bucket}:${ip}`;
   const now = Date.now();
   // Sapu entri kedaluwarsa: Map ini dulu hanya di-reset saat IP yang SAMA

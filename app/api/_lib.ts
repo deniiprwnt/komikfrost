@@ -37,6 +37,15 @@ export async function guard(
       return false;
     }
   };
+  // Tolak embed lintas situs walau Origin/Referer sama-sama kosong: fetch
+  // lintas origin dari browser mengirim `Sec-Fetch-Site: cross-site`.
+  // (Klien non-browser tetap lolos di sini — gate password yang utama.)
+  if (req.headers.get("sec-fetch-site") === "cross-site") {
+    return NextResponse.json(
+      { error: { message: "Akses ditolak.", source: "gate" } },
+      { status: 403 },
+    );
+  }
   if ((origin || referer) && !sameSite(origin) && !sameSite(referer)) {
     return NextResponse.json(
       { error: { message: "Akses ditolak.", source: "gate" } },

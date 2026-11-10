@@ -38,34 +38,44 @@ function CariContent() {
   const bootedRef = useRef(false);
   const appliedQRef = useRef(q);
   const listTopRef = useRef<HTMLDivElement>(null);
-  // Judul yang sudah tampil per kata kunci — untuk membuang duplikat
-  // lintas-halaman (merge server hanya per-page; judul yang sama bisa muncul
-  // di p1 dari satu source dan p2 dari source lain karena beda timing).
-  // Reset tiap kata kunci berubah. Murni client-side, tanpa request tambahan.
-  const seenRef = useRef(new Map<string, Set<string>>());
+  // Hasil mentah per halaman, per kata kunci — sumber dedupe lintas-halaman
+  // (merge server hanya per-page; judul yang sama bisa muncul di p1 dari satu
+  // source dan p2 dari source lain karena beda timing).
+  // Dedupe dihitung ulang dari halaman SEBELUMNYA setiap kali diterapkan,
+  // jadi membuka ulang halaman mana pun (termasuk lewat tombol Back) tidak
+  // pernah mengosongkan daftar. Murni client-side, tanpa request tambahan.
+  const pagesRef = useRef(new Map<string, Map<number, MangaCard[]>>());
   // Apakah halaman 1 kata kunci ini punya jawaban exact (bukan "hasil mirip").
   // Menentukan apakah halaman lanjutan diminta strict (tanpa fallback mirip).
   const p1ExactRef = useRef(new Map<string, boolean>());
 
   // Saring item yang judulnya sudah tampil di halaman sebelumnya
-  // (kata kunci aktif), lalu catat sisanya. Urutan + prioritas server utuh.
+  // (kata kunci aktif), lalu catat halaman ini. Urutan + prioritas server utuh.
   const dedupePage = useCallback(
-    (kw: string, list: MangaCard[]): MangaCard[] => {
-      let seen = seenRef.current.get(kw);
-      if (!seen) {
+    (kw: string, p: number, list: MangaCard[]): MangaCard[] => {
+      let pages = pagesRef.current.get(kw);
+      if (!pages) {
         // Cap memori: maksimal 20 kata kunci tersimpan, hapus yang terlama.
-        if (seenRef.current.size >= 20) {
-          const oldest = seenRef.current.keys().next().value;
-          if (oldest !== undefined) seenRef.current.delete(oldest);
+        if (pagesRef.current.size >= 20) {
+          const oldest = pagesRef.current.keys().next().value;
+          if (oldest !== undefined) pagesRef.current.delete(oldest);
         }
-        seen = new Set<string>();
-        seenRef.current.set(kw, seen);
+        pages = new Map();
+        pagesRef.current.set(kw, pages);
+      }
+      pages.set(p, list);
+      const seen = new Set<string>();
+      for (const [n, raw] of pages) {
+        if (n >= p) continue;
+        for (const it of raw) {
+          const k = titleKey(it.title);
+          if (k) seen.add(k);
+        }
       }
       const out: MangaCard[] = [];
       for (const item of list) {
         const k = titleKey(item.title);
         if (k && seen.has(k)) continue;
-        if (k) seen.add(k);
         out.push(item);
       }
       return out;
@@ -82,16 +92,12 @@ function CariContent() {
   }, []);
 
   // Muat satu halaman penuh (mengganti daftar, bukan menumpuk).
-  // Duplikat lintas-halaman dibuang via seenRef per kata kunci.
+  // Duplikat lintas-halaman dibuang via pagesRef per kata kunci.
   const loadPage = useCallback(async (kw: string, p: number, signal?: AbortSignal) => {
     if (!kw) {
       setItems([]);
       setHasNext(false);
       return;
-    }
-    if (p === 1) {
-      seenRef.current.delete(kw);
-      p1ExactRef.current.delete(kw);
     }
     setLoading(true);
     setError(null);
@@ -101,7 +107,7 @@ function CariContent() {
         `/api/search?q=${encodeURIComponent(kw)}&page=${p}`,
         signal ? { signal } : undefined,
       );
-      const fresh = dedupePage(kw, res.items);
+      const fresh = dedupePage(kw, p, res.items);
       setItems(fresh);
       setPage(p);
       if (p === 1) {
@@ -112,7 +118,7 @@ function CariContent() {
       // cek diam-diam halaman 2 — bila tidak ada judul exact BARU (belum
       // tampil di halaman 1), pagination dimatikan agar tidak ada tombol
       // sesat ke halaman tanpa jawaban. Pengecekan hanya mengintip (tanpa
-      // mencatat ke seenRef) agar halaman 2 asli tetap utuh saat user
+      // mencatat ke pagesRef) agar halaman 2 asli tetap utuh saat user
       // benar-benar membukanya. P1 murni "hasil mirip" tidak dicek
       // (pilihannya memang berlanjut). +1 request diam-diam.
       if (p === 1 && p1ExactRef.current.get(kw) === true && res.hasNextPage) {
@@ -122,11 +128,15 @@ function CariContent() {
             `/api/search?q=${encodeURIComponent(kw)}&page=2`,
             signal ? { signal } : undefined,
           );
-          const seen = seenRef.current.get(kw);
+          const p1Keys = new Set<string>();
+          for (const it of pagesRef.current.get(kw)?.get(1) ?? []) {
+            const k = titleKey(it.title);
+            if (k) p1Keys.add(k);
+          }
           const unseenExact = next.items.filter((c) => {
             if (c.exactMatch === false) return false;
             const k = titleKey(c.title);
-            return !k || !seen?.has(k);
+            return !k || !p1Keys.has(k);
           });
           if (unseenExact.length === 0) setHasNext(false);
         } catch {
