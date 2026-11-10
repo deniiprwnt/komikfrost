@@ -553,7 +553,26 @@ export async function fetchHome(): Promise<HomeData> {
 
 export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   const clean = slug.replace(/^\/+|\/+$/g, "");
-  const html = await fetchHtml(`${KOMIKU_BASE}/manga/${encodeURIComponent(clean)}/`);
+  // Slug Komiku berganti saat upstream menambah/menghapus penanda duplikat
+  // ("rewriting-my-third-life" ↔ "rewriting-my-third-life-id"). Slug lama yang
+  // masih dipakai URL situs (bookmark, tautan lama) menghasilkan 404 walau
+  // judulnya ADA, sehingga genre/tipe/chapter Komiku hilang dari detail.
+  // Bila slug asli 404, coba SEKALI tanpa akhiran "-id"/"-idN". Hanya pada
+  // 404: error jaringan/5xx tidak diulang (tidak ada gunanya, menambah latensi).
+  let html: string;
+  let usedSlug = clean;
+  try {
+    html = await fetchHtml(`${KOMIKU_BASE}/manga/${encodeURIComponent(clean)}/`);
+  } catch (e) {
+    const alt = clean.replace(/-id\d*$/i, "");
+    if (alt === clean || (e as { status?: number } | null)?.status !== 404) throw e;
+    try {
+      html = await fetchHtml(`${KOMIKU_BASE}/manga/${encodeURIComponent(alt)}/`);
+      usedSlug = alt;
+    } catch {
+      throw e; // pesan 404 slug asli dipertahankan
+    }
+  }
   const $ = cheerio.load(html);
 
   const coverImg = $("section#Informasi div.ims img").first();
@@ -712,7 +731,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   }
 
   return {
-    slug: clean,
+    slug: usedSlug,
     title,
     ...(altTitle ? { altTitle } : {}),
     cover,

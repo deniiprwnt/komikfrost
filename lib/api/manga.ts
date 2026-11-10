@@ -806,29 +806,46 @@ async function fallbackSynopsisByAliases(
 }
 
 async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetail> {
-  const { data } = await fetchAllSettled(
-    {
-      komiku: () => fetchMangaDetail(slug),
-      shinigami: () => resolveShiniDetailForSlug(slug),
-      // Komikcast selalu via resolve judul (skema slug beda: tanpa "-id").
-      // Judul dari hasil Komiku/Shinigami bila ada, else dari slug mentah.
-      komikcast: async () => {
-        if (isShiniId(slug)) throw new Error("Slug UUID tidak ada di Komikcast.");
-        // Slug pola Komiku ("...-id" / "...-id-N") → pasti 404 bila
-        // ditebak ke /series/<slug>; langsung resolve via judul (tahap 2),
-        // hemat 1 request spekulatif. Slug lain tetap direct dulu.
-        if (/-id(-\d+)?$/i.test(slug)) throw new Error("Slug Komiku, resolve Komikcast via judul.");
-        try {
-          // Coba langsung dulu (kasus Komikcast-only, slug sudah tepat).
-          return await fetchKomikcastDetail(slug);
-        } catch {
-          // Bukan slug Komikcast → resolve via judul (tahap 2 di bawah).
-          throw new Error("Resolve Komikcast via judul.");
-        }
+  // Tahap 1 bisa gagal TOTAL (mis. slug lama "…-id" tidak dikenal Komiku,
+  // judulnya tidak ada di Shinigami, dan slug Komikcast beda ejaan). Dulu
+  // kegagalan itu langsung dilempar sehingga tahap 2 — resolusi lewat JUDUL —
+  // tidak pernah dijalankan, padahal judulnya ADA di Komikcast/Shinigami.
+  // Sekarang error disimpan: bila semua gagal karena 404, pencarian lewat
+  // judul tetap dicoba; error asli dilempar lagi hanya bila tahap 2 pun kosong.
+  type SrcId = (typeof SOURCE_PRIORITY)[number];
+  let data: Partial<Record<SrcId, MangaDetail>> = {};
+  let firstError: unknown = null;
+  try {
+    const fetched = await fetchAllSettled(
+      {
+        komiku: () => fetchMangaDetail(slug),
+        shinigami: () => resolveShiniDetailForSlug(slug),
+        // Komikcast selalu via resolve judul (skema slug beda: tanpa "-id").
+        // Judul dari hasil Komiku/Shinigami bila ada, else dari slug mentah.
+        komikcast: async () => {
+          if (isShiniId(slug)) throw new Error("Slug UUID tidak ada di Komikcast.");
+          // Slug pola Komiku ("...-id" / "...-id-N") → pasti 404 bila
+          // ditebak ke /series/<slug>; langsung resolve via judul (tahap 2),
+          // hemat 1 request spekulatif. Slug lain tetap direct dulu.
+          if (/-id(-\d+)?$/i.test(slug)) throw new Error("Slug Komiku, resolve Komikcast via judul.");
+          try {
+            // Coba langsung dulu (kasus Komikcast-only, slug sudah tepat).
+            return await fetchKomikcastDetail(slug);
+          } catch {
+            // Bukan slug Komikcast → resolve via judul (tahap 2 di bawah).
+            throw new Error("Resolve Komikcast via judul.");
+          }
+        },
       },
-    },
-    "detail",
-  );
+      "detail",
+    );
+    data = fetched.data;
+  } catch (e) {
+    firstError = e;
+    // Hanya "tidak ditemukan" (404) yang layak diselamatkan lewat judul;
+    // gangguan jaringan/5xx tidak diulang supaya respons tidak tertahan.
+    if (!deep || isShiniId(slug) || (e as { status?: number } | null)?.status !== 404) throw e;
+  }
   // Tahap 2: resolve Komikcast via judul (exact match, konservatif).
   // Gagal = Komikcast absen, sisi lain tetap serve. AltTitle (EN) ikut
   // diteruskan sebagai jembatan bila judul utama beda ejaan.
@@ -861,7 +878,11 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
     ...(data.shinigami ? { shinigami: data.shinigami } : {}),
     ...(data.komikcast ? { komikcast: data.komikcast } : {}),
   });
-  if (!merged) throw new Error("Gagal memuat detail komik.");
+  // Tahap 2 juga tidak menemukan apa pun → laporkan error ASLI dari tahap 1
+  // (status 404 dari sumber) agar route mengembalikan status yang sama.
+  if (!merged) {
+    throw firstError instanceof Error ? firstError : new Error("Gagal memuat detail komik.");
+  }
   // Sinopsis kosong/placeholder di SEMUA sumber yang terambil → cari lewat
   // judul + ALIAS (semua judul/altTitle dari tiap sumber + judul dari slug)
   // di ketiga sumber, juga entri lain bersumber sama dengan slug berbeda.
