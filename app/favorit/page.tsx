@@ -102,7 +102,7 @@ export default function FavoritPage() {
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
       <div className="min-w-0">
-        <SectionHead title="Favorit" href="/riwayat" linkLabel="Riwayat →" />
+        <SectionHead title="Favorit" href="/riwayat" linkLabel="Riwayat" />
         {bookmarks.length > 0 && (
           <p className="-mt-2 text-xs text-muted dark:text-muted-dark">
             {bookmarks.length} judul · tersimpan di perangkat ini
@@ -164,7 +164,7 @@ export default function FavoritPage() {
                   <Link
                     href={chapterPathToRoute(updates[b.slug].url)}
                     title={`Baca ${updates[b.slug].label} sekarang`}
-                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-fresh px-2 py-0.5 text-[10px] font-bold text-white shadow"
+                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-fresh px-2 py-0.5 text-[10px] font-bold text-white"
                   >
                     BARU · {updates[b.slug].label}
                   </Link>
@@ -173,7 +173,7 @@ export default function FavoritPage() {
               <button
                 onClick={() => remove(b.slug)}
                 aria-label={`Hapus ${b.title} dari favorit`}
-                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-mark-manga"
+                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/80 text-white transition-colors hover:bg-mark-manga"
               >
                 <IconTrash className="h-4 w-4" />
               </button>

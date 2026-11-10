@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "./theme";
 import { SearchSuggest } from "./search-suggest";
 import { BrandMark } from "./brand-mark";
+import { PromoYukiHead, PromoYukiPaw } from "./promo-yuki";
 import { NavLink } from "./nav-link";
 import { warmPrimaryNav } from "@/lib/nav-prefetch";
 
@@ -98,7 +99,7 @@ export function Sidebar() {
   };
 
   const itemBase =
-    "sb-item group/item relative flex h-12 w-full items-center rounded-2xl px-2.5 text-sm font-semibold transition-colors";
+    "sb-item group/item relative flex h-11 w-full items-center rounded-xl px-2.5 text-[13.5px] font-semibold transition-colors";
   const itemIdle =
     "text-muted hover:bg-paper-3/70 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3/70 dark:hover:text-fg-dark";
   const itemActive =
@@ -107,13 +108,13 @@ export function Sidebar() {
   return (
     <aside
       aria-label="Menu utama"
-      className="sb glass fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-line md:flex dark:border-line-dark"
+      className="sb fixed inset-y-0 left-0 z-50 hidden flex-col bg-paper-2 md:flex dark:bg-ink-2"
     >
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center px-5">
         <NavLink href="/" className="group/logo flex min-w-0 items-center gap-3" aria-label="KomikFrost, ke beranda">
           <Mark />
-          <span className="sb-wordmark truncate font-display text-xl font-extrabold tracking-tight text-fg dark:text-fg-dark">
+          <span className="sb-wordmark truncate font-display text-xl font-extrabold tracking-[-0.02em] text-fg dark:text-fg-dark">
             Komik<span className="text-accent">Frost</span>
           </span>
         </NavLink>
@@ -143,39 +144,43 @@ export function Sidebar() {
             })}
           </div>
         ))}
+
       </nav>
 
       {/* Kartu info */}
       <div className="sb-foot mt-auto flex shrink-0 flex-col gap-2 p-3">
         <div className="sb-promo">
-          <div className="sb-promo__head">
-            <span className="sb-promo__ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
-                <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5v-15ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5v-15Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <p className="text-[13px] font-extrabold leading-tight text-fg dark:text-fg-dark">Baca tanpa batas</p>
-              <p className="sb-promo__live"><i aria-hidden="true" />Update tiap hari</p>
+          {/* Yuki (diam, tanpa animasi) mengintip di atas papan dan memegang tepinya */}
+          <div className="sb-sign">
+            <PromoYukiHead className="sb-sign__fox" />
+            <div className="sb-sign__board">
+              <PromoYukiPaw className="sb-sign__paw sb-sign__paw--l" />
+              <PromoYukiPaw className="sb-sign__paw sb-sign__paw--r" />
+              <div className="sb-promo__head">
+                <p className="sb-promo__live"><i aria-hidden="true" />Update tiap hari</p>
+                <p className="sb-promo__title">Baca tanpa batas</p>
+              </div>
+              <p className="sb-promo__desc">
+                Komik terbaru dalam Bahasa Indonesia, langsung di satu tempat.
+              </p>
+              <div className="sb-promo__chips">
+                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manga)" }}>Manga</span>
+                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhwa)" }}>Manhwa</span>
+                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhua)" }}>Manhua</span>
+              </div>
             </div>
-          </div>
-          <p className="mt-2.5 text-[11.5px] leading-snug text-muted dark:text-muted-dark">
-            Komik terbaru dalam Bahasa Indonesia, langsung di satu tempat.
-          </p>
-          <div className="sb-promo__chips">
-            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manga)" }}>Manga</span>
-            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhwa)" }}>Manhwa</span>
-            <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhua)" }}>Manhua</span>
           </div>
         </div>
       </div>
 
-      {/* Handle ciut/perluas di tepi sidebar */}
+
+      {/* Handle ciut/perluas di tepi sidebar: selalu terlihat, ikut ukuran layar */}
       {!narrow && !reading && (
         <button
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+          title={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
           aria-pressed={collapsed}
           className="sb-handle"
         >
@@ -223,6 +228,8 @@ export function Header() {
     warmPrimaryNav(pathname);
   }, [pathname]);
 
+  const currentLabel = NAV.find((n) => isActive(pathname, n.href))?.label ?? "KomikFrost";
+
   const clearSearch = (form: HTMLFormElement | null) => {
     setQ("");
     form?.querySelector("input")?.focus();
@@ -237,8 +244,8 @@ export function Header() {
   };
 
   return (
-    <header data-app-header className="sticky top-0 z-40 border-b border-line/50 glass pt-[calc(env(safe-area-inset-top,0px)+16px)] shadow-premium md:pt-[env(safe-area-inset-top,0px)] dark:border-line-dark/50">
-      <div className="mx-auto flex h-14 max-w-app items-stretch gap-2 px-3 sm:gap-4 sm:px-4 md:grid md:h-14 md:grid-cols-[minmax(2.5rem,1fr)_minmax(0,28rem)_minmax(2.5rem,1fr)] md:items-center md:gap-4 lg:px-6">
+    <header data-app-header className="sticky top-0 z-40 border-b border-line bg-paper pt-[calc(env(safe-area-inset-top,0px)+16px)] md:pt-[env(safe-area-inset-top,0px)] dark:border-line-dark dark:bg-ink">
+      <div className="mx-auto flex h-14 max-w-app items-stretch gap-2 px-3 sm:gap-4 sm:px-4 md:grid md:h-14 md:grid-cols-[minmax(2.5rem,1fr)_minmax(0,34rem)_minmax(2.5rem,1fr)] md:items-center md:gap-4 lg:px-6">
         <NavLink href="/" className="group/logo flex min-w-0 shrink-0 items-center gap-2.5 md:hidden" aria-label="KomikFrost, ke beranda">
           <Mark />
           <span className="truncate font-display text-lg font-extrabold tracking-tight text-fg sm:text-xl dark:text-fg-dark">
@@ -247,7 +254,12 @@ export function Header() {
         </NavLink>
 
         {/* Desktop: pencarian di tengah (melebar halus saat fokus) + tema di kanan */}
-        <div className="hidden md:block" aria-hidden="true" />
+        <div className="hdr-title hidden min-w-0 items-center gap-2.5 md:flex">
+          <span className="hdr-dot" aria-hidden="true" />
+          <p className="truncate font-display text-[15px] font-extrabold tracking-tight text-fg dark:text-fg-dark">
+            {currentLabel}
+          </p>
+        </div>
         <form
           ref={formRef}
           role="search"
@@ -272,7 +284,7 @@ export function Header() {
             onClick={toggle}
             aria-label="Ganti tema"
             title={theme === "dark" ? "Mode terang" : "Mode gelap"}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+            className="hdr-btn flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
           >
             {theme === "dark" ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
           </button>
@@ -283,7 +295,7 @@ export function Header() {
             onClick={() => setMobileSearch((v) => !v)}
             aria-label="Cari komik"
             aria-expanded={mobileSearch}
-            className="flex h-10 w-10 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+            className="hdr-btn flex h-10 w-10 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
           >
             {mobileSearch ? (
               <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]">
@@ -296,7 +308,7 @@ export function Header() {
           <button
             onClick={toggle}
             aria-label="Ganti tema"
-            className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
+            className="hdr-btn flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-xl border border-line bg-paper-2 text-fg transition-colors hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark"
           >
             {theme === "dark" ? <IconSun className="h-[18px] w-[18px]" /> : <IconMoon className="h-[18px] w-[18px]" />}
           </button>
@@ -376,7 +388,7 @@ export function MobileTabBar() {
       aria-label="Navigasi utama"
       className="dock-wrap pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
     >
-      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-2xl border border-line glass p-1.5 dark:border-line-dark">
+      <div className="dock pointer-events-auto relative mx-auto grid max-w-[24rem] grid-cols-5 rounded-2xl border border-line p-1.5 dark:border-line-dark">
         <span
           aria-hidden="true"
           className="dock-pill"
@@ -396,7 +408,7 @@ export function MobileTabBar() {
               }`}
             >
               <Icon className="dock-icon h-[22px] w-[22px] shrink-0" />
-              <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none tracking-tight">{n.label}</span>
+              <span className="max-w-full truncate px-0.5 text-[10px] font-semibold leading-none tracking-tight">{n.label}</span>
             </NavLink>
           );
         })}

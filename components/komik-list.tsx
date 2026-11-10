@@ -19,7 +19,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto group flex min-w-0 gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-shadow duration-200 hover:border-accent/60 hover:shadow-premium sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2"
+      className="cv-auto group flex min-w-0 gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-colors duration-200 hover:border-accent/50 sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2"
     >
       <Link
         href={`/komik/${item.slug}`}
@@ -38,7 +38,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
         <div className="flex min-w-0 items-start gap-1.5">
           <Link
             href={`/komik/${item.slug}`}
-            className="min-w-0 flex-1 break-words font-display text-[13px] font-bold leading-snug text-fg hover:text-accent sm:text-[15px] dark:text-fg-dark"
+            className="min-w-0 flex-1 break-words font-display text-[13px] font-bold leading-snug tracking-[-0.005em] text-fg hover:text-accent sm:text-[15px] dark:text-fg-dark"
             style={{
               display: "-webkit-box",
               WebkitLineClamp: 2,

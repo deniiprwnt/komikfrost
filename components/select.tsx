@@ -337,7 +337,7 @@ export function Select({
       ? createPortal(
           isMobile ? (
             <div className="fixed inset-0 z-[100]">
-              <div className="select-fade absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={() => close()} aria-hidden />
+              <div className="select-fade absolute inset-0 bg-black/55" onClick={() => close()} aria-hidden />
               <div
                 ref={panelRef}
                 tabIndex={-1}
@@ -376,7 +376,7 @@ export function Select({
               role="dialog"
               aria-label={label}
               style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxH }}
-              className={`select-pop fixed z-[100] flex flex-col overflow-hidden rounded-xl shadow-xl shadow-black/15 outline-none dark:shadow-black/50 ${surface} ${pos.bottom !== undefined ? "origin-bottom" : "origin-top"}`}
+              className={`select-pop fixed z-[100] flex flex-col overflow-hidden rounded-xl shadow-[0_14px_30px_-16px_rgba(8,28,32,0.4)] outline-none dark:shadow-[0_14px_30px_-16px_rgba(0,0,0,0.85)] ${surface} ${pos.bottom !== undefined ? "origin-bottom" : "origin-top"}`}
             >
               {searchBox}
               {list}

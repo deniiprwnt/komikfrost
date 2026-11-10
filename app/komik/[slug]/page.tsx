@@ -163,7 +163,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           <div className="flex min-w-0 items-start gap-2">
             <div className="min-w-0 flex-1">
               <TypeBadge type={detail.type} />
-              <h1 className="mt-1.5 min-w-0 break-words font-display text-lg font-extrabold leading-tight text-fg min-[420px]:text-xl sm:text-2xl lg:text-3xl dark:text-fg-dark">
+              <h1 className="mt-1.5 min-w-0 break-words font-display text-lg font-extrabold leading-[1.15] tracking-[-0.02em] text-fg min-[420px]:text-xl sm:text-2xl lg:text-3xl dark:text-fg-dark">
                 {detail.title}
               </h1>
             </div>
@@ -264,7 +264,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       {/* Sinopsis — dibungkus kartu seperti section beranda */}
       {detail.synopsis && (
         <section className="min-w-0 rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
-          <h2 className="mb-2 truncate font-display text-base font-bold text-fg dark:text-fg-dark">
+          <h2 className="display-cond mb-2 truncate text-xl text-fg dark:text-fg-dark">
             Sinopsis
           </h2>
           <p className="whitespace-pre-line break-words text-[13px] leading-relaxed text-fg/85 sm:text-sm dark:text-fg-dark/80">
@@ -277,7 +277,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       <section className="min-w-0 rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:row-span-3 dark:border-line-dark dark:bg-ink-2">
         {/* Judul + tombol urut di baris atas; pencarian penuh selebar kartu di bawahnya. */}
         <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="order-1 min-w-0 flex-1 truncate font-display text-base font-bold text-fg dark:text-fg-dark">
+          <h2 className="display-cond order-1 min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
             Daftar Chapter ({detail.chapters.length})
           </h2>
           {detail.chapters.length > 10 && (
@@ -356,12 +356,12 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       {similar !== null && similar.length > 0 && detail.genres[0] && (
         <section className="min-w-0 rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-            <h2 className="min-w-0 flex-1 truncate font-display text-base font-bold text-fg dark:text-fg-dark">
+            <h2 className="display-cond min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
               Serupa: {detail.genres[0].name}
             </h2>
             <Link
               href={`/genre/${detail.genres[0].slug}`}
-              className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-accent hover:underline"
+              className="section-link shrink-0 py-1 text-xs font-semibold"
             >
               Lihat semua
             </Link>

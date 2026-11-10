@@ -1,17 +1,12 @@
 /**
- * Tile logo KomikFrost: mark K putih di atas gradien ink→teal dengan bloom
- * aksen. Satu sumber visual untuk splash, header, dan halaman masuk, agar
- * logo tidak lagi muncul sebagai kotak accent datar.
+ * Tile logo KomikFrost: mark K putih di atas bidang teal solid (tanpa bloom,
+ * tanpa kilau). Satu sumber visual untuk splash, header, dan halaman masuk.
  */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-[10%] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] ${className}`}
-      style={{
-        background:
-          "radial-gradient(120% 120% at 76% 84%, rgba(98,214,200,0.34) 0%, rgba(98,214,200,0) 68%), linear-gradient(145deg, #1a9a92 0%, #0b6b66 52%, #064e4a 100%)",
-      }}
+      className={`flex shrink-0 items-center justify-center rounded-[10%] bg-[#0b6b66] text-white ${className}`}
     >
       <svg viewBox="48 48 160 160" className="h-[78%] w-[78%]" fill="currentColor" aria-hidden="true">
         <path

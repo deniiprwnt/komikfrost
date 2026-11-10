@@ -75,6 +75,18 @@ export const viewport: Viewport = {
   themeColor: "#080e11",
 };
 
+/**
+ * Deteksi platform SEBELUM paint → <html data-platform="ios|android|desktop">.
+ * CSS (globals.css) memakai atribut ini untuk menukar skala rounded.
+ * Pratinjau di desktop: buka /?platform=ios, /?platform=android atau
+ * /?platform=desktop (disimpan); /?platform=auto menghapus pilihan.
+ */
+const PLATFORM_SCRIPT =
+  'try{var d=document.documentElement,u=navigator.userAgent,s=null,m=location.search.match(/[?&]platform=(ios|android|desktop|auto)/);' +
+  'try{if(m){if(m[1]==="auto")localStorage.removeItem("bk-platform");else localStorage.setItem("bk-platform",m[1])}s=localStorage.getItem("bk-platform")}catch(e){}' +
+  'var k=s||((/iPhone|iPad|iPod/.test(u)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))?"ios":/Android/i.test(u)?"android":"desktop");' +
+  'd.dataset.platform=k}catch(e){}';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" suppressHydrationWarning className={`${display.variable} ${sans.variable}`}>
@@ -88,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               'try{var p=!!(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone);if(p)document.documentElement.classList.add("booting");var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",p||t!=="light"?"#080e11":"#eaf1f1")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: PLATFORM_SCRIPT }} />
         {/* CDN gambar disambungkan lebih awal agar handshake TLS/DNS
             tidak menunggu gambar pertama. Gambar chapter tersebar di
             beberapa subdomain (image2..image8), cover dari thumbnail, dan

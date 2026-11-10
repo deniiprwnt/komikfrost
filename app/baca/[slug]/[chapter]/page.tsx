@@ -94,10 +94,10 @@ function ChapterNav({
   return (
     <nav
       aria-label="Navigasi chapter"
-      className={`mx-auto grid w-full min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5 rounded-2xl border border-line bg-paper-2/90 p-1.5 backdrop-blur-md sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2/90 ${
+      className={`mx-auto grid w-full min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5 rounded-2xl border border-line bg-paper-2 p-1.5 sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2 ${
         floating
-          ? "max-w-md shadow-2xl shadow-black/15 sm:max-w-lg dark:shadow-black/50"
-          : "max-w-md shadow-lg shadow-black/10 sm:max-w-lg dark:shadow-black/30"
+          ? "max-w-md shadow-[0_12px_28px_-14px_rgba(8,28,32,0.4)] sm:max-w-lg dark:shadow-[0_12px_28px_-14px_rgba(0,0,0,0.85)]"
+          : "max-w-md sm:max-w-lg"
       }`}
     >
       {prevHref ? (
@@ -565,7 +565,7 @@ export default function ReaderPage({
           ← {data.mangaSlug.replace(/-/g, " ")}
         </Link>
         <div className="mt-1 flex min-w-0 items-start justify-between gap-2">
-          <h1 className="min-w-0 flex-1 break-words font-display text-base font-bold leading-tight text-fg min-[420px]:text-lg sm:text-xl dark:text-fg-dark">
+          <h1 className="min-w-0 flex-1 break-words font-display text-base font-bold leading-tight tracking-[-0.01em] text-fg min-[420px]:text-lg sm:text-xl dark:text-fg-dark">
             {data.title}
           </h1>
           {/* Mode baca — pilihan tersimpan per perangkat */}
@@ -693,7 +693,7 @@ export default function ReaderPage({
         <div className="float-in fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-24">
           <Link
             href={nextHref}
-            className="mx-auto flex w-full max-w-3xl touch-manipulation items-center justify-center gap-1.5 rounded-2xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-xl active:scale-[0.99]"
+            className="mx-auto flex w-full max-w-3xl touch-manipulation items-center justify-center gap-1.5 rounded-2xl bg-accent px-4 py-3.5 text-sm font-semibold text-white active:scale-[0.99]"
           >
             Chapter berikut
             <IconChevron dir="right" className="h-4 w-4 shrink-0" />
@@ -723,7 +723,7 @@ export default function ReaderPage({
               scrollTop();
             }}
             aria-label="Kembali ke atas"
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-accent bg-accent text-white shadow-lg shadow-accent/30 backdrop-blur transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-accent bg-accent text-white transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
           >
             <IconUp className="h-5 w-5" />
           </button>

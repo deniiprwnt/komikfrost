@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { MangaCard } from "@/lib/api/types";
 import { MangaGridCard } from "./cards";
+import { PromoYukiHead } from "./promo-yuki";
 
 /** Skeleton loading untuk grid kartu. */
 export function GridSkeleton({ count = 10 }: { count?: number }) {
   return (
     <div aria-hidden="true" className="grid-cards">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-md bg-paper-2 dark:bg-ink-2">
+        <div key={i} className="overflow-hidden rounded-xl bg-paper-2 dark:bg-ink-2">
           <div className="shimmer aspect-[3/4]" />
           <div className="space-y-1.5 p-2 sm:p-2.5">
             <div className="shimmer h-3 w-11/12 rounded-md" />
@@ -61,20 +62,7 @@ export function EmptyState({ message, className = "" }: { message: string; class
       role="status"
       className={`flex flex-col items-center justify-center gap-3 px-4 py-12 text-center sm:py-16 ${className}`}
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className="h-10 w-10 text-muted/60 dark:text-muted-dark/60"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />
-        <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" />
-        <path d="m9.5 8.5 5 5m0-5-5 5" />
-      </svg>
+      <PromoYukiHead mood="sad" className="h-16 w-auto sm:h-[4.5rem]" />
       <p className="max-w-sm text-balance text-sm leading-relaxed text-muted dark:text-muted-dark">{message}</p>
     </div>
   );
@@ -99,7 +87,7 @@ export function SectionHead({
       {href && (
         <Link
           href={href}
-          className="section-link shrink-0 rounded-md px-2 py-1 text-xs font-bold text-accent transition-colors hover:bg-accent hover:text-white"
+          className="section-link shrink-0 py-1 text-xs font-semibold"
         >
           {linkLabel}
         </Link>

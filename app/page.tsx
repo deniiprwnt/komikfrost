@@ -274,7 +274,7 @@ export default function HomePage() {
               }}
               aria-label="Muat ulang data terbaru"
               title="Muat ulang data terbaru"
-              className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-md text-muted transition-colors hover:bg-accent hover:text-white dark:text-muted-dark"
+              className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-lg text-muted transition-colors hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
             >
               <svg className={`h-4 w-4 ${anyRefreshing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24">
                 <path
@@ -286,7 +286,7 @@ export default function HomePage() {
                 />
               </svg>
             </button>
-            <Link href="/populer" className="section-link rounded-md px-2 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white">
+            <Link href="/populer" className="section-link py-1.5 text-xs font-semibold">
               Lihat semua
             </Link>
           </div>
@@ -322,7 +322,7 @@ export default function HomePage() {
               <div key={h.slug} className="flex w-[112px] shrink-0 sm:w-[132px] lg:w-[148px]">
                 <Link
                   href={h.route}
-                  className="cv-auto group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
+                  className="cv-auto group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/50 dark:border-line-dark dark:bg-ink-2"
                 >
                   <div className="relative aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3">
                     <CoverImage
@@ -338,7 +338,7 @@ export default function HomePage() {
                     )}
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 pt-2.5">
-                    <p className="mb-2 line-clamp-2 break-words text-[13px] font-bold leading-snug text-fg group-hover:text-accent dark:text-fg-dark">
+                    <p className="mb-2 line-clamp-2 break-words text-[13px] font-semibold leading-[1.35] tracking-[-0.005em] text-fg group-hover:text-accent dark:text-fg-dark">
                       {h.title}
                     </p>
                     <p className="mt-auto truncate border-t border-line pt-2 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">

@@ -24,6 +24,9 @@ const SCARF = "#a6ece2";
 const SCARF_BLUE = "#0d4bb9";
 const NAVY = "#2b3570";
 const NAVY_LIGHT = "#3d4a8f";
+const NAVY_DARK = "#1b2250"; // bayangan lengan baju jonin
+const BANDAGE = "#f1ebde"; // perban pergelangan
+const BANDAGE_LINE = "#b9b1a4";
 const VEST = "#7c9170";
 const VEST_DARK = "#586d50";
 const MOUTH = "#5a1f2b";
@@ -36,19 +39,17 @@ function Arm({ d, anim }: { d: string; anim?: string }) {
   const deg = (Math.atan2(ey - cy, ex - cx) * 180) / Math.PI;
   return (
     <g className={anim} style={anim ? { transformOrigin: `${n[0]}px ${n[1]}px` } : undefined}>
-      {/* lengan jubah ala Akatsuki: lengan baju lebar berwarna putih, ujungnya melebar dengan pita api merah */}
-      <path d={d} fill="none" stroke={INK} strokeWidth={24} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke={HAORI} strokeWidth={18.5} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke={HAORI_SHADE} strokeWidth={5} strokeLinecap="round" opacity={0.85} transform="translate(1.6 3)" />
-      <path d={d} fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" opacity={0.9} transform="translate(-3.4 -3.4)" />
+      {/* lengan baju jonin Konoha: lengan panjang biru tua yang pas di badan (jubah Hokage sendiri tanpa lengan), pergelangan dibalut perban */}
+      <path d={d} fill="none" stroke={INK} strokeWidth={21.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={NAVY} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={NAVY_DARK} strokeWidth={4.6} strokeLinecap="round" opacity={0.85} transform="translate(1.4 2.8)" />
+      <path d={d} fill="none" stroke={NAVY_LIGHT} strokeWidth={2.2} strokeLinecap="round" opacity={0.95} transform="translate(-2.8 -2.8)" />
       <g transform={`translate(${ex} ${ey}) rotate(${deg})`}>
-        {/* ujung lengan melebar + pita api dekoratif merah */}
-        <g transform="translate(-5.5 0)">
-        <path d="M-21 -10.4 L-3 -13.6 Q1.2 0 -3 13.6 L-21 10.4 Z" fill={HAORI} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
-        <path d="M-9 -12.2 L-3 -13.6 Q1.2 0 -3 13.6 L-9 12.2 Q-6.6 0 -9 -12.2 Z" fill={FLAME} />
-        <path d="M-9 -8 q-2 2.4 0 4.8 M-9 -1.6 q-2.6 3 0 6 M-9 5.2 q-2 2.4 0 4.8" fill="none" stroke={HAORI} strokeWidth={1.8} strokeLinecap="round" />
-        <path d="M-3 -13.6 Q1.2 0 -3 13.6" fill="none" stroke={INK} strokeWidth={2.8} strokeLinecap="round" />
-        <path d="M-19 -6 L-10 -7.4" stroke={HAORI_LINE} strokeWidth={1.6} strokeLinecap="round" opacity={0.6} />
+        {/* ujung lengan jonin: manset rapat + perban putih di pergelangan */}
+        <g transform="translate(-4.5 0)">
+        <path d="M-19 -9.4 L-5 -9.4 L-5 9.4 L-19 9.4 Z" fill={BANDAGE} stroke={INK} strokeWidth={2.8} strokeLinejoin="round" />
+        <path d="M-15.4 -9 L-12.4 9 M-10.2 -9 L-7.2 9" fill="none" stroke={BANDAGE_LINE} strokeWidth={1.6} strokeLinecap="round" />
+        <path d="M-19 5.6 L-5 5.6" fill="none" stroke={BANDAGE_LINE} strokeWidth={1.4} strokeLinecap="round" opacity={0.55} />
         </g>
         {/* telapak: siluet menyatu (telapak + tiga jari), garis tepi hanya di luar */}
         <g fill={INK} stroke={INK} strokeWidth={5.6} strokeLinejoin="round">

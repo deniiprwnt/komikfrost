@@ -157,7 +157,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
+      className="cv-auto group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/50 dark:border-line-dark dark:bg-ink-2"
     >
       <Link
         href={`/komik/${item.slug}`}
@@ -169,7 +169,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           src={item.thumbnail}
           alt={item.title}
           title={item.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
         {/* z-10: <CoverImage> menaruh gambarnya di z-index 1, jadi badge
             harus di atasnya agar tetap terlihat. Badge chapter melebihi tepi
@@ -185,7 +185,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
         />
         {item.latestChapter && (
-          <span className="absolute -bottom-px -left-px z-10 max-w-full truncate bg-accent pb-[5px] pl-[9px] pr-2 pt-1 text-[11px] font-bold leading-none text-white">
+          <span className="absolute -bottom-px -left-px z-10 max-w-full truncate bg-accent pb-[5px] pl-[9px] pr-2 pt-1 text-[11px] font-semibold leading-none tracking-[0.01em] text-white">
             {item.latestChapter.label}
           </span>
         )}
@@ -198,7 +198,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         <Link
           href={`/komik/${item.slug}`}
           title={item.title}
-          className="mb-2 line-clamp-2 break-words text-[13px] font-bold leading-snug text-fg hover:text-accent dark:text-fg-dark"
+          className="mb-2 line-clamp-2 break-words text-[13px] font-semibold leading-[1.35] tracking-[-0.005em] text-fg hover:text-accent dark:text-fg-dark"
         >
           {item.title}
         </Link>
@@ -369,12 +369,12 @@ export function RankRow({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-row group relative flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-[border-color,background-color,transform] duration-200 hover:border-accent/70 hover:bg-paper-3/60 active:scale-[0.99] sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2 dark:hover:bg-ink-3/70"
+      className="cv-row group relative flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-[border-color,background-color,transform] duration-200 hover:border-accent/50 hover:bg-paper-3/50 active:scale-[0.99] sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2 dark:hover:bg-ink-3/70"
     >
       {hasRank && (
         <span
-          className={`w-6 shrink-0 text-center font-display text-lg font-black tabular-nums sm:w-7 sm:text-xl ${
-            RANK_TINT[(item.rank as number) - 1] ?? "text-muted dark:text-muted-dark"
+          className={`w-6 shrink-0 text-center font-display text-lg font-extrabold tabular-nums sm:w-7 sm:text-xl ${
+            RANK_TINT[(item.rank as number) - 1] ?? "text-muted/70 dark:text-muted-dark/70"
           }`}
         >
           {item.rank}
@@ -384,20 +384,20 @@ export function RankRow({ item }: { item: MangaCard }) {
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="relative z-10 h-[80px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-paper-3 shadow-md shadow-black/20 ring-1 ring-black/5 sm:h-[96px] sm:w-[72px] dark:bg-ink-3 dark:ring-white/10"
+        className="relative z-10 h-[80px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-paper-3 ring-1 ring-black/5 sm:h-[96px] sm:w-[72px] dark:bg-ink-3 dark:ring-white/10"
       >
         <CoverImage
           src={item.thumbnail}
           alt=""
           title={item.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
         />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Link
           href={`/komik/${item.slug}`}
           title={item.title}
-          className="break-words font-display text-sm font-bold leading-snug text-fg transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-accent sm:text-[15px] dark:text-fg-dark"
+          className="break-words font-display text-sm font-bold leading-snug tracking-[-0.005em] text-fg transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-accent sm:text-[15px] dark:text-fg-dark"
           style={{
             display: "-webkit-box",
             WebkitLineClamp: 2,

@@ -125,7 +125,7 @@ export default function RiwayatPage() {
               <button
                 onClick={() => remove(h.slug)}
                 aria-label={`Hapus ${h.title} dari riwayat`}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-paper hover:text-mark-manga sm:h-9 sm:w-9 dark:text-muted-dark dark:hover:bg-ink"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-paper-3 hover:text-mark-manga sm:h-9 sm:w-9 dark:text-muted-dark dark:hover:bg-ink-3"
               >
                 <IconTrash className="h-[18px] w-[18px] sm:h-4 sm:w-4" />
               </button>

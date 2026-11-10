@@ -14,7 +14,11 @@
 import { SectionHead } from "@/components/states";
 import { KomikListSkeleton } from "@/components/komik-list";
 
+/* Daftar tidak lagi dibungkus panel: konten duduk langsung di atas halaman. */
 const SURFACE =
+  "rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 dark:border-line-dark dark:bg-ink-2";
+/** Riwayat & Favorit tetap berupa kartu panel. */
+const PANEL =
   "rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 dark:border-line-dark dark:bg-ink-2";
 
 /* ------------------------------------------------------------------ */
@@ -237,8 +241,8 @@ export function CariSkeleton({ withResults = false }: { withResults?: boolean })
 /** /favorit */
 export function FavoritSkeleton({ count = 10 }: { count?: number }) {
   return (
-    <section aria-busy="true" className={`flex min-w-0 flex-col gap-3 sm:gap-4 ${SURFACE}`}>
-      <SectionHead title="Favorit" href="/riwayat" linkLabel="Riwayat →" />
+    <section aria-busy="true" className={`flex min-w-0 flex-col gap-3 sm:gap-4 ${PANEL}`}>
+      <SectionHead title="Favorit" href="/riwayat" linkLabel="Riwayat" />
       <div aria-hidden="true" className="grid-cards min-w-0">
         {Array.from({ length: count }, (_, i) => (
           <div
@@ -259,7 +263,7 @@ export function FavoritSkeleton({ count = 10 }: { count?: number }) {
 /** /riwayat */
 export function RiwayatSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <section aria-busy="true" className={`flex min-w-0 flex-col gap-3 sm:gap-4 ${SURFACE}`}>
+    <section aria-busy="true" className={`flex min-w-0 flex-col gap-3 sm:gap-4 ${PANEL}`}>
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <SectionHead title="Riwayat Baca" />
