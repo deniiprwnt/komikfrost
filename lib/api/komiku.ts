@@ -206,13 +206,16 @@ function parseBgeCards($: cheerio.CheerioAPI, ageMs = 0): MangaCard[] {
     // Tipe + genre utama: <div class="tpe1_inf"><b>Manhwa</b> Fantasi</div>
     const tpe = root.find("div.tpe1_inf").first();
     const type = normalizeType(tpe.find("b").first().text());
-    const genreRaw = tpe.clone().children("b").remove().end().text().trim();
+    const genreRaw = blockText($, tpe.clone().children("b").remove().end());
     const genre = genreRaw || undefined;
 
     // Meta: <span class="judul2"> Fantasi | 2 jam lalu | Berwarna</span> (list)
     // Search tidak punya .judul2 — melainkan <p>Update X lalu.</p>
-    const judul2 = root.find("span.judul2").first().text().trim();
-    const descP = root.find("div.kan > p").first().text().trim();
+    const judul2 = blockText($, root.find("span.judul2").first());
+    // blockText: spasi disisipkan di batas <br>/elemen sebelum teks diambil,
+    // supaya cuplikan sinopsis di hasil pencarian tidak menempel
+    // ("lakilaki bernamaMonkey D Luffy"). Dulu di sini .text() mentah.
+    const descP = blockText($, root.find("div.kan > p").first());
     let updatedAt: string | undefined;
     let synopsis: string | undefined;
     if (judul2) {
@@ -418,7 +421,7 @@ export async function fetchRanking(period: RankPeriod = "harian"): Promise<Manga
     const rank = parseInt(root.find("span.rank-num").first().text().trim(), 10);
 
     // "Fantasi · 37,061 views" → genre + views
-    const meta = root.find("span.ls4s").first().text().trim();
+    const meta = blockText($, root.find("span.ls4s").first());
     const [genrePart, viewsPart] = meta.split("·").map((s) => s.trim());
     const genre = genrePart || undefined;
     const views = viewsPart || undefined;
@@ -472,7 +475,7 @@ function parseLs2Cards($: cheerio.CheerioAPI, scope: cheerio.Cheerio<any>): Mang
           : undefined;
 
     // "Fantasi · 2 jam lalu" → genre + updatedAt
-    const meta = root.find("span.ls2t").first().text().trim();
+    const meta = blockText($, root.find("span.ls2t").first());
     const [genrePart, timePart] = meta.split("·").map((s) => s.trim());
     // Titik waktu absolut — tanpa ini label kartu homepage membeku
     // (dulu satu-satunya parser yang lupa mengisinya).
@@ -514,7 +517,7 @@ export async function fetchHome(): Promise<HomeData> {
     const img = root.find("div.ls4v img").first();
     const thumbnail = pickImg(img);
     const rank = parseInt(root.find("span.rank-num").first().text().trim(), 10);
-    const meta = root.find("span.ls4s").first().text().trim();
+    const meta = blockText($, root.find("span.ls4s").first());
     const [genrePart, viewsPart] = meta.split("·").map((s) => s.trim());
     const chA = root.find("a.ls24[href]").first();
     const chUrl = toPath(chA.attr("href"));

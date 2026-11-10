@@ -52,7 +52,15 @@ export async function getMangaByGenre(
 ): Promise<PagedResult<MangaCard>> {
   // Slug kanonis dulu, lalu alias varian milik tiap sumber
   // ("fantasi" jadi ["fantasi", "fantasy"]).
+  // Normalisasi di pintu masuk: halaman bisa memanggil dengan NAMA kanonis
+  // ("Romance"), slug kanonis ("romance"), atau slug sumber lama ("romansa").
+  // Semua varian dipetakan ke satu daftar slug upstream yang sama, sehingga
+  // filter Romance tidak kosong hanya karena slug mentah tak dikenal satu
+  // sumber. Kanonis dulu, lalu alias tiap sumber ("fantasi" â†’ fantasy, ...).
   const slugs = upstreamGenreSlugs(genre);
+  if (slugs.length === 0) {
+    return { items: [], hasNextPage: false };
+  }
   const { data } = await fetchAllSettled(
     {
       komiku: async () =>

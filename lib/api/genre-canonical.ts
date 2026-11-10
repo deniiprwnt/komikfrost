@@ -7,53 +7,58 @@ import type { GenreRef } from "./types";
  * memakai nama/slug genre sendiri, sehingga judul yang sama tampil dengan
  * genre berbeda di bagian berbeda ("Fantasi" di Update Terbaru vs
  * "Fantasy" di Rekomendasi). Semua varian dipetakan ke SATU bentuk
- * kanonis (Bahasa Indonesia) di lapisan agregator, jadi semua bagian
- * menampilkan genre yang sama.
+ * kanonis di lapisan agregator, jadi semua bagian menampilkan genre yang
+ * sama.
+ *
+ * BENTUK KANONIS = BAHASA INGGRIS (Fantasy, Comedy, Action, Romance, ...).
+ * Nama Indonesia tetap diterima sebagai alias masuk dan dipetakan ke bentuk
+ * Inggris, sehingga data lama maupun sumber berbahasa Indonesia tidak
+ * hilang â€” hanya diseragamkan.
  */
 
-/** Nama genre kanonis â€” satu bahasa (Indonesia) kecuali istilah baku. */
+/** Nama genre kanonis â€” satu bahasa (Inggris) untuk semua bagian situs. */
 const CANON_NAMES = [
-  "Aksi",
-  "Dewasa",
-  "Demon",
+  "Action",
+  "Adult",
+  "Adventure",
+  "Comedy",
+  "Cooking",
+  "Demons",
   "Doujinshi",
   "Drama",
   "Ecchi",
-  "Fantasi",
+  "Fantasy",
   "Gender Bender",
+  "Ghost",
   "Harem",
-  "Horor",
+  "Historical",
+  "Horror",
   "Isekai",
   "Josei",
-  "Komedi",
-  "Kuliner",
+  "Magic",
   "Martial Arts",
   "Mature",
   "Mecha",
-  "Militer",
-  "Misteri",
+  "Military",
+  "Mystery",
   "Monster",
-  "Musik",
-  "Olahraga",
+  "Music",
   "One Shot",
-  "Petualangan",
-  "Psikologis",
-  "Reinkarnasi",
-  "Roh",
-  "Romansa",
+  "Psychological",
+  "Reincarnation",
+  "Romance",
+  "School",
   "Sci-Fi",
-  "Sejarah",
   "Seinen",
-  "Sekolah",
   "Shoujo",
   "Shounen",
-  "Sihir",
   "Slice of Life",
   "Smut",
+  "Sports",
   "Supernatural",
   "Swordsmanship",
   "Thriller",
-  "Vampir",
+  "Vampire",
   "Zombie",
 ] as const;
 
@@ -86,77 +91,83 @@ function keyOf(raw: string): string {
     .trim();
 }
 
-/** Varian (kunci ternormalisasi) â†’ nama kanonis. */
+/**
+ * Varian (kunci ternormalisasi) â†’ nama kanonis INGGRIS.
+ * Sisi kiri menampung ejaan Inggris maupun Indonesia yang pernah muncul di
+ * sumber (Fantasi, Komedi, Romansa, Olahraga, ...) supaya data lama tetap
+ * terbaca dan tetap tampil sebagai satu genre yang sama.
+ */
 const ALIASES: Record<string, string> = {
-  action: "Aksi",
-  aksi: "Aksi",
-  fighting: "Aksi",
-  battle: "Aksi",
-  adult: "Dewasa",
-  dewasa: "Dewasa",
-  adventure: "Petualangan",
-  petualangan: "Petualangan",
-  comedy: "Komedi",
-  komedi: "Komedi",
-  demon: "Demon",
-  demons: "Demon",
-  iblis: "Demon",
+  action: "Action",
+  aksi: "Action",
+  fighting: "Action",
+  battle: "Action",
+  adult: "Adult",
+  dewasa: "Adult",
+  adventure: "Adventure",
+  petualangan: "Adventure",
+  comedy: "Comedy",
+  komedi: "Comedy",
+  cooking: "Cooking",
+  kuliner: "Cooking",
+  demon: "Demons",
+  demons: "Demons",
+  iblis: "Demons",
   drama: "Drama",
-  fantasy: "Fantasi",
-  fantasi: "Fantasi",
-  horror: "Horor",
-  horor: "Horor",
-  ghost: "Roh",
-  hantu: "Roh",
+  fantasy: "Fantasy",
+  fantasi: "Fantasy",
+  ghost: "Ghost",
+  roh: "Ghost",
+  hantu: "Ghost",
+  horror: "Horror",
+  horor: "Horror",
   isekai: "Isekai",
   josei: "Josei",
-  cooking: "Kuliner",
-  kuliner: "Kuliner",
+  magic: "Magic",
+  sihir: "Magic",
   "martial art": "Martial Arts",
   "martial arts": "Martial Arts",
   mature: "Mature",
   mecha: "Mecha",
-  military: "Militer",
-  militer: "Militer",
-  mystery: "Misteri",
-  misteri: "Misteri",
+  military: "Military",
+  militer: "Military",
+  mystery: "Mystery",
+  misteri: "Mystery",
   monster: "Monster",
   monsters: "Monster",
-  "monster girls": "Monster",
   "monster girl": "Monster",
-  music: "Musik",
-  musik: "Musik",
-  sport: "Olahraga",
-  sports: "Olahraga",
-  olahraga: "Olahraga",
+  "monster girls": "Monster",
+  music: "Music",
+  musik: "Music",
   oneshot: "One Shot",
   "one shot": "One Shot",
-  psychological: "Psikologis",
-  psychology: "Psikologis",
-  psikologis: "Psikologis",
-  reincarnation: "Reinkarnasi",
-  reinkarnasi: "Reinkarnasi",
-  romance: "Romansa",
-  romansa: "Romansa",
-  romantis: "Romansa",
+  psychological: "Psychological",
+  psychology: "Psychological",
+  psikologis: "Psychological",
+  reincarnation: "Reincarnation",
+  reinkarnasi: "Reincarnation",
+  romance: "Romance",
+  romansa: "Romance",
+  romantis: "Romance",
   scifi: "Sci-Fi",
   "sci fi": "Sci-Fi",
-  history: "Sejarah",
-  historical: "Sejarah",
-  sejarah: "Sejarah",
-  school: "Sekolah",
-  "school life": "Sekolah",
-  sekolah: "Sekolah",
-  magic: "Sihir",
-  sihir: "Sihir",
+  history: "Historical",
+  historical: "Historical",
+  sejarah: "Historical",
+  school: "School",
+  "school life": "School",
+  sekolah: "School",
   "slice of life": "Slice of Life",
+  sport: "Sports",
+  sports: "Sports",
+  olahraga: "Sports",
   supernatural: "Supernatural",
   supranatural: "Supernatural",
   swordsmanship: "Swordsmanship",
   swormanship: "Swordsmanship",
   thriller: "Thriller",
-  vampire: "Vampir",
-  vampir: "Vampir",
+  vampire: "Vampire",
+  vampir: "Vampire",
   zombie: "Zombie",
   "gender bender": "Gender Bender",
   doujinshi: "Doujinshi",
@@ -247,13 +258,13 @@ export function normalizeGenreList(
     }
     bySlug.set(c.slug, { ...c, ...(count !== undefined ? { count } : {}) });
   }
-  return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
+  return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
 
 /**
  * Kandidat slug upstream untuk satu genre (kanonis dulu, lalu alias varian).
  * Dipakai saat meminta daftar komik per genre ke sumber yang masih memakai
- * slug versinya sendiri (mis. Shinigami: "fantasy" untuk "fantasi").
+ * slug versinya sendiri (mis. Komiku: "romansa" untuk "romance").
  */
 export function upstreamGenreSlugs(genre: string): string[] {
   const c = canonicalGenre(genre);

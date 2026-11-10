@@ -1,13 +1,14 @@
 import type { Cheerio, CheerioAPI } from "cheerio";
 
 /**
- * lib/api/text.ts â€” util teks dari HTML sumber.
+ * lib/api/text.ts â€” util teks dari HTML/JSON sumber.
  *
  * Masalah yang diselesaikan: mengambil `.text()` mentah dari HTML
  * menggabungkan teks antar elemen tanpa spasi, sehingga sinopsis terbaca
- * "lakilaki bernamaMonkey D Luffyyang menentang". Di sini batas tag
- * (<br>, blok, inline) diganti spasi SEBELUM teks diambil, lalu spasi
- * berlebih digabung jadi satu.
+ * "lakilaki bernamaMonkey D Luffyyang menentang". Di sini batas SETIAP
+ * elemen (blok maupun inline) diganti spasi SEBELUM teks diambil, lalu
+ * spasi berlebih digabung jadi satu. Fungsi yang sama dipakai adapter
+ * Komiku, Shinigami, dan Komikcast supaya hasilnya seragam.
  */
 
 /** Tag yang secara visual memisahkan baris/kata. */
@@ -55,8 +56,32 @@ export function collapseSpaces(raw: string): string {
 }
 
 /**
- * Teks sebuah elemen dengan spasi di batas elemen: <br> dan tag blok
- * diganti spasi lebih dulu, script/style dibuang, baru teks diambil.
+ * Rapikan teks hasil penyisipan batas elemen: spasi yang muncul sebelum
+ * tanda baca (akibat penggantian tag dengan spasi) dibuang.
+ */
+export function tidyText(raw: string): string {
+  let s = collapseSpaces(raw);
+  if (!s) return "";
+  // Spasi sebelum tanda baca / penutup kurung tidak pernah benar.
+  // Satu aturan saja: sisipan spasi batas-elemen selalu tepat SEBELUM
+  // tanda baca, baik diikuti spasi berikutnya maupun di akhir teks.
+  s = s.replace(/\s+([,.;:!?%)\]])(?=\s|$)/g, "$1");
+  // Spasi sesudah buka kurung juga tidak perlu.
+  s = s.replace(/([(\[])\s+/g, "$1");
+  // Titik dua diikuti angka ("Chapter 1: 12") tetap; tapi spasi sebelum
+  // titik dua yang datang dari tag ("Judul :") dirapatkan hanya bila
+  // sebelumnya bukan akhir kalimat â€” dibiarkan di sini, terlalu agresif
+  // untuk teks sinopsis bebas.
+  return collapseSpaces(s);
+}
+
+/**
+ * Teks sebuah elemen dengan spasi di batas elemen: <br>, tag blok, DAN tag
+ * inline diganti spasi lebih dulu, script/style dibuang, baru teks diambil.
+ *
+ * Tag inline juga dipisah karena sumber sering memecah satu kalimat menjadi
+ * beberapa <span>/<b>/<a>: tanpa spasi di batasnya, kata-kata menempel
+ * ("kesannama", "orangorangbaru", "sertabersamasama").
  */
 export function blockText($: CheerioAPI, el: Cheerio<never> | Cheerio<any>): string {
   if (!el || el.length === 0) return "";
@@ -65,17 +90,43 @@ export function blockText($: CheerioAPI, el: Cheerio<never> | Cheerio<any>): str
   clone.find("br").replaceWith(" ");
   clone.find("*").each((_, node) => {
     const tag = (node as { tagName?: string }).tagName?.toLowerCase();
-    if (!tag || !BLOCK_TAGS.has(tag) || tag === "br") return;
+    if (!tag) return;
     const $node = $(node);
-    $node.prepend(" ");
+    // Tutup setiap elemen dengan spasi â€” batas kata antar elemen.
     $node.append(" ");
+    if (BLOCK_TAGS.has(tag)) $node.prepend(" ");
   });
-  return collapseSpaces(clone.text());
+  return tidyText(clone.text());
 }
 
-/** Bersihkan sinopsis: spasi rapi + buang teks placeholder upstream. */
+/**
+ * Bersihkan sinopsis: tag HTML sisa â†’ spasi (bukan dihapus, supaya kata
+ * tidak menempel), entity dasar dirapikan, spasi berlebih & spasi sebelum
+ * tanda baca dibuang, teks placeholder upstream dibuang.
+ *
+ * Dipakai SEMUA adapter (Komiku, Shinigami, Komikcast) dan agregator, jadi
+ * data lama yang ter-cache pun ikut dirapikan setiap kali dibaca.
+ */
 export function cleanSynopsis(raw?: string | null): string | undefined {
-  const s = collapseSpaces(raw ?? "");
+  if (raw === undefined || raw === null) return undefined;
+  let s = String(raw);
+  if (s.includes("<") || s.includes(">")) {
+    s = s
+      .replace(/<\s*br\s*\/?\s*>/gi, " ")
+      .replace(/<\s*\/\s*(p|div|li|h[1-6])\s*>/gi, " ")
+      .replace(/<[^>]*>/g, " ");
+  }
+  s = s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+  // IDEMPOTEN: dipanggil ulang pada teks yang sudah bersih (nilai cache lama,
+  // sinopsis yang sudah lolos blockText) tidak boleh mengubah apa pun.
+  // tidyText sendiri idempoten, jadi aman dijalankan pada data lama.
+  s = tidyText(s);
   if (!s) return undefined;
   if (/^belum ada (isi|sinopsis|deskripsi)/i.test(s)) return undefined;
   return s;

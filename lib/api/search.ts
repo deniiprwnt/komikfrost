@@ -6,6 +6,7 @@ import { fetchMangaDetail, searchMangaRemote } from "./komiku";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchShiniRemote } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
+import { genreDisplayName } from "./genre-canonical";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
 
@@ -124,7 +125,13 @@ export async function searchManga(
   const items = more ? ranked.slice(0, 15) : ranked;
   // Cap 5 seperti enrichKomikcastOnly di manga.ts — tiap kartu 1 request
   // detail berantai, tanpa cap jadi hambatan ekor respons search.
-  const needy = items.filter((c) => !c.synopsis && c.sourceSlug?.komiku).slice(0, 5);
+  // Syarat diperluas: kartu yang sinopsis ATAU genrenya kosong. Genre dari
+  // daftar pencarian kerap Tema ("Comedy") atau kosong sama sekali, padahal
+  // halaman detail punya Genre sebenarnya - tanpa ini satu judul tampil
+  // berbeda genre antara hasil pencarian dan halaman detailnya.
+  const needy = items
+    .filter((c) => (!c.synopsis || !c.genre) && c.sourceSlug?.komiku)
+    .slice(0, 5);
   if (needy.length > 0) {
     // Enrich dibatasi waktunya: satu detail yang lambat tidak boleh menahan
     // seluruh respons pencarian (kartu tanpa sinopsis tetap tampil).
@@ -134,6 +141,10 @@ export async function searchManga(
           try {
             const d = await fetchMangaDetail(c.sourceSlug!.komiku!);
             if (d.synopsis) c.synopsis = d.synopsis;
+            // Genre halaman detail = sumber Genre yang sebenarnya (field
+            // Genre dan Tema terpisah di sana).
+            const g = d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined;
+            if (g) c.genre = g;
           } catch {
             // biarin kosong — kartu tetap tampil tanpa narasi
           }

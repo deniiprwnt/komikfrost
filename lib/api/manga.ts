@@ -43,6 +43,7 @@ import {
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache } from "./cache";
+import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { MangaCard, MangaDetail, PagedResult } from "./types";
 
 /**
@@ -73,6 +74,27 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   });
 }
 
+/**
+ * Coba tiap varian slug genre upstream sampai salah satu memberi hasil.
+ * Daftar genre memakai bentuk kanonis (Inggris: "romance"), sedangkan
+ * sumber masih punya slug sendiri (Komiku: "romansa"). Tanpa ini filter
+ * Romance mengembalikan kosong walau judulnya ada.
+ */
+async function firstWithItems<T extends { items: MangaCard[] }>(
+  slugs: string[],
+  fn: (slug: string) => Promise<T>,
+): Promise<T | null> {
+  for (const s of slugs) {
+    try {
+      const r = await fn(s);
+      if (r.items.length > 0) return r;
+    } catch {
+      // slug ini tidak dikenal sumber, coba varian berikutnya
+    }
+  }
+  return null;
+}
+
 async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
   // Batasi 5 kartu per panggilan - tiap kartu memicu 1-3 request berantai
   // (brief Komikcast + search Komiku + detail Komiku). Tanpa batas, satu
@@ -98,7 +120,9 @@ async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
       if (!c.genre) {
         try {
           const brief = await fetchKomikcastBrief(c.sourceSlug!.komikcast!);
-          if (brief.genre) c.genre = brief.genre;
+          // Genre yang ditempel SETELAH merge tetap harus bentuk kanonis -
+          // tanpa ini kartu menampilkan ejaan mentah sumber.
+          if (brief.genre) c.genre = genreDisplayName(brief.genre) ?? c.genre;
           if (!c.type && brief.type) c.type = brief.type;
           if (!c.synopsis && brief.synopsis) c.synopsis = brief.synopsis;
         } catch {
@@ -112,7 +136,7 @@ async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
         const { items } = await searchMangaRemote(c.title, 1);
         const hit = items.find((k) => normalizeTitle(k.title) === norm);
         if (!hit) return;
-        if (hit.genre) c.genre = hit.genre;
+        if (hit.genre) c.genre = genreDisplayName(hit.genre) ?? c.genre;
         if (hit.synopsis) c.synopsis = hit.synopsis;
         if (hit.type && !c.type) c.type = hit.type;
         if (hit.firstChapter && !c.firstChapter) c.firstChapter = hit.firstChapter;
@@ -249,12 +273,14 @@ export async function getLatestPaged(
   const p = Math.max(1, page);
   const orderby = opts.orderby ?? "modified";
   const limit = Math.max(1, opts.limit ?? 15);
+  // Genre di key cache memakai bentuk kanonis: /genre/romansa dan
+  // /genre/romance adalah filter yang sama.
   const key = [
     p,
     orderby,
     opts.tipe ?? "",
-    opts.genre ?? "",
-    opts.genre2 ?? "",
+    opts.genre ? (canonicalGenre(opts.genre)?.slug ?? opts.genre) : "",
+    opts.genre2 ? (canonicalGenre(opts.genre2)?.slug ?? opts.genre2) : "",
     opts.status ?? "",
     limit,
     opts.random ? "r" : "",
@@ -278,25 +304,35 @@ async function buildLatestPaged(
   opts: LatestOpts,
 ): Promise<PagedResult<MangaCard>> {
   const limit = Math.max(1, opts.limit ?? 15);
+  // Slug genre kanonis + alias tiap sumber ("romance" â†’ romance, romansa,
+  // romantis). Filter genre diteruskan lewat varian ini, bukan slug mentah.
+  const genreVars = opts.genre ? upstreamGenreSlugs(opts.genre) : [];
+  const genre2Vars = opts.genre2 ? upstreamGenreSlugs(opts.genre2) : [];
   const { data } = await fetchAllSettled(
     {
-      komiku: () =>
-        fetchMangaList({
+      komiku: async () => {
+        const base = {
           page: p,
           orderby,
           ...(opts.live ? { fresh: true } : {}),
           ...(opts.tipe ? { tipe: opts.tipe } : {}),
-          ...(opts.genre ? { genre: opts.genre } : {}),
-          ...(opts.genre2 ? { genre2: opts.genre2 } : {}),
+          ...(opts.genre2 ? { genre2: genre2Vars[0] ?? opts.genre2 } : {}),
           ...(opts.status ? { status: opts.status } : {}),
-        }),
-      shinigami: () =>
-        fetchShiniLatest(p, {
+        };
+        if (genreVars.length === 0) return fetchMangaList(base);
+        const hit = await firstWithItems(genreVars, (g) => fetchMangaList({ ...base, genre: g }));
+        return hit ?? { items: [] as MangaCard[], hasNextPage: false };
+      },
+      shinigami: async () => {
+        const base = {
           pageSize: limit,
           ...(opts.live ? { fresh: true } : {}),
           ...(opts.tipe ? { format: opts.tipe } : {}),
-          ...(opts.genre ? { genre: opts.genre } : {}),
-        }),
+        };
+        if (genreVars.length === 0) return fetchShiniLatest(p, base);
+        const hit = await firstWithItems(genreVars, (g) => fetchShiniLatest(p, { ...base, genre: g }));
+        return hit ?? { items: [] as MangaCard[], hasNextPage: false };
+      },
       // Komikcast tanpa paging/filter upstream — hanya halaman 1 tanpa filter.
       komikcast: () =>
         p > 1 || opts.tipe || opts.genre || opts.genre2 || opts.status
@@ -548,12 +584,15 @@ export async function getMangaSummary(slug: string): Promise<MangaSummary> {
   return summaryCache.load(clean, async () => {
     try {
       const d = await fetchMangaDetail(clean);
+      // Genre ringkasan juga kanonis: kartu memakai endpoint ini sebagai
+      // cadangan, jadi tidak boleh membawa ejaan mentah sumber.
+      const summaryGenre = d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined;
       return {
         slug: d.slug,
         title: d.title,
         cover: d.cover,
         ...(d.type ? { type: d.type } : {}),
-        ...(d.genres?.[0]?.name ? { genre: d.genres[0].name } : {}),
+        ...(summaryGenre ? { genre: summaryGenre } : {}),
         ...(d.latestChapter ? { latestChapter: d.latestChapter } : {}),
       };
     } catch (e) {
@@ -566,12 +605,13 @@ export async function getMangaSummary(slug: string): Promise<MangaSummary> {
       } catch {
         throw e;
       }
+      const briefGenre = brief.genre ? genreDisplayName(brief.genre) : undefined;
       return {
         slug: clean,
         title: brief.title ?? clean,
         cover: brief.cover ?? "",
         ...(brief.type ? { type: brief.type } : {}),
-        ...(brief.genre ? { genre: brief.genre } : {}),
+        ...(briefGenre ? { genre: briefGenre } : {}),
       };
     }
   });

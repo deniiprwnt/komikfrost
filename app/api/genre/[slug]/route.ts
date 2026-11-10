@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getMangaByGenre } from "@/lib/api/genre";
+import { canonicalGenre } from "@/lib/api/genre-canonical";
 import { guard, handle } from "../../_lib";
 
 export const maxDuration = 30;
@@ -22,9 +23,13 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   }
   const blocked = await guard(req);
   if (blocked) return blocked;
+  // Genre di respons = bentuk kanonis (nama Inggris) agar judul bagian
+  // "Serupa: <genre>" sama dengan label di /genre dan halaman detail.
+  const canon = canonicalGenre(genre);
+  const displayGenre = canon?.name ?? genre;
   return handle(
     async () => ({
-      genre,
+      genre: displayGenre,
       page,
       ...(await getMangaByGenre(genre, page)),
     }),

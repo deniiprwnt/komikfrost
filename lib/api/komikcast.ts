@@ -27,6 +27,7 @@ import type {
 } from "./types";
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis } from "./text";
+import { genreDisplayName } from "./genre-canonical";
 
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
@@ -186,7 +187,14 @@ function toCard(s: KcSeries): MangaCard {
   const first: ChapterRef | undefined = s.latest_chapter
     ? { label: "Chapter 1", url: `/${s.slug}-chapter-1-bahasa-indonesia/` }
     : undefined;
-  const genreOne = (s.genres ?? []).find((g) => g?.name || g?.slug);
+  // Genre kartu = bentuk KANONIS sejak sumber. `genres` Komikcast mencampur
+  // Genre & Tema; hanya nilai yang dikenali normalizer yang dipakai, sehingga
+  // Tema tidak pernah tampil sebagai Genre. Tak ada yang cocok â†’ kosong,
+  // agregator mengisinya dari sumber berprioritas lebih tinggi.
+  const genreOne =
+    (s.genres ?? [])
+      .map((g) => genreDisplayName(g?.name || g?.slug))
+      .find((v): v is string => Boolean(v)) ?? undefined;
   const ts = s.updated_at ? Date.parse(s.updated_at) : NaN;
   return {
     slug: s.slug,
@@ -194,7 +202,7 @@ function toCard(s: KcSeries): MangaCard {
     ...(s.title_english ? { altTitle: s.title_english } : {}),
     thumbnail: proxiedImage(s.poster_url),
     ...(normalizeType(s.type) ? { type: normalizeType(s.type)! } : {}),
-    ...(genreOne ? { genre: genreOne.name || genreOne.slug } : {}),
+    ...(genreOne ? { genre: genreOne } : {}),
     ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
     ...(timeAgoId(s.updated_at) ? { updatedAt: timeAgoId(s.updated_at)! } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
@@ -334,12 +342,17 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
   const json = await fetchJson<{ data: KcSeries }>(`${KC_API}/series/${encodeURIComponent(clean)}`);
   const s = json.data;
   if (!s?.slug) throw new KomikcastError("Ringkasan Komikcast tidak ditemukan.", `${KC_API}/series/${clean}`);
-  const g = (s.genres ?? []).find((x) => x?.name || x?.slug);
+  // Genre ringkasan juga kanonis â€” nilai mentah sumber tidak boleh lolos ke
+  // kartu lewat jalur enrich.
+  const genreCanon =
+    (s.genres ?? [])
+      .map((x) => genreDisplayName(x?.name || x?.slug))
+      .find((v): v is string => Boolean(v)) ?? undefined;
   const type = normalizeType(s.type);
   const brief: KcBrief = {
     ...(s.title ? { title: s.title } : {}),
     ...(s.poster_url ? { cover: proxiedImage(s.poster_url) } : {}),
-    ...(g ? { genre: g.name || g.slug } : {}),
+    ...(genreCanon ? { genre: genreCanon } : {}),
     ...(type ? { type } : {}),
     ...(cleanSynopsis(s.synopsis) ? { synopsis: cleanSynopsis(s.synopsis) as string } : {}),
   };

@@ -147,10 +147,32 @@ type Status = "loading" | "loaded" | "error";
  */
 const PRIORITY_BUDGET = 8;
 let priorityLeft = PRIORITY_BUDGET;
+let resetScheduled = false;
+
+/**
+ * Anggaran diisi ulang setelah batch render pertama selesai (satu kali per
+ * pemuatan halaman), bukan sekali per umur modul.
+ *
+ * Dulu penghitung ini habis SEKALI untuk seluruh sesi SPA: begitu 8 cover
+ * pertama memakainya, semua cover setelah navigasi berikutnya selalu
+ * loading="lazy" â€” cover di layar baru menunggu browser memutuskan sendiri
+ * kapan memuatnya ("8 dari 10 sampul masih placeholder"). Pengisian ulang
+ * tertunda (bukan per frame) membuat cover yang dirender BERSAMAAN tetap
+ * berbagi anggaran, sementara halaman berikutnya mendapat anggaran baru.
+ */
+function scheduleBudgetReset(): void {
+  if (resetScheduled || typeof window === "undefined") return;
+  resetScheduled = true;
+  window.setTimeout(() => {
+    priorityLeft = PRIORITY_BUDGET;
+    resetScheduled = false;
+  }, 120);
+}
 
 function claimPrioritySlot(): boolean {
   if (priorityLeft <= 0) return false;
   priorityLeft -= 1;
+  scheduleBudgetReset();
   return true;
 }
 
@@ -249,7 +271,10 @@ export function CoverImage({
           src={activeSrc ?? undefined}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
-          decoding={eager ? "sync" : "async"}
+          // decoding "async": decode di luar main thread. "sync" pada cover
+          // eager menahan paint sehingga sampul lain di baris yang sama
+          // terlambat muncul pada kunjungan pertama.
+          decoding="async"
           fetchPriority={eager ? "high" : "low"}
           onLoad={() => setSt({ key, i: cur.i, status: "loaded" })}
           onError={(e) => fail(e.currentTarget)}

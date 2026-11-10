@@ -399,6 +399,10 @@ export function RankRow({ item }: { item: MangaCard }) {
           fallbackSrcs={item.thumbnailCandidates}
           alt=""
           title={item.title}
+          // Peringkat 1-8 hampir selalu terlihat tanpa menggulir; minta
+          // prioritas tinggi eksplisit agar tidak bergantung urutan render
+          // (cover section lain bisa menghabiskan anggaran lebih dulu).
+          priority={typeof item.rank === "number" && item.rank <= 8}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
         />
       </Link>

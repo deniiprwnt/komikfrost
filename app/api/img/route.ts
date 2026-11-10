@@ -35,6 +35,34 @@ const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
 
 const IMG_CACHE_SECONDS = 604800;
 
+/**
+ * In-flight dedupe per URL upstream: satu grid berisi puluhan cover baru bisa
+ * meminta URL yang SAMA berkali-kali dalam satu batch render (kartu utama +
+ * daftar serupa + prefetch). Tanpa ini kunjungan pertama menembak upstream
+ * berulang untuk gambar yang sama dan memperlambat sampul above-the-fold.
+ * Hasil sukses tetap disimpan cache HTTP Next (`next.revalidate` di bawah).
+ */
+const imgInflight = new Map<string, Promise<{ body: Buffer; contentType: string }>>();
+
+/** Respons gambar dengan header cache yang sudah benar. */
+function imageResponse(body: Buffer, ct: string): Response {
+  return new Response(body as unknown as BodyInit, {
+    status: 200,
+    headers: {
+      "Content-Type": ct,
+      // Route ini di belakang gate â†’ cache browser saja (private), jangan
+      // biarkan CDN menyajikan gambar kepada request tanpa sesi.
+      // `immutable`: URL gambar berisi nama file unik dan tidak berubah,
+      // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
+      "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
+      "X-Content-Type-Options": "nosniff",
+      // Konten sudah final â†’ izinkan browser menyimpan salinan decode agar
+      // paint berikutnya instan.
+      "Content-Length": String(body.byteLength),
+    },
+  });
+}
+
 export async function GET(req: NextRequest) {
   // Bucket gambar terpisah dengan batas tinggi: satu chapter berisi puluhan
   // gambar, jadi memakai batas API (60/menit) membuat gambar ke-61 dst
@@ -65,44 +93,54 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15_000);
-  req.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
-  try {
-    // Gambar chapter bersifat abadi (URL berisi nama file unik). Gunakan
-    // cache HTTP Next/Data Cache 7 hari agar proxy bisa menyajikan dari
-    // cache server tanpa menyentuh upstream berulang kali - jauh lebih cepat
-    // dan menghemat bandwidth. `IMG_CACHE_SECONDS` = 7 hari.
-    const upstream = await fetch(url.toString(), {
-      headers: { "User-Agent": UA, Accept: "image/*,*/*;q=0.8", Referer: `${url.protocol}//${url.host}/` },
-      signal: ctrl.signal,
-      next: { revalidate: IMG_CACHE_SECONDS },
-    });
-    if (!upstream.ok || !upstream.body) {
+  const key = url.toString();
+
+  // Dedupe in-flight: request untuk URL yang sama saat fetch pertama belum
+  // selesai berbagi satu promise (bukan satu fetch per kartu).
+  const existing = imgInflight.get(key);
+  if (existing) {
+    try {
+      const { body, contentType } = await existing;
+      return imageResponse(body, contentType);
+    } catch {
       return Response.json(
         { error: { message: "Gambar upstream tidak tersedia.", source: "upstream" } },
         { status: 502 },
       );
     }
+  }
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15_000);
+  req.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
+
+  const job = (async (): Promise<{ body: Buffer; contentType: string }> => {
+    // Gambar chapter bersifat abadi (URL berisi nama file unik). Gunakan
+    // cache HTTP Next/Data Cache 7 hari agar proxy bisa menyajikan dari
+    // cache server tanpa menyentuh upstream berulang kali - jauh lebih cepat
+    // dan menghemat bandwidth. `IMG_CACHE_SECONDS` = 7 hari.
+    const upstream = await fetch(key, {
+      headers: { "User-Agent": UA, Accept: "image/*,*/*;q=0.8", Referer: `${url.protocol}//${url.host}/` },
+      signal: ctrl.signal,
+      next: { revalidate: IMG_CACHE_SECONDS },
+    });
+    if (!upstream.ok || !upstream.body) {
+      throw new Error("upstream-unavailable");
+    }
     const ct = (upstream.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
     if (!ct.startsWith("image/")) {
-      return Response.json(
-        { error: { message: "Respons bukan gambar.", source: "upstream" } },
-        { status: 502 },
-      );
+      throw new Error("upstream-not-image");
     }
-    return new Response(upstream.body, {
-      status: 200,
-      headers: {
-        "Content-Type": ct,
-        // Route ini di belakang gate â†’ cache browser saja (private), jangan
-        // biarkan CDN menyajikan gambar kepada request tanpa sesi.
-        // `immutable`: URL gambar berisi nama file unik dan tidak berubah,
-        // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
-        "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
+    // Baca PENUH ke buffer: respons upstream berupa stream sekali-pakai;
+    // buffer bisa dipakai bersama request yang menunggu di dedupe di atas.
+    const body = Buffer.from(await upstream.arrayBuffer());
+    return { body, contentType: ct };
+  })();
+
+  imgInflight.set(key, job);
+  try {
+    const { body, contentType } = await job;
+    return imageResponse(body, contentType);
   } catch {
     return Response.json(
       { error: { message: "Gagal mengambil gambar.", source: "upstream" } },
@@ -110,5 +148,8 @@ export async function GET(req: NextRequest) {
     );
   } finally {
     clearTimeout(timer);
+    // Lepas hanya bila entri masih milik job ini (hindari menghapus job baru
+    // dengan URL sama yang dimulai tepat setelah yang lama selesai).
+    if (imgInflight.get(key) === job) imgInflight.delete(key);
   }
 }

@@ -33,6 +33,60 @@ export const SOURCE_LABEL: Record<ComicSourceId, string> = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Ingatan genre/tipe per judul (konsisten di semua bagian situs)       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Genre dan tipe satu judul HARUS sama di semua bagian situs (Update
+ * terbaru, Rekomendasi, pencarian, halaman detail). Kenyataannya tiap
+ * endpoint hanya mengambil sebagian sumber, jadi judul yang sama bisa
+ * tampil "Isekai" di satu bagian dan "Fantasy" di bagian lain â€” tergantung
+ * sumber mana yang kebetulan ikut ter-fetch.
+ *
+ * Normalisasi tetap di sini (satu tempat, sebelum data dikirim ke UI).
+ * Hasil ternormalisasi kemudian diingat per judul (kunci = judul
+ * ternormalisasi, karena slug beda antar sumber). Nilai dari sumber
+ * berprioritas lebih tinggi selalu menang; halaman detail dianggap paling
+ * akurat karena di sana Genre dan Tema adalah field terpisah.
+ */
+const META_RANK_DETAIL = -1;
+const TITLE_META_MAX = 4000;
+
+interface TitleMetaValue {
+  value: string;
+  /** Indeks sumber di SOURCE_PRIORITY (kecil = lebih dipercaya). */
+  rank: number;
+}
+
+const titleMetaMemory = new Map<string, { genre?: TitleMetaValue; type?: TitleMetaValue }>();
+
+function rememberTitleMeta(
+  key: string,
+  field: "genre" | "type",
+  value: string | undefined,
+  rank: number,
+): void {
+  if (!key || !value) return;
+  let entry = titleMetaMemory.get(key);
+  if (!entry) {
+    if (titleMetaMemory.size >= TITLE_META_MAX) {
+      const oldest = titleMetaMemory.keys().next().value;
+      if (oldest !== undefined) titleMetaMemory.delete(oldest);
+    }
+    entry = {};
+    titleMetaMemory.set(key, entry);
+  }
+  const prev = entry[field];
+  // Hanya nilai dari sumber yang LEBIH dipercaya yang menggantikan; nilai
+  // setara dibiarkan agar tampilan tidak berayun antar-request.
+  if (!prev || rank < prev.rank) entry[field] = { value, rank };
+}
+
+function recallTitleMeta(key: string, field: "genre" | "type"): TitleMetaValue | undefined {
+  return key ? titleMetaMemory.get(key)?.[field] : undefined;
+}
+
+/* ------------------------------------------------------------------ */
 /* Normalisasi judul                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -129,6 +183,20 @@ export interface MergedMangaDetail extends Omit<MangaDetail, "chapters"> {
  * bukan fuzzy) — menangani upstream yang memotong judul utama
  * ("...Desu" → "...Des") tapi menyimpan judul EN lengkap yang identik.
  */
+/** Nilai field pertama (urutan prioritas sumber) + sumber asalnya. */
+function firstWithSource<K extends keyof MangaCard>(
+  cards: Partial<Record<ComicSourceId, MangaCard>>,
+  key: K,
+): { value: NonNullable<MangaCard[K]>; source: ComicSourceId } | undefined {
+  for (const s of SOURCE_PRIORITY) {
+    const v = cards[s]?.[key];
+    if (v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0)) {
+      return { value: v as NonNullable<MangaCard[K]>, source: s };
+    }
+  }
+  return undefined;
+}
+
 export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): MergedMangaCard[] {
   const groups = new Map<string, { cards: Partial<Record<ComicSourceId, MangaCard>> }>();
   const keyOf = (c: MangaCard): string => {
@@ -203,8 +271,30 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       }
       return undefined;
     };
-    // Genre kanonis (satu bahasa di semua bagian situs) + sinopsis rapi.
-    const genreName = genreDisplayName(getCard("genre") as string | undefined);
+    // Genre & tipe: normalisasi HANYA di sini (satu bahasa, satu bentuk),
+    // lalu diingat per judul supaya bagian yang sumbernya lebih sedikit
+    // menampilkan nilai yang sama dengan bagian lain.
+    const metaKey = normalizeTitle((getCard("title") as string) ?? p.title);
+    const genreSrc = firstWithSource(g.cards, "genre");
+    const typeSrc = firstWithSource(g.cards, "type");
+    const cardGenre = genreDisplayName(genreSrc?.value as string | undefined);
+    const cardType = typeSrc?.value as NonNullable<MangaCard["type"]> | undefined;
+    rememberTitleMeta(
+      metaKey,
+      "genre",
+      cardGenre,
+      genreSrc ? SOURCE_PRIORITY.indexOf(genreSrc.source) : SOURCE_PRIORITY.length,
+    );
+    rememberTitleMeta(
+      metaKey,
+      "type",
+      cardType,
+      typeSrc ? SOURCE_PRIORITY.indexOf(typeSrc.source) : SOURCE_PRIORITY.length,
+    );
+    const genreName = recallTitleMeta(metaKey, "genre")?.value ?? cardGenre;
+    const mergedType = (recallTitleMeta(metaKey, "type")?.value ?? cardType) as
+      | NonNullable<MangaCard["type"]>
+      | undefined;
     const synopsisText = cleanSynopsis(getCard("synopsis") as string | undefined);
     // Kandidat cover lintas sumber (prioritas dulu): klien mencoba berurutan
     // bila cover utama gagal dimuat, dan kotak error baru muncul bila semua
@@ -304,7 +394,7 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       thumbnail: (getCard("thumbnail") as string) ?? p.thumbnail,
       ...(thumbCandidates.length > 1 ? { thumbnailCandidates: thumbCandidates } : {}),
       ...(getCard("altTitle") ? { altTitle: getCard("altTitle") as string } : {}),
-      ...(getCard("type") ? { type: getCard("type") as NonNullable<MangaCard["type"]> } : {}),
+      ...(mergedType ? { type: mergedType } : {}),
       ...(genreName ? { genre: genreName } : {}),
       ...(mergedUpdatedAt ? { updatedAt: mergedUpdatedAt } : {}),
       ...(typeof mergedUpdatedAtTs === "number" ? { updatedAtTs: mergedUpdatedAtTs } : {}),
@@ -486,6 +576,26 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
       if (seen.has(slug)) continue;
       seen.add(slug);
       genres.push(canon ? { name: canon.name, slug: canon.slug } : { name, slug });
+    }
+  }
+
+  // Ingat genre/tipe dari halaman detail: di sinilah "Genre" sebenarnya
+  // berada (kartu daftar hanya membawa satu label, kadang justru Tema).
+  // Nilai ini dipakai kartu di semua bagian, sehingga tidak ada lagi judul
+  // yang tampil "Comedy" di pencarian tapi "Drama" di halaman detailnya.
+  const metaKey = normalizeTitle((get("title") as string) ?? primary.title);
+  if (genres.length > 0) {
+    rememberTitleMeta(metaKey, "genre", genres[0].name, META_RANK_DETAIL);
+  }
+  {
+    const typeSrc = present.find((s) => details[s]?.type);
+    if (typeSrc) {
+      rememberTitleMeta(
+        metaKey,
+        "type",
+        details[typeSrc]!.type,
+        SOURCE_PRIORITY.indexOf(typeSrc),
+      );
     }
   }
 
