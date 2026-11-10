@@ -2532,3 +2532,97 @@ html.dark .bs-t-violet { --t: #a99bf2; }
   .yk .yk-reach { transform: scale(.84); }
   .yk .yk-reach-l { transform: scale(.88); }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Menu zoom pembaca (components/zoom-menu.tsx): popover + slider.          */
+/* ---------------------------------------------------------------------- */
+@keyframes zoom-pop-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes zoom-pop-down {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.zoom-pop-up {
+  transform-origin: bottom center;
+  animation: zoom-pop-up 200ms var(--ease-out) backwards;
+}
+.zoom-pop-down {
+  transform-origin: top center;
+  animation: zoom-pop-down 200ms var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-pop-up,
+  .zoom-pop-down {
+    animation: none !important;
+  }
+}
+
+/* Slider: isi aksen sampai posisi thumb (--fill diisi dari JS, 0–100%). */
+.zoom-range {
+  --fill: 0%;
+  --zr-track: var(--color-line);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.dark .zoom-range {
+  --zr-track: var(--color-line-dark);
+}
+.zoom-range:focus {
+  outline: none;
+}
+.zoom-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) var(--fill),
+    var(--zr-track) var(--fill)
+  );
+}
+.zoom-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--zr-track);
+}
+.zoom-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--color-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+.zoom-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--color-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.zoom-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.zoom-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+.zoom-range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}

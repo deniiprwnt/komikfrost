@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGet, peekApiCache, prefetchApi } from "@/lib/client";
 import { getHistoryEntry, saveHistory } from "@/lib/history";
@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/states";
 import { ReaderPageImage, ReaderPageError } from "@/components/cover-image";
 import { Select } from "@/components/select";
 import { ReaderSkeleton } from "@/components/skeletons";
+import { ZoomMenu, type ZoomControl } from "@/components/zoom-menu";
 
 function IconChevron({ dir, className }: { dir: "left" | "right"; className?: string }) {
   return (
@@ -49,10 +50,12 @@ function IconUp({ className }: { className?: string }) {
   );
 }
 
-/** Tangga ukuran gambar pembaca (%). 100 = pas lebar kolom bacaan. */
-const ZOOM_STEPS = [50, 65, 80, 90, 100, 115, 130, 150, 175, 200];
-const ZOOM_MIN = ZOOM_STEPS[0];
-const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
+/** Rentang ukuran gambar pembaca (%). 100 = pas lebar kolom bacaan. */
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 200;
+/** Langkah slider (%): per 1%. Tombol −/+ melangkah 10 dan dirapikan ke kelipatan 10. */
+const ZOOM_SLIDER_STEP = 1;
+const ZOOM_PRESETS = [75, 100, 150, 200];
 
 /** Hitung href Prev/Next chapter — dipakai nav atas/bawah + overlay tap. */
 function navHrefs(
@@ -79,12 +82,18 @@ function ChapterNav({
   slug,
   chapter,
   floating = false,
+  zoom,
+  zoomPlacement = "top",
 }: {
   data: ChapterData | null;
   slug: string;
   chapter: string;
   /** true = versi melayang (overlay tap); false = bar statis di alur halaman. */
   floating?: boolean;
+  /** Bila diisi, tombol zoom (stepper + slider) tampil di antara Daftar isi dan Next. */
+  zoom?: ZoomControl;
+  /** Arah buka menu zoom: "top" ke atas nav, "bottom" ke bawah nav. */
+  zoomPlacement?: "top" | "bottom";
 }) {
   // nextUrl akurat dari server (daftar chapter). Bila absen (gagal scrape
   // daftar / chapter terbaru), tebak +1 seperti sebelumnya.
@@ -99,7 +108,9 @@ function ChapterNav({
   return (
     <nav
       aria-label="Navigasi chapter"
-      className={`mx-auto grid w-full min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5 rounded-2xl border border-line bg-paper-2 p-1.5 sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2 ${
+      className={`relative mx-auto grid w-full min-w-0 ${
+        zoom ? "grid-cols-[1fr_auto_auto_1fr]" : "grid-cols-[1fr_auto_1fr]"
+      } items-center gap-1.5 rounded-2xl border border-line bg-paper-2 p-1.5 sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2 ${
         floating
           ? "max-w-md shadow-[0_12px_28px_-14px_rgba(8,28,32,0.4)] sm:max-w-lg dark:shadow-[0_12px_28px_-14px_rgba(0,0,0,0.85)]"
           : "max-w-md sm:max-w-lg"
@@ -126,6 +137,8 @@ function ChapterNav({
         <IconList className="h-[18px] w-[18px] shrink-0" />
         <span className="hidden sm:inline">Daftar isi</span>
       </Link>
+
+      {zoom && <ZoomMenu zoom={zoom} placement={zoomPlacement} />}
 
       {nextHref ? (
         <Link href={nextHref} className={primary}>
@@ -202,27 +215,79 @@ export default function ReaderPage({
     }
     try {
       const z = Number(localStorage.getItem("bk-reader-zoom"));
-      if (ZOOM_STEPS.includes(z)) setZoom(z);
+      if (Number.isFinite(z) && z >= ZOOM_MIN && z <= ZOOM_MAX) setZoom(Math.round(z));
     } catch {
       // abaikan — default 100%
     }
   }, []);
 
+  // Titik tengah layar (rasio terhadap tinggi daftar gambar) sebelum zoom
+  // berubah — dipulihkan di useLayoutEffect agar bacaan tidak "loncat".
+  const zoomAnchorRef = useRef<number | null>(null);
+  // Menu zoom sedang terbuka: overlay tap-nav tidak boleh auto-sembunyi.
+  const zoomMenuOpenRef = useRef(false);
+  // Versi state-nya: tombol melayang (kembali-ke-atas, chapter berikut) disembunyikan
+  // selama menu terbuka supaya tidak menimpa popover.
+  const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+
   const applyZoom = (v: number) => {
-    setZoom(v);
+    const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(v)));
+    if (next === zoom) return;
+    const el = pagesRef.current;
+    if (el && el.offsetHeight > 0) {
+      const r = el.getBoundingClientRect();
+      zoomAnchorRef.current = Math.min(1, Math.max(0, (window.innerHeight / 2 - r.top) / r.height));
+    }
+    setZoom(next);
     try {
-      localStorage.setItem("bk-reader-zoom", String(v));
+      localStorage.setItem("bk-reader-zoom", String(next));
     } catch {
       // abaikan
     }
   };
 
-  /** Geser satu langkah tangga zoom; berhenti di ujung tanpa efek. */
+  /** Geser 10% ke atas/bawah, dirapikan ke kelipatan 10; berhenti di ujung. */
   const stepZoom = (d: -1 | 1) => {
-    const i = ZOOM_STEPS.indexOf(zoom);
-    const from = i < 0 ? ZOOM_STEPS.indexOf(100) : i;
-    const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, from + d))];
-    if (next !== zoom) applyZoom(next);
+    const snapped = d > 0 ? Math.floor(zoom / 10) * 10 + 10 : Math.ceil(zoom / 10) * 10 - 10;
+    applyZoom(snapped);
+  };
+
+  // Pulihkan posisi baca (mode scroll) setelah layout memakai ukuran baru.
+  useLayoutEffect(() => {
+    const a = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
+    const el = pagesRef.current;
+    if (a === null || !el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: Math.max(0, top + a * el.offsetHeight - window.innerHeight / 2) });
+  }, [zoom]);
+
+  // Tap-nav auto-sembunyi 6 detik — ditunda selama menu zoom terbuka.
+  const armTapNavTimer = () => {
+    if (tapNavTimerRef.current) window.clearTimeout(tapNavTimerRef.current);
+    tapNavTimerRef.current = window.setTimeout(() => {
+      if (!zoomMenuOpenRef.current) setShowTapNav(false);
+    }, 6000);
+  };
+
+  const zoomControl: ZoomControl = {
+    value: zoom,
+    min: ZOOM_MIN,
+    max: ZOOM_MAX,
+    step: ZOOM_SLIDER_STEP,
+    presets: ZOOM_PRESETS,
+    onChange: applyZoom,
+    onOpenChange: (open) => {
+      zoomMenuOpenRef.current = open;
+      setZoomMenuOpen(open);
+      if (open) {
+        if (tapNavTimerRef.current) window.clearTimeout(tapNavTimerRef.current);
+        tapNavTimerRef.current = 0;
+      } else {
+        // Menu ditutup: beri waktu baca lagi sebelum overlay hilang.
+        armTapNavTimer();
+      }
+    },
   };
 
   const switchMode = (m: "scroll" | "page") => {
@@ -451,7 +516,7 @@ export default function ReaderPage({
       const doc = document.documentElement;
       const atTop = window.scrollY <= 8;
       const atBottom = window.scrollY + window.innerHeight >= doc.scrollHeight - 8;
-      if (atTop || atBottom) setShowTapNav(false);
+      if ((atTop || atBottom) && !zoomMenuOpenRef.current) setShowTapNav(false);
       const rect = el.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       const scrolled = -rect.top;
@@ -514,7 +579,7 @@ export default function ReaderPage({
   // Tombol kembali-ke-atas melayang: mode scroll tampil setelah gulir,
   // mode page selalu tampil kecuali baru saja ditekan (fabSuppressed).
   const fabVisible =
-    mode === "page" ? !fabSuppressed : showTop && !fabSuppressed;
+    !zoomMenuOpen && (mode === "page" ? !fabSuppressed : showTop && !fabSuppressed);
   // Setelah tombol panah men-scroll ke atas, tombol disembunyikan.
   // Munculkan lagi saat user benar-benar menggulir (wheel/touchmove) atau
   // berpindah halaman di mode halaman (pageIdx berubah) - bukan sekadar tap
@@ -552,8 +617,7 @@ export default function ReaderPage({
       if (!v) {
         // Reset timer lama agar tap beruntun tidak menumpuk timeout
         // yang saling berlomba menyembunyikan overlay prematur.
-        if (tapNavTimerRef.current) window.clearTimeout(tapNavTimerRef.current);
-        tapNavTimerRef.current = window.setTimeout(() => setShowTapNav(false), 6000);
+        armTapNavTimer();
       } else if (tapNavTimerRef.current) {
         window.clearTimeout(tapNavTimerRef.current);
         tapNavTimerRef.current = 0;
@@ -573,6 +637,7 @@ export default function ReaderPage({
   // nav permanen sudah terlihat di 100%) atau halaman terakhir mode page.
   // Disembunyikan saat overlay tap-nav tampil (slot bawah yang sama).
   const showNextFloat =
+    !zoomMenuOpen &&
     Boolean(nextHref) &&
     (mode === "page"
       ? pageIdx >= data.images.length - 1
@@ -664,7 +729,13 @@ export default function ReaderPage({
         </div>
       </div>
 
-      <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} />
+      <ChapterNav
+        data={data}
+        slug={data.mangaSlug}
+        chapter={chapter}
+        zoom={zoomControl}
+        zoomPlacement="bottom"
+      />
 
       {/* Pindah chapter tanpa balik ke detail — daftar dari cache detail,
           dimuat di background bila cache kosong (lihat effect di bawah). */}
@@ -755,13 +826,13 @@ export default function ReaderPage({
         />
       )}
 
-      <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} />
+      <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} zoom={zoomControl} />
 
       {/* Overlay tap: Prev / Daftar isi / Next — muncul saat gambar di-tap.
           Tab bar disembunyikan saat membaca, jadi cukup 1rem + safe-area dari bawah. */}
       {mode === "scroll" && showTapNav && (
         <div className="float-in fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-6">
-          <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} floating />
+          <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} floating zoom={zoomControl} />
         </div>
       )}
 
