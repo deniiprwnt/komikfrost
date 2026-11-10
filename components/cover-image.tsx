@@ -31,23 +31,24 @@ function Speed() {
  * Varian "err": telinga terkulai + mata spiral pusing.
  */
 function AnimeFace({ variant }: { variant: "load" | "err" }) {
-  const INK = "#0d1518";
-  const FUR = "#1a9a92";
+  const INK = "#0f2528";
+  const FUR = "#22b5a9";
   const err = variant === "err";
   const ear = (
     <>
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill={FUR} />
-      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0a2f2d" />
-      <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#eaf6f4" />
+      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0b4e52" />
+      <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#ffd3dc" />
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" stroke={INK} strokeWidth="2.200" strokeLinejoin="round" />
     </>
   );
   const eye = (cx: number) => (
     <g className="ph-eye">
-      <ellipse cx={cx} cy="38" rx="3.900" ry="5" fill={INK} />
-      <ellipse cx={cx} cy="39" rx="2.800" ry="3.400" fill="#16363a" />
-      <circle cx={cx - 1.400} cy="36.400" r="1.250" fill="#fff" />
-      <circle cx={cx + 1.400} cy="40.600" r=".6" fill="#fff" opacity=".9" />
+      <ellipse cx={cx} cy="38.500" rx="4.800" ry="6" fill={INK} />
+      <ellipse cx={cx} cy="39.200" rx="3.900" ry="4.900" fill="#2aa3b0" />
+      <ellipse cx={cx} cy="40.400" rx="2.100" ry="2.800" fill="#05222b" />
+      <circle cx={cx - 1.600} cy="36.600" r="1.700" fill="#fff" />
+      <circle cx={cx + 1.700} cy="41.200" r=".85" fill="#fff" opacity=".95" />
     </g>
   );
   return (
@@ -56,12 +57,13 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
       <g>{ear}</g>
       <g transform="translate(64 0) scale(-1 1)">{ear}</g>
       {/* rumbai pipi */}
-      <path d="M11 41 4.500 43.500 10 47 6.500 51 15 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-      <path d="M53 41 59.500 43.500 54 47 57.500 51 49 51Z" fill="#eaf6f4" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 41Q6 41 3.500 44.500Q7.500 45 8 47Q5 49 6.500 52Q11 52.500 15 51Z" fill="#f6fdfb" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M52 41Q58 41 60.500 44.500Q56.500 45 56 47Q59 49 57.500 52Q53 52.500 49 51Z" fill="#f6fdfb" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
       {/* kepala + muka krem */}
-      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#0b6b66" />
-      <ellipse cx="30" cy="38" rx="23.400" ry="17.600" fill={FUR} />
-      <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill="#eaf6f4" />
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#0e8580" />
+      <ellipse cx="30.500" cy="38.500" rx="23.400" ry="17.800" fill={FUR} />
+      <ellipse cx="26" cy="31" rx="14" ry="6" fill="#6fe6d8" opacity=".4" />
+      <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill="#f6fdfb" />
       <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.400" />
       {/* wajah */}
       {err ? (
@@ -77,8 +79,8 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
           {eye(42)}
         </>
       )}
-      <ellipse cx="14.500" cy="47" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
-      <ellipse cx="49.500" cy="47" rx="3.600" ry="2" fill="#ff9aa2" opacity=".7" />
+      <ellipse cx="14" cy="47" rx="4.400" ry="2.500" fill="#ff8fa3" opacity=".55" />
+      <ellipse cx="50" cy="47" rx="4.400" ry="2.500" fill="#ff8fa3" opacity=".55" />
       <path d="M29.500 43Q32 41.500 34.500 43Q33.500 46 32 46.500Q30.500 46 29.500 43Z" fill={INK} />
       {err ? (
         <path
@@ -92,21 +94,15 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
       ) : (
         <path d="M32 48.500v1.500M32 50q-3 3.500-6 .5M32 50q3 3.500 6 .5" fill="none" stroke={INK} strokeWidth="1.600" strokeLinecap="round" />
       )}
-      {/* ikat kepala melengkung mengikuti dahi; pelat dan empat baut tetap proporsional */}
-      <path d="M9 27 Q32 15.5 55 27 L54.5 32 Q32 22 9.5 32 Z" fill="#0d4bb9" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M11 27 Q32 18 53 27" fill="none" stroke="#2f6fe0" strokeWidth="1.1" opacity=".8" />
-      <rect x="21" y="20.2" width="22" height="11" rx="2.4" fill="#cdd7de" stroke={INK} strokeWidth="1.6" />
-      <rect x="22.6" y="21.5" width="18.8" height="8.4" rx="1.4" fill="none" stroke="#8d9ea9" strokeWidth=".65" />
+      {/* ikat kepala Konoha melengkung mengikuti dahi */}
+      <path d="M9 27 Q32 15.5 55 27 L54.5 32 Q32 22 9.5 32 Z" fill="#1f5fd6" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M11 27 Q32 18 53 27" fill="none" stroke="#7aa6f5" strokeWidth="1.1" opacity=".8" />
+      <rect x="21" y="20.2" width="22" height="11" rx="2.8" fill="#d9e4ec" stroke={INK} strokeWidth="1.6" />
+      <rect x="22.6" y="21.5" width="18.8" height="8.4" rx="1.6" fill="none" stroke="#fff" strokeWidth=".7" opacity=".9" />
       <KonohaMark x={27} y={22} w={10} h={7.2} color="#26343c" />
-      <g fill="#74848f" stroke="#e8f0f3" strokeWidth=".35">
-        <circle cx="24.6" cy="23.6" r=".85" />
-        <circle cx="39.4" cy="23.6" r=".85" />
-        <circle cx="24.6" cy="27.8" r=".85" />
-        <circle cx="39.4" cy="27.8" r=".85" />
-      </g>
       {/* syal */}
-      <path d="M15 53C25 60 39 60 49 53l1.500 6L32 66.500 13.500 59z" fill="#0d4bb9" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
-      <UzumakiMark x={28.500} y={58.200} w={7} h={7} />
+      <path d="M15 53C25 60 39 60 49 53l1.5 6L32 66.5 13.5 59z" fill="#1f5fd6" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
+      <UzumakiMark x={28.5} y={58.2} w={7} h={7} />
     </svg>
   );
 }

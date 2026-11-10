@@ -74,7 +74,7 @@ export function LatestGridSkeleton() {
   return (
     <div
       aria-hidden="true"
-      className="grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 sm:gap-x-3.5 lg:grid-cols-6 lg:gap-x-4 lg:gap-y-6 xl:grid-cols-8"
+      className="grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 lg:gap-y-6 xl:grid-cols-8"
     >
       {Array.from({ length: 16 }, (_, i) => (
         <div key={i} className={`min-w-0 ${i >= 12 ? "hidden xl:flex" : "flex"}`}>

@@ -2509,3 +2509,26 @@ html.dark .bs-t-violet { --t: #a99bf2; }
   --radius-card: 12px;
   --radius-btn: 10px;
 }
+
+
+/* Yuki responsif: detail halus disembunyikan di ukuran kecil supaya siluet tetap tegas */
+.yk { max-width: 100%; height: auto; shape-rendering: geometricPrecision; }
+@container (max-width: 340px) { .yk .yk-fine { display: none; } }
+@container (max-width: 240px) { .yk-twinkle { display: none; } }
+@media (max-width: 480px) { .yk .yk-fine { display: none; } }
+
+/* Tangan Yuki responsif: lengan, telapak, dan benda yang dipegang diskalakan SATU KESATUAN dari bahu saat panel
+   mengecil, jadi genggaman tetap pas di benda (telapak tidak diskalakan terpisah). */
+.yk-reach { transform-origin: 152px 174px; }
+.yk-reach-l { transform-origin: 70px 176px; }
+.yk-prop { transform-box: view-box; }
+@container (max-width: 340px) { .yk .yk-prop { transform: scale(1.08); } }
+@container (max-width: 240px) { .yk .yk-prop { transform: scale(1.2); } }
+@container (max-width: 340px) {
+  .yk .yk-reach { transform: scale(.92); }
+  .yk .yk-reach-l { transform: scale(.94); }
+}
+@container (max-width: 240px) {
+  .yk .yk-reach { transform: scale(.84); }
+  .yk .yk-reach-l { transform: scale(.88); }
+}
