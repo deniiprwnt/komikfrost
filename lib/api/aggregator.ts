@@ -127,6 +127,22 @@ function isPlaceholderCover(raw?: string | null): boolean {
   return /placeholder|no-?image|no_?cover|default|blank|spacer|lazy/.test(coverIdentity(u) || u);
 }
 
+/**
+ * Kunci identitas kartu untuk dedupe LINTAS daftar (mis. Update terbaru vs
+ * Rekomendasi di beranda): judul ternormalisasi (dedupeKey, termasuk alias)
+ * dan identitas file sampul (bila bukan placeholder).
+ */
+export function cardIdentityKeys(c: Pick<MangaCard, "title" | "thumbnail">): string[] {
+  const keys: string[] = [];
+  const t = dedupeKey(c.title ?? "");
+  if (t) keys.push(`t:${t}`);
+  if (c.thumbnail && !isPlaceholderCover(c.thumbnail)) {
+    const id = coverIdentity(c.thumbnail);
+    if (id) keys.push(`c:${id}`);
+  }
+  return keys;
+}
+
 /** Sumber genre: detail membawa `genres` (urut), kartu hanya `genre`. */
 export interface GenreSource {
   genres?: GenreRef[];

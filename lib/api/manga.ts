@@ -42,6 +42,7 @@ import {
   fixTitle,
   mergeCards,
   mergeDetails,
+  normalizeKomikType,
   normalizeTitle,
   pickLatest,
   pickPrimaryGenre,
@@ -362,7 +363,10 @@ const COMPLETE_CAP = 24;
  * tetap tampil dengan data daftar, dan terisi dari cache pada request
  * berikutnya (kerja upstream tetap berjalan di latar).
  */
-export async function completeCards(cards: MergedMangaCard[]): Promise<void> {
+export async function completeCards(
+  cards: MergedMangaCard[],
+  applied?: Set<MergedMangaCard>,
+): Promise<void> {
   const todo = cards.slice(0, COMPLETE_CAP);
   await Promise.all(
     todo.map(async (c) => {
@@ -381,6 +385,7 @@ export async function completeCards(cards: MergedMangaCard[]): Promise<void> {
       if (r.genre && r.genreCertain) {
         c.genre = r.genre.name;
         c.genreSource = r.genre.source;
+        applied?.add(c);
       }
       if (r.type && r.typeCertain) {
         c.type = r.type.type;
@@ -389,6 +394,33 @@ export async function completeCards(cards: MergedMangaCard[]): Promise<void> {
       if (r.synopsis) c.synopsis = r.synopsis;
     }),
   );
+}
+
+/**
+ * Kartu yang belum/tak bisa dinormalisasi (timeout, sumber gagal, di luar
+ * COMPLETE_CAP) tidak boleh membawa label mentah sumber daftar ke UI: genre
+ * hanya dikirim bila kanonis (bentuk Inggris yang sama dengan detail), tipe
+ * hanya bila Manga/Manhwa/Manhua. Selain itu dibuang (UI menampilkan kosong).
+ */
+function sanitizeCardLabels(c: MergedMangaCard): void {
+  const g = canonicalGenre(c.genre);
+  if (g) c.genre = g.name;
+  else delete (c as { genre?: string }).genre;
+  const t = normalizeKomikType(c.type);
+  if (t) c.type = t;
+  else delete (c as { type?: string }).type;
+}
+
+/**
+ * completeCards dengan batas waktu + jaminan label: setelah batas waktu,
+ * kartu yang belum dinormalisasi disanitasi (sanitizeCardLabels). Kerja
+ * resolusi tetap berjalan di latar dan mengisi cache bersama, sehingga
+ * request berikutnya memakai nilai kanonis yang sama di semua bagian.
+ */
+export async function completeCardsBounded(cards: MergedMangaCard[], ms: number): Promise<void> {
+  const applied = new Set<MergedMangaCard>();
+  await withTimeout(completeCards(cards, applied).catch(() => undefined), ms).catch(() => null);
+  for (const c of cards) if (!applied.has(c)) sanitizeCardLabels(c);
 }
 
 /** Chapter terbaru (Shinigami is_update utama + Komiku ?orderby=modified pelengkap). */
@@ -435,7 +467,7 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   // lain) diperkaya via search exact-match — pola sama seperti search.
   // Enrich tetap <=5 kartu; batas waktu 2500 -> 1500 dtk. Enrich hanya
   // melengkapi genre/sinopsis â€” kartu tetap tampil walau dilewati.
-  await withTimeout(completeCards(merged), 1500);
+  await completeCardsBounded(merged, 1500);
   // Enrich hanya melengkapi kartu yang belum punya record kanonis. Untuk
   // judul yang detailnya sudah pernah di-merge, nilai kanonis dipulihkan di
   // sini supaya genre/tipe/sinopsis/sampul identik dengan halaman detail.
@@ -602,7 +634,7 @@ async function buildLatestPaged(
   // Batas waktu enrich diturunkan (3000/4000 -> 1500/2500). Untuk probe live
   // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
   // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
-  await withTimeout(completeCards(items), opts.live ? 1500 : 2500);
+  await completeCardsBounded(items, opts.live ? 1500 : 2500);
   return { items, hasNextPage: hasNext, total };
 }
 
@@ -643,7 +675,7 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
   // Tipe/genre/sinopsis kanonis: peringkat menampilkan nilai yang SAMA dengan
   // beranda, pencarian, dan halaman detail (dulu tidak diperkaya sama sekali,
   // sehingga label Komiku/Tema bocor dan tipe diambil terpisah lewat ringkasan).
-  await withTimeout(completeCards(top), 2500).catch(() => null);
+  await completeCardsBounded(top, 2500);
   return top.map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
@@ -693,7 +725,7 @@ export async function getRecommended(): Promise<MangaCard[]> {
   // Rekomendasi memakai aturan kanonis yang sama dengan Update terbaru
   // (tipe/genre sumber pemenang). Hanya bagian yang tampil (urutan acak awal)
   // yang diperkaya; batas waktu menjaga beranda tetap cepat.
-  await withTimeout(completeCards(shuffled), 2500).catch(() => null);
+  await completeCardsBounded(shuffled, 2500);
   return shuffled;
 }
 
@@ -851,6 +883,32 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
       ...(data.komikcast ? { komikcast: data.komikcast } : {}),
     });
     if (found) merged.synopsis = found;
+    // Diagnostik (server log): nilai AKTUAL per sumber saat sinopsis tetap
+    // kosong/tak bermakna — slug, judul, alias, dan panjang sinopsis hasil
+    // bersih. Dipakai untuk menentukan apakah sumbernya memang kosong atau
+    // resolve judul/selektor yang gagal. Tidak mengubah data.
+    if (!found && !isMeaningfulSynopsis(merged.synopsis)) {
+      console.warn(
+        "[synopsis-debug]",
+        JSON.stringify({
+          slug,
+          aliases,
+          sources: Object.fromEntries(
+            SOURCE_PRIORITY.map((src) => [
+              src,
+              data[src]
+                ? {
+                    slug: data[src]!.slug,
+                    title: data[src]!.title,
+                    altTitle: data[src]!.altTitle ?? null,
+                    synopsisLen: (data[src]!.synopsis ?? "").length,
+                  }
+                : "tidak-ditemukan",
+            ]),
+          ),
+        }),
+      );
+    }
   }
   // Kembalikan sebagai MangaDetail (chapters = MergedChapterItem[] adalah
   // subtype ChapterItem[] + field tambahan) + tempel info sources.

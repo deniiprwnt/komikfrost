@@ -6,31 +6,12 @@ import { searchMangaRemote } from "./komiku";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchShiniRemote } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
-import { completeCards } from "./manga";
+import { completeCardsBounded } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
 
 /** Ukuran halaman per halaman UI: 15 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
 const SHINI_PAGE_SIZE = 15;
-
-/** Batasi waktu kerja tambahan (enrich) agar respons tidak tertahan upstream.
- *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
- *  Promise.race yang membiarkan timer kecil terus menumpuk di event loop. */
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
-  return new Promise<T | null>((resolve, reject) => {
-    const timer = setTimeout(() => resolve(null), ms);
-    p.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(timer);
-        reject(e);
-      },
-    );
-  });
-}
 
 /**
  * Skor relevansi judul terhadap kata kunci (0..1).
@@ -131,6 +112,6 @@ export async function searchManga(
   // Tema), sinopsis dipilih berdasarkan kualitas dengan fallback lintas
   // sumber lewat normalizeTitle. Dibatasi waktunya agar satu detail yang
   // lambat tidak menahan respons; kartu tetap tampil dengan data daftar.
-  await withTimeout(completeCards(items), 2500);
+  await completeCardsBounded(items, 2500);
   return { items, hasNextPage: more, total };
 }

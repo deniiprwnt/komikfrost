@@ -587,6 +587,25 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
       .map((sel) => cleanSynopsis(blockText($, $(sel).first())))
       .find((v): v is string => Boolean(v)) ?? "";
 
+  if (!synopsis) {
+    // Diagnostik (server log): hitung elemen yang cocok per selektor supaya
+    // terlihat apakah halaman memang tanpa sinopsis atau selektornya meleset.
+    console.warn(
+      "[synopsis-debug] komiku selektor kosong",
+      JSON.stringify(
+        Object.fromEntries(
+          [
+            "section#Informasi p.desc[itemprop='description']",
+            "section#Informasi p.desc",
+            "section#Sinopsis p",
+            "#Sinopsis p",
+            "[itemprop='description']",
+          ].map((sel) => [sel, { match: $(sel).length, textLen: $(sel).first().text().trim().length }]),
+        ),
+      ),
+    );
+  }
+
   const info: Record<string, string> = {};
   $("section#Informasi table.inftable tr").each((_, tr) => {
     const tds = $(tr).find("td");

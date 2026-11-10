@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { cardIdentityKeys } from "@/lib/api/aggregator";
 import { getLatest, getPopular, getRecommended } from "@/lib/api/manga";
+import type { MangaCard } from "@/lib/api/types";
 import { guard, handle } from "../_lib";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +39,19 @@ async function buildHome(): Promise<HomeData> {
   if (latest.length === 0 && popular.length === 0 && recommended.length === 0) {
     throw new Error("upstream-empty");
   }
-  cache = { at: Date.now(), data: { latest, popular, recommended } };
+  // Satu judul tidak boleh muncul di Update terbaru DAN Rekomendasi (juga tidak
+  // ganda di dalam Rekomendasi): dedupe berdasarkan judul ternormalisasi atau
+  // identitas sampul. Update terbaru & Peringkat tidak diubah; Rekomendasi
+  // (pelengkap acak) yang mengalah.
+  const seen = new Set<string>();
+  for (const c of latest as MangaCard[]) for (const k of cardIdentityKeys(c)) seen.add(k);
+  const uniqueRecommended = (recommended as MangaCard[]).filter((c) => {
+    const keys = cardIdentityKeys(c);
+    if (keys.some((k) => seen.has(k))) return false;
+    for (const k of keys) seen.add(k);
+    return true;
+  });
+  cache = { at: Date.now(), data: { latest, popular, recommended: uniqueRecommended } };
   return cache.data;
 }
 

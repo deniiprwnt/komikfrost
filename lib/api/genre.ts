@@ -15,7 +15,7 @@ import { fetchGenres, fetchMangaByGenre } from "./komiku";
 import { fetchShiniGenres, fetchShiniLatest } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { canonicalGenre, normalizeGenreList, upstreamGenreSlugs } from "./genre-canonical";
-import { completeCards } from "./manga";
+import { completeCardsBounded } from "./manga";
 import type { GenreRef, PagedResult, MangaCard } from "./types";
 
 /** Daftar semua genre (kanonis, tanpa duplikat/varian/sampah). */
@@ -88,16 +88,11 @@ export async function getMangaByGenre(
   const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
   const items = more ? merged.slice(0, 15) : merged;
   // Label genre/sinopsis kartu memakai aturan yang sama dengan beranda &
-  // pencarian (completeCards). Dibatasi 3 dtk; kartu tetap tampil bila lewat (hasil resolusi di-cache
-  // bersama daftar lain, jadi label konsisten di request berikutnya).
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    completeCards(items).catch(() => undefined),
-    new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, 3000);
-    }),
-  ]);
-  if (timer) clearTimeout(timer);
+  // pencarian (completeCardsBounded); hasil resolusi di-cache bersama daftar lain.
+  // Batas 6 dtk (route maxDuration 30): cukup untuk resolusi 15 kartu secara
+  // paralel (semaphore 8). Kartu yang tetap belum selesai disanitasi — tidak
+  // ada genre/tipe mentah sumber daftar yang dikirim ke UI.
+  await completeCardsBounded(items, 6000);
   return { items, hasNextPage: more, total: merged.length };
 }
 
