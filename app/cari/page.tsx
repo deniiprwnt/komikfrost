@@ -15,6 +15,8 @@ interface SearchPayload {
   keyword: string;
   items: MangaCard[];
   hasNextPage: boolean;
+  /** Jumlah judul hasil gabungan halaman ini (sebelum dipotong). */
+  total?: number;
 }
 
 /** Halaman dari URL (?page=N). Default 1. */
@@ -33,6 +35,7 @@ function CariContent() {
   const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
   const [items, setItems] = useState<MangaCard[] | null>(null);
   const [hasNext, setHasNext] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bootedRef = useRef(false);
@@ -97,11 +100,13 @@ function CariContent() {
     if (!kw) {
       setItems([]);
       setHasNext(false);
+      setTotal(null);
       return;
     }
     setLoading(true);
     setError(null);
     setItems(null);
+    setTotal(null);
     try {
       const res = await apiGet<SearchPayload>(
         `/api/search?q=${encodeURIComponent(kw)}&page=${p}`,
@@ -109,6 +114,9 @@ function CariContent() {
       );
       const fresh = dedupePage(kw, p, res.items);
       setItems(fresh);
+      // Jumlah hasil dari server; tidak pernah lebih kecil dari kartu yang
+      // benar-benar tampil (dedupe lintas-halaman hanya mengurangi daftar).
+      setTotal(Math.max(typeof res.total === "number" ? res.total : 0, fresh.length));
       setPage(p);
       if (p === 1) {
         // Halaman 1 exact = ada kartu bukan "hasil mirip".
@@ -268,6 +276,9 @@ function CariContent() {
       )}
       {!loading && !error && items && items.length > 0 && (
         <>
+          <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">
+            Ditemukan {total ?? items.length} judul
+          </p>
           <div className="stagger flex min-w-0 flex-col gap-3">
             {items.map((item, idx) => (
               <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>

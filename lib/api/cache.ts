@@ -24,7 +24,7 @@
  * - klien (components/client-cache-version.tsx) membuang snapshot
  *   localStorage + cache memori saat versi berubah.
  */
-export const DATA_VERSION = "norm-2026-11-10b";
+export const DATA_VERSION = "norm-2026-11-11a";
 
 /**
  * Tempel versi data ke URL upstream sebagai query `_v`. Sumber mengabaikan
@@ -82,7 +82,13 @@ export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
   // Key selalu ber-versi: entri lama tidak pernah cocok lagi.
   const vkey = (key: string): string => `${DATA_VERSION}:${key}`;
   return {
-    async load(key: string, fn: () => Promise<T>): Promise<T> {
+    /**
+     * `keep` (opsional): hasil yang gagal lolos `keep` tetap dikembalikan ke
+     * pemanggil tetapi TIDAK disimpan — dipakai untuk hasil parsial (satu
+     * sumber gagal sementara) agar tidak "membekukan" data yang kurang
+     * lengkap selama TTL penuh.
+     */
+    async load(key: string, fn: () => Promise<T>, keep?: (data: T) => boolean): Promise<T> {
       const k = vkey(key);
       const hit = entries.get(k);
       if (hit && hit.v === DATA_VERSION && Date.now() - hit.at < ttlMs) return hit.data;
@@ -90,6 +96,7 @@ export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
       if (pending) return pending;
       const next = fn()
         .then((data) => {
+          if (keep && !keep(data)) return data;
           entries.set(k, { at: Date.now(), v: DATA_VERSION, data });
           // Buang entri terlama bila melewati batas (Map = urutan insert).
           if (entries.size > maxEntries) {

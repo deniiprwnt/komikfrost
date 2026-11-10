@@ -34,28 +34,23 @@ import {
 } from "./shinigami";
 import {
   fetchAllSettled,
+  fixTitle,
   mergeCards,
   mergeDetails,
   normalizeTitle,
+  pickLatest,
+  pickPrimaryGenre,
+  rewriteShiniUrl,
   sortByFresh,
   SOURCE_PRIORITY,
   type MergedMangaCard,
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache } from "./cache";
-import { applyCanonicalCard, getCanonicalRecord } from "./canonical";
+import { pickBestSynopsis } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { MangaCard, MangaDetail, PagedResult } from "./types";
 
-/**
- * Perkaya kartu miskin (tanpa genre & sinopsis) yang HANYA dari Komikcast.
- * Penyebab umum: judul lolos dari halaman-1 Komiku karena beda timing
- * update antar source, padahal judulnya ADA di Komiku (terbukti: search
- * exact-match menemukan + punya genre/sinopsis).
- * Resolve exact-match Komiku saja (tanpa fuzzy, tanpa fallback Shinigami
- * agar beban tetap ringan), paralel max 5, gagal = biarin kosong.
- * Hasil enrich ditempel + source badge dilengkapi (komiku ikut).
- */
 /** Batas waktu kerja tambahan agar respons tidak tertahan upstream.
  *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
  *  Promise.race yang membiarkan timer kecil terus menumpuk di event loop. */
@@ -96,73 +91,130 @@ async function firstWithItems<T extends { items: MangaCard[] }>(
   return null;
 }
 
-async function enrichKomikcastOnly(cards: MergedMangaCard[]): Promise<void> {
-  // Batasi 5 kartu per panggilan - tiap kartu memicu 1-3 request berantai
-  // (brief Komikcast + search Komiku + detail Komiku). Tanpa batas, satu
-  // request pengguna bisa membakar 50+ request upstream dan menahan respons
-  // di ekor lambat. Pola sama dengan enrich di lib/api/search.ts.
+/**
+ * Cache detail Komiku untuk melengkapi kartu (genre sebenarnya + sinopsis).
+ * Isinya diturunkan murni dari upstream (bukan dari urutan request), jadi
+ * cache ini hanya penghemat kerja — bukan penentu nilai. Kegagalan (null)
+ * tidak disimpan agar bisa dicoba lagi.
+ */
+const komikuDetailCache = createKeyedCache<MangaDetail | null>(10 * 60_000, 300);
+function komikuDetailSafe(slug: string): Promise<MangaDetail | null> {
+  return komikuDetailCache.load(
+    slug,
+    async () => {
+      try {
+        return await fetchMangaDetail(slug);
+      } catch {
+        return null;
+      }
+    },
+    (d) => d !== null,
+  );
+}
+
+/** Maks kartu yang dilengkapi per panggilan (tiap kartu 1-3 request). */
+const COMPLETE_CAP = 10;
+
+/**
+ * Lengkapi kartu hasil mergeCards supaya label & sinopsisnya SAMA dengan
+ * halaman detail, tanpa memori per instance:
+ *
+ *  - Genre utama = genres[0] sumber prioritas tertinggi yang valid. Label
+ *    genre di KARTU Komiku berasal dari daftar (bisa berisi Tema), jadi
+ *    kartu yang genre-nya dimenangkan Komiku ditegaskan lewat detail Komiku
+ *    (field Genre terpisah dari Tema) — aturan sama dengan mergeDetails.
+ *  - Sinopsis kosong → fallback lintas sumber (detail Komiku, Komikcast,
+ *    Shinigami) dengan pencocokan judul `normalizeTitle`; sinopsis dipilih
+ *    lewat kualitas, bukan siapa yang datang dulu.
+ *  - Kartu Komikcast-only dicari padanannya di Komiku (exact normalizeTitle).
+ *
+ * Aman dipanggil dengan batas waktu: kartu yang belum sempat dilengkapi
+ * tetap tampil dengan data daftar.
+ */
+export async function completeCards(cards: MergedMangaCard[]): Promise<void> {
   const needy = cards
     .filter(
       (c) =>
-        c.sources.length === 1 &&
-        c.sources[0] === "komikcast" &&
-        // Genre SAJA sudah cukup jadi alasan memperkaya: dulu syaratnya
-        // `!genre && !synopsis`, sehingga kartu yang punya sinopsis tapi
-        // tanpa genre (kasus /api/v1/home) tidak pernah dilengkapi.
-        (!c.genre || !c.synopsis) &&
-        c.sourceSlug?.komikcast,
+        c.genreSource === "komiku" ||
+        c.genreSource === "komikcast" ||
+        !c.genre ||
+        !c.synopsis,
     )
-    .slice(0, 5);
+    // Yang paling miskin dulu (tanpa genre/sinopsis), lalu urutan tampil.
+    .map((c, i) => ({ c, i, miss: (c.genre ? 0 : 1) + (c.synopsis ? 0 : 1) }))
+    .sort((a, b) => b.miss - a.miss || a.i - b.i)
+    .slice(0, COMPLETE_CAP)
+    .map((x) => x.c);
   if (needy.length === 0) return;
   await Promise.all(
     needy.map(async (c) => {
-      // 1) Sumber termurah & paling tepat: endpoint series Komikcast sendiri
-      //    (1 request, tanpa daftar chapter). Genre diambil dari sini.
-      if (!c.genre) {
+      const norm = normalizeTitle(c.title);
+      if (!norm) return;
+      const wantsGenre = c.genreSource !== "shinigami";
+      // 1) Padanan Komiku: slug yang sudah ada, atau cari exact-match judul.
+      let kSlug = c.sourceSlug?.komiku;
+      if (!kSlug && (wantsGenre || !c.synopsis)) {
         try {
-          const brief = await fetchKomikcastBrief(c.sourceSlug!.komikcast!);
-          // Genre yang ditempel SETELAH merge tetap harus bentuk kanonis -
-          // tanpa ini kartu menampilkan ejaan mentah sumber.
-          if (brief.genre) c.genre = genreDisplayName(brief.genre) ?? c.genre;
-          if (!c.type && brief.type) c.type = brief.type;
-          if (!c.synopsis && brief.synopsis) c.synopsis = brief.synopsis;
+          const { items } = await searchMangaRemote(c.title, 1);
+          const hit = items.find((k) => normalizeTitle(fixTitle(k.title)) === norm);
+          if (hit) {
+            kSlug = hit.slug;
+            if (!c.sources.includes("komiku")) {
+              c.sources.push("komiku");
+              c.sourceSlug = { ...c.sourceSlug, komiku: hit.slug };
+              c.sources.sort((a, b) => SOURCE_PRIORITY.indexOf(a) - SOURCE_PRIORITY.indexOf(b));
+            }
+            if (!c.firstChapter && hit.firstChapter) c.firstChapter = hit.firstChapter;
+          }
         } catch {
-          // biarin — lanjut ke jembatan Komiku di bawah
+          // biarin — lanjut ke fallback sumber lain
+        }
+      }
+      if (kSlug) {
+        const d = await komikuDetailSafe(kSlug);
+        if (d) {
+          if (wantsGenre) {
+            const pick = pickPrimaryGenre({ komiku: d });
+            if (pick) {
+              c.genre = pick.genre.name;
+              c.genreSource = "komiku";
+            }
+          }
+          const syn = pickBestSynopsis([c.synopsis, d.synopsis]);
+          if (syn) c.synopsis = syn;
+          if (!c.type && d.type) c.type = d.type as NonNullable<MangaCard["type"]>;
         }
       }
       if (c.genre && c.synopsis) return;
-      const norm = normalizeTitle(c.title);
-      if (!norm) return;
+      // 2) Komikcast: ringkasan series (slug sendiri, atau slug tebakan judul).
       try {
-        const { items } = await searchMangaRemote(c.title, 1);
-        const hit = items.find((k) => normalizeTitle(k.title) === norm);
-        if (!hit) return;
-        if (hit.genre) c.genre = genreDisplayName(hit.genre) ?? c.genre;
-        if (hit.synopsis) c.synopsis = hit.synopsis;
-        if (hit.type && !c.type) c.type = hit.type;
-        if (hit.firstChapter && !c.firstChapter) c.firstChapter = hit.firstChapter;
-        if (!c.sources.includes("komiku")) {
-          c.sources.push("komiku");
-          c.sourceSlug = { ...c.sourceSlug, komiku: hit.slug };
-          // Urutkan sesuai prioritas (shinigami -> komiku -> komikcast) agar
-          // badge "Sumber" di kartu menampilkan sumber prioritas tertinggi.
-          c.sources.sort((a, b) => SOURCE_PRIORITY.indexOf(a) - SOURCE_PRIORITY.indexOf(b));
+        const kcSlug =
+          c.sourceSlug?.komikcast ??
+          norm.replace(/\s+/g, "-");
+        const brief = await fetchKomikcastBrief(kcSlug);
+        if (brief.title && normalizeTitle(fixTitle(brief.title)) !== norm && !c.sourceSlug?.komikcast) {
+          throw new Error("judul tidak cocok");
         }
-        // Kartu search Komiku tidak bawa sinopsis ("Update X lalu." bukan
-        // narasi) → ambil dari halaman detailnya (1 request, gagal = biarin).
-        // Tolak teks placeholder upstream ("Belum ada isi.") agar kartu tidak
-        // menampilkan teks sampah.
-        if (!c.synopsis) {
-          try {
-            const d = await fetchMangaDetail(hit.slug);
-            const s = (d.synopsis ?? "").trim();
-            if (s && !/^belum ada (isi|sinopsis|deskripsi)/i.test(s.replace(/\s+/g, " "))) c.synopsis = d.synopsis;
-          } catch {
-            // biarin kosong
-          }
+        if (!c.genre && brief.genre) {
+          c.genre = genreDisplayName(brief.genre) ?? c.genre;
+          if (c.genre) c.genreSource = "komikcast";
         }
+        if (!c.type && brief.type) c.type = brief.type;
+        const syn = pickBestSynopsis([c.synopsis, brief.synopsis]);
+        if (syn) c.synopsis = syn;
       } catch {
-        // biarin kosong — kartu tetap tampil apa adanya
+        // tidak ada di Komikcast — normal
+      }
+      if (c.synopsis) return;
+      // 3) Terakhir: Shinigami lewat judul (exact, tanpa fuzzy).
+      if (!c.sourceSlug?.shinigami) {
+        try {
+          const d = await resolveShiniDetailForSlug(c.title, c.altTitle);
+          const syn = pickBestSynopsis([d.synopsis]);
+          if (syn) c.synopsis = syn;
+        } catch {
+          // absen di Shinigami — normal
+        }
       }
     }),
   );
@@ -212,11 +264,10 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   // lain) diperkaya via search exact-match — pola sama seperti search.
   // Enrich tetap <=5 kartu; batas waktu 2500 -> 1500 dtk. Enrich hanya
   // melengkapi genre/sinopsis â€” kartu tetap tampil walau dilewati.
-  await withTimeout(enrichKomikcastOnly(merged), 1500);
+  await withTimeout(completeCards(merged), 1500);
   // Enrich hanya melengkapi kartu yang belum punya record kanonis. Untuk
   // judul yang detailnya sudah pernah di-merge, nilai kanonis dipulihkan di
   // sini supaya genre/tipe/sinopsis/sampul identik dengan halaman detail.
-  for (const c of merged) applyCanonicalCard(c, normalizeTitle(c.title));
   // Urutkan berdasarkan waktu terbaru secara global (lintas sumber).
   // Prioritas sumber (Shinigami > Komiku > Komikcast) sudah ditangani
   // saat mergeCards: jika komik ada di beberapa sumber, datanya diambil
@@ -380,12 +431,7 @@ async function buildLatestPaged(
   // Batas waktu enrich diturunkan (3000/4000 -> 1500/2500). Untuk probe live
   // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
   // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
-  await withTimeout(
-    enrichKomikcastOnly(items),
-    opts.live ? 1500 : 2500,
-  );
-  // Kembalikan ke nilai record kanonis bila sudah ada (lihat getLatest).
-  for (const c of items) applyCanonicalCard(c, normalizeTitle(c.title));
+  await withTimeout(completeCards(items), opts.live ? 1500 : 2500);
   return { items, hasNextPage: hasNext, total };
 }
 
@@ -425,7 +471,6 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
   const ranked = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a));
   // Genre/tipe/sampul kanonis â€” peringkat menampilkan nilai yang sama dengan
   // beranda, pencarian, dan halaman detail.
-  for (const m of ranked) applyCanonicalCard(m, normalizeTitle(m.title));
   return ranked.slice(0, 20).map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
@@ -471,7 +516,6 @@ export async function getRecommended(): Promise<MangaCard[]> {
     shinigami: data.shinigami ?? [],
     komikcast: data.komikcast ?? [],
   });
-  for (const c of merged) applyCanonicalCard(c, normalizeTitle(c.title));
   return shuffle(merged);
 }
 
@@ -508,6 +552,36 @@ export async function getMangaDetail(
   const deep = opts.deep !== false;
   return detailCache.load(`${deep ? "deep" : "fast"}:${slug}`, () =>
     buildMangaDetail(slug, deep),
+  );
+}
+
+/**
+ * Cari sinopsis di sumber yang belum terambil, dicocokkan lewat judul
+ * (normalizeTitle exact). Paralel, gagal = diabaikan; hasil dipilih lewat
+ * kualitas (pickBestSynopsis) dengan urutan prioritas sumber.
+ */
+async function fallbackSynopsisByTitle(
+  title: string,
+  altTitle: string | undefined,
+  have: Set<string>,
+): Promise<string | undefined> {
+  const norm = normalizeTitle(title);
+  if (!norm) return undefined;
+  const tryKomiku = async (): Promise<string | undefined> => {
+    const { items } = await searchMangaRemote(title, 1);
+    const hit = items.find((k) => normalizeTitle(fixTitle(k.title)) === norm);
+    return hit ? (await fetchMangaDetail(hit.slug)).synopsis : undefined;
+  };
+  const jobs: Record<string, () => Promise<string | undefined>> = {
+    shinigami: async () => (await resolveShiniDetailForSlug(title, altTitle)).synopsis,
+    komiku: tryKomiku,
+    komikcast: async () =>
+      (await resolveKomikcastDetailForTitle(title, normalizeTitle, altTitle)).synopsis,
+  };
+  const order = SOURCE_PRIORITY.filter((s) => !have.has(s));
+  const results = await Promise.allSettled(order.map((s) => jobs[s]()));
+  return pickBestSynopsis(
+    results.map((r) => (r.status === "fulfilled" ? r.value : undefined)),
   );
 }
 
@@ -566,6 +640,17 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
     ...(data.komikcast ? { komikcast: data.komikcast } : {}),
   });
   if (!merged) throw new Error("Gagal memuat detail komik.");
+  // Sinopsis kosong di SEMUA sumber yang terambil → cari di sumber yang
+  // belum terambil lewat judul (`normalizeTitle`, exact, tanpa fuzzy). Hanya
+  // sinopsisnya yang dipinjam; slug/chapter detail tidak berubah.
+  if (deep && !merged.synopsis) {
+    const found = await fallbackSynopsisByTitle(
+      merged.title,
+      merged.altTitle,
+      new Set(merged.sources),
+    );
+    if (found) merged.synopsis = found;
+  }
   // Kembalikan sebagai MangaDetail (chapters = MergedChapterItem[] adalah
   // subtype ChapterItem[] + field tambahan) + tempel info sources.
   return merged as MangaDetail & Pick<MergedMangaDetail, "sources" | "sourceSlug">;
@@ -591,48 +676,128 @@ export interface MangaSummary {
   latestChapter?: MangaDetail["latestChapter"];
 }
 
-const summaryCache = createKeyedCache<MangaSummary>(60 * 60_000, 200);
+const summaryCache = createKeyedCache<{ summary: MangaSummary; complete: boolean }>(
+  60 * 60_000,
+  200,
+);
 
-export async function getMangaSummary(slug: string): Promise<MangaSummary> {
-  const clean = slug.replace(/^\/+|\/+$/g, "");
-  return summaryCache.load(clean, async () => {
+/** Kegagalan permanen (tidak ada di sumber) vs sementara (jaringan/5xx). */
+function isTransientFailure(r: PromiseSettledResult<unknown>): boolean {
+  if (r.status !== "rejected") return false;
+  const status = (r.reason as { status?: number } | null)?.status;
+  return status !== 404 && status !== 400;
+}
+
+/**
+ * Ringkasan memakai ATURAN YANG SAMA dengan mergeDetails: Shinigami →
+ * Komiku (→ Komikcast bila keduanya tak ada) dengan prioritas tetap;
+ * genre = genres[0] sumber prioritas tertinggi yang valid, sampul/tipe/
+ * judul dari sumber prioritas tertinggi yang punya, chapter terbaru =
+ * nomor tertinggi lintas sumber. Dulu hanya Komiku yang dibaca sehingga
+ * label di kartu bisa beda dengan halaman detail. Hasil yang kehilangan
+ * sumber karena gangguan sementara TIDAK di-cache.
+ */
+async function buildSummary(clean: string): Promise<{ summary: MangaSummary; complete: boolean }> {
+  const uuid = isShiniId(clean);
+  const [rk, rs] = await Promise.allSettled([
+    uuid ? Promise.reject(new Error("Slug UUID bukan slug Komiku.")) : fetchMangaDetail(clean),
+    resolveShiniDetailForSlug(clean),
+  ]);
+  const komiku = rk.status === "fulfilled" ? rk.value : undefined;
+  const shinigami = rs.status === "fulfilled" ? rs.value : undefined;
+  const complete = !isTransientFailure(rs) && (uuid || !isTransientFailure(rk));
+  const byDetail: Partial<Record<(typeof SOURCE_PRIORITY)[number], MangaDetail>> = {
+    ...(shinigami ? { shinigami } : {}),
+    ...(komiku ? { komiku } : {}),
+  };
+  if (!komiku && !shinigami) {
+    // Judul khusus Komikcast → ringkasan dari endpoint series Komikcast
+    // (1 request, tercache 6 jam di adapter).
+    let brief;
     try {
-      const d = await fetchMangaDetail(clean);
-      // Genre ringkasan juga kanonis: kartu memakai endpoint ini sebagai
-      // cadangan, jadi tidak boleh membawa ejaan mentah sumber. Bila record
-      // kanonis sudah ada (detail pernah di-merge), record itulah yang dipakai
-      // supaya ringkasan = halaman detail.
-      const rec = getCanonicalRecord(normalizeTitle(d.title));
-      const summaryGenre =
-        rec?.genre ?? (d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined);
-      return {
-        slug: d.slug,
-        title: d.title,
-        cover: d.cover,
-        ...(d.type ? { type: d.type } : {}),
-        ...(summaryGenre ? { genre: summaryGenre } : {}),
-        ...(d.latestChapter ? { latestChapter: d.latestChapter } : {}),
-      };
+      brief = await fetchKomikcastBrief(clean);
     } catch (e) {
-      // Judul khusus Komikcast tidak ada di Komiku → ringkasan dari endpoint
-      // series Komikcast (1 request, tercache 6 jam di adapter). Dulu jalur
-      // ini gagal total sehingga badge tipe & genre Komikcast tak pernah ada.
-      let brief;
-      try {
-        brief = await fetchKomikcastBrief(clean);
-      } catch {
-        throw e;
-      }
-      const briefGenre = brief.genre ? genreDisplayName(brief.genre) : undefined;
-      return {
+      throw rk.status === "rejected" && !uuid ? rk.reason : e;
+    }
+    const briefGenre = brief.genre ? genreDisplayName(brief.genre) : undefined;
+    return {
+      complete,
+      summary: {
         slug: clean,
-        title: brief.title ?? clean,
+        title: fixTitle(brief.title ?? clean),
         cover: brief.cover ?? "",
         ...(brief.type ? { type: brief.type } : {}),
         ...(briefGenre ? { genre: briefGenre } : {}),
-      };
+      },
+    };
+  }
+  const first = (k: "title" | "cover" | "type"): string | undefined => {
+    for (const s of SOURCE_PRIORITY) {
+      const v = byDetail[s]?.[k];
+      if (typeof v === "string" && v) return v;
     }
-  });
+    return undefined;
+  };
+  const pick = pickPrimaryGenre(byDetail);
+  if (!pick) {
+    // Kedua sumber utama tanpa genre valid: Komikcast jadi penentu terakhir.
+    try {
+      const brief = await fetchKomikcastBrief(clean);
+      const g = brief.genre ? genreDisplayName(brief.genre) : undefined;
+      if (g) {
+        const displaySlug = komiku?.slug ?? clean;
+        const type = first("type") ?? brief.type;
+        return {
+          complete,
+          summary: {
+            slug: displaySlug,
+            title: fixTitle(first("title") ?? brief.title ?? clean),
+            cover: first("cover") ?? brief.cover ?? "",
+            ...(type ? { type } : {}),
+            genre: g,
+            ...summaryLatest(byDetail, displaySlug),
+          },
+        };
+      }
+    } catch {
+      // Komikcast tidak punya — ringkasan tanpa genre.
+    }
+  }
+  const displaySlug = komiku?.slug ?? clean;
+  const type = first("type");
+  return {
+    complete,
+    summary: {
+      slug: displaySlug,
+      title: fixTitle(first("title") ?? clean),
+      cover: first("cover") ?? "",
+      ...(type ? { type } : {}),
+      ...(pick ? { genre: pick.genre.name } : {}),
+      ...summaryLatest(byDetail, displaySlug),
+    },
+  };
+}
+
+function summaryLatest(
+  byDetail: Partial<Record<(typeof SOURCE_PRIORITY)[number], MangaDetail>>,
+  displaySlug: string,
+): { latestChapter?: MangaDetail["latestChapter"] } {
+  const latest = pickLatest({
+    shinigami: byDetail.shinigami?.latestChapter,
+    komiku: byDetail.komiku?.latestChapter,
+    komikcast: byDetail.komikcast?.latestChapter,
+  })?.ref;
+  return latest ? { latestChapter: rewriteShiniUrl(latest, displaySlug) } : {};
+}
+
+export async function getMangaSummary(slug: string): Promise<MangaSummary> {
+  const clean = slug.replace(/^\/+|\/+$/g, "");
+  const { summary } = await summaryCache.load(
+    clean,
+    () => buildSummary(clean),
+    (r) => r.complete,
+  );
+  return summary;
 }
 
 /** Daftar chapter satu komik berdasarkan slug. */

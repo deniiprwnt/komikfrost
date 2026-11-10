@@ -11,8 +11,8 @@ import type { MangaDetail } from "./types";
  *  - mengambil Shinigami â†’ Komiku â†’ Komikcast lewat `fetchAllSettled`
  *    (bukan "siapa cepat dia menang"),
  *  - memilih pemenang secara deterministik lewat `SOURCE_PRIORITY`,
- *  - menormalkan judul, genre, rating, sampul, sinopsis, dan chapter, lalu
- *    menulis SATU record kanonis per judul (`putCanonicalRecord`).
+ *  - menormalkan judul, genre, rating, sampul, sinopsis, dan chapter secara
+ *    DETERMINISTIK dari data sumber (tanpa memori per instance).
  *
  * Lapisan ini menambahkan jaminan akhir yang idempoten pada nilai yang
  * dikembalikan (termasuk saat data berasal dari cache):

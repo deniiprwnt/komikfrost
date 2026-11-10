@@ -15,6 +15,7 @@ import { fetchGenres, fetchMangaByGenre } from "./komiku";
 import { fetchShiniGenres, fetchShiniLatest } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { canonicalGenre, normalizeGenreList, upstreamGenreSlugs } from "./genre-canonical";
+import { completeCards } from "./manga";
 import type { GenreRef, PagedResult, MangaCard } from "./types";
 
 /** Daftar semua genre (kanonis, tanpa duplikat/varian/sampah). */
@@ -85,7 +86,18 @@ export async function getMangaByGenre(
   // halaman berikut muncul lalu menampilkan halaman kosong. Bila tidak ada
   // sumber yang punya halaman berikut, semua kartu dikembalikan (tanpa potong).
   const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
-  return { items: more ? merged.slice(0, 15) : merged, hasNextPage: more, total: merged.length };
+  const items = more ? merged.slice(0, 15) : merged;
+  // Label genre/sinopsis kartu memakai aturan yang sama dengan beranda &
+  // pencarian (completeCards). Dibatasi 2 dtk; kartu tetap tampil bila lewat.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    completeCards(items).catch(() => undefined),
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, 2000);
+    }),
+  ]);
+  if (timer) clearTimeout(timer);
+  return { items, hasNextPage: more, total: merged.length };
 }
 
 /** Samakan slug genre ke slug kanonis (bila dikenal), else slug masukan. */

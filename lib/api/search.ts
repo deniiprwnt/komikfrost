@@ -2,12 +2,11 @@
  * lib/api/search.ts — service pencarian (multi-source, berhalaman).
  * Berjalan server-side: ketiga source paralel → dedupe per halaman.
  */
-import { fetchMangaDetail, searchMangaRemote } from "./komiku";
+import { searchMangaRemote } from "./komiku";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchShiniRemote } from "./shinigami";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
-import { applyCanonicalCard } from "./canonical";
-import { genreDisplayName } from "./genre-canonical";
+import { completeCards } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
 
@@ -127,38 +126,11 @@ export async function searchManga(
   // ini untuk menampilkan "N hasil" (dulu jumlah tidak pernah dikirim).
   const total = ranked.length;
   const items = more ? ranked.slice(0, 15) : ranked;
-  // Cap 5 seperti enrichKomikcastOnly di manga.ts — tiap kartu 1 request
-  // detail berantai, tanpa cap jadi hambatan ekor respons search.
-  // Syarat diperluas: kartu yang sinopsis ATAU genrenya kosong. Genre dari
-  // daftar pencarian kerap Tema ("Comedy") atau kosong sama sekali, padahal
-  // halaman detail punya Genre sebenarnya - tanpa ini satu judul tampil
-  // berbeda genre antara hasil pencarian dan halaman detailnya.
-  const needy = items
-    .filter((c) => (!c.synopsis || !c.genre) && c.sourceSlug?.komiku)
-    .slice(0, 5);
-  if (needy.length > 0) {
-    // Enrich dibatasi waktunya: satu detail yang lambat tidak boleh menahan
-    // seluruh respons pencarian (kartu tanpa sinopsis tetap tampil).
-    await withTimeout(
-      Promise.all(
-        needy.map(async (c) => {
-          try {
-            const d = await fetchMangaDetail(c.sourceSlug!.komiku!);
-            if (d.synopsis) c.synopsis = d.synopsis;
-            // Genre halaman detail = sumber Genre yang sebenarnya (field
-            // Genre dan Tema terpisah di sana).
-            const g = d.genres?.length ? genreDisplayName(d.genres[0].name) : undefined;
-            if (g) c.genre = g;
-          } catch {
-            // biarin kosong — kartu tetap tampil tanpa narasi
-          }
-        }),
-      ),
-      2500,
-    );
-  }
-  // Record kanonis (bila judul pernah dibuka detailnya) menimpa hasil enrich:
-  // cuplikan pencarian memakai genre/sinopsis yang SAMA dengan halaman detail.
-  for (const c of items) applyCanonicalCard(c, normalizeTitle(c.title));
+  // Lengkapi genre/sinopsis dengan ATURAN YANG SAMA seperti beranda & detail
+  // (completeCards): genre = genres[0] sumber prioritas tertinggi (bukan
+  // Tema), sinopsis dipilih berdasarkan kualitas dengan fallback lintas
+  // sumber lewat normalizeTitle. Dibatasi waktunya agar satu detail yang
+  // lambat tidak menahan respons; kartu tetap tampil dengan data daftar.
+  await withTimeout(completeCards(items), 2500);
   return { items, hasNextPage: more, total };
 }

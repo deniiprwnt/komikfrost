@@ -320,9 +320,9 @@ function toCard(m: ShiniManga): MangaCard {
     // Genre kartu = bentuk KANONIS (Inggris). Dulu nama mentah sumber
     // ditempel apa adanya sehingga satu judul bisa tampil "Fantasi" di satu
     // bagian dan "Fantasy" di bagian lain.
-    ...(genreDisplayName(m.taxonomy?.Genre?.[0]?.name)
-      ? { genre: genreDisplayName(m.taxonomy?.Genre?.[0]?.name) as string }
-      : {}),
+    // Genre utama = genres[0] yang VALID (sama dengan detail: genreNames
+    // membuang entri tak dikenal lebih dulu), bukan sekadar elemen pertama.
+    ...(genreNames(m)[0] ? { genre: genreNames(m)[0].name } : {}),
     ...(timeAgoId(m.latest_chapter_time) ? { updatedAt: timeAgoId(m.latest_chapter_time) as string } : {}),
     ...(Number.isFinite(ts) ? { updatedAtTs: ts } : {}),
     ...(cleanSynopsis(m.description) ? { synopsis: cleanSynopsis(m.description) as string } : {}),
