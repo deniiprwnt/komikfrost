@@ -2628,14 +2628,28 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 }
 
 
-/* Modal komentar */
-.cm-modal .cm-backdrop { animation: cm-fade 180ms ease-out both; }
-.cm-modal .cm-panel { animation: cm-sheet 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.cm-modal-out .cm-backdrop { animation: cm-fade 180ms ease-in reverse both; }
-.cm-modal-out .cm-panel { animation: cm-sheet-out 180ms ease-in both; }
+/* Modal komentar
+   HP      : sheet naik dari bawah (kurva ala iOS), bisa digeser turun.
+   Desktop : kartu muncul dari tengah dengan sedikit membal. */
+.cm-modal .cm-backdrop { animation: cm-fade 260ms ease-out both; }
+.cm-modal .cm-panel { animation: cm-sheet-in 420ms cubic-bezier(0.32, 0.72, 0, 1) both; will-change: transform; }
+.cm-modal-out .cm-backdrop { animation: cm-fade 240ms ease-in reverse both; }
+.cm-modal-out .cm-panel { animation: cm-sheet-out 240ms cubic-bezier(0.4, 0, 1, 1) both; }
+.cm-panel.cm-drag { animation: none !important; }
 @keyframes cm-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes cm-sheet { from { opacity: 0; transform: translateY(32px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes cm-sheet-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(24px) scale(0.98); } }
+@keyframes cm-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes cm-sheet-out { from { transform: none; } to { transform: translateY(100%); } }
+@media (min-width: 640px) {
+  .cm-modal .cm-panel { animation-name: cm-pop-in; animation-duration: 340ms; animation-timing-function: cubic-bezier(0.34, 1.32, 0.64, 1); }
+  .cm-modal-out .cm-panel { animation-name: cm-pop-out; animation-duration: 200ms; }
+}
+@keyframes cm-pop-in { from { opacity: 0; transform: translateY(18px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes cm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px) scale(0.97); } }
+
+/* Komentar muncul bergantian */
+.cm-item { animation: cm-item-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 38ms + 90ms); }
+@keyframes cm-item-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .cm-modal .cm-backdrop, .cm-modal .cm-panel, .cm-modal-out .cm-backdrop, .cm-modal-out .cm-panel { animation-duration: 1ms; }
+  .cm-modal .cm-backdrop, .cm-modal .cm-panel, .cm-modal-out .cm-backdrop, .cm-modal-out .cm-panel, .cm-item { animation-duration: 1ms; animation-delay: 0ms; }
 }
