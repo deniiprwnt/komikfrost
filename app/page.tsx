@@ -233,13 +233,14 @@ function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; s
   }, [path]);
 
   return (
-    // Satu baris di tepi atas cover: tipe kiri, sumber kanan. Flex + gap
-    // (bukan dua badge absolute terpisah) supaya keduanya tidak pernah
-    // bertabrakan/terpotong di kartu riwayat 112px — sumber yang lebih
-    // panjang menyusut dengan elipsis bila ruang habis.
-    <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-1">
+    // Satu baris badge di atas cover. Di mobile diberi jarak 4px dari tepi
+    // atas (bukan menempel ke border) karena badge 14px di kartu riwayat
+    // 112px ikut terpotong lengkung pojok kartu; mulai sm jarak kembali 0.
+    // Flex + gap: tipe kiri, sumber kanan, sumber menyusut/elipsis bila
+    // ruang habis (mis. MANHWA + KOMIKCAST).
+    <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-1 pt-1 sm:pt-0">
       {meta.type && (
-        <div className="min-w-0 max-w-[55%] shrink-0 [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-2 sm:[&>span]:py-1 sm:[&>span]:text-[9px]">
+        <div className="flex min-w-0 max-w-[55%] shrink-0 [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-2 sm:[&>span]:py-1 sm:[&>span]:text-[9px]">
           <TypeBadge type={meta.type} flush />
         </div>
       )}
