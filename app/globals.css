@@ -1538,9 +1538,9 @@ article.cv-auto:not(.group):active {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 46%),
     linear-gradient(180deg, #1a3237 0%, #0f1e24 100%);
-  box-shadow:
-    0 4px 0 var(--ink),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+  --edge: color-mix(in srgb, var(--color-accent) 38%, #0f1e24);
+  border-color: var(--edge);
+  box-shadow: 0 4px 0 var(--edge);
 }
 .dark .sb-sign__board { --screw: rgba(255, 255, 255, 0.24); }
 
