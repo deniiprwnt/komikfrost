@@ -1468,7 +1468,9 @@ article.cv-auto:not(.group):active {
 }
 .sb-sign {
   --paw: clamp(1.45rem, 11.5cqw, 2rem);
-  --ink: #0d1518;
+  /* Tepi papan & telapak: teal primer (bukan hitam). */
+  --edge: var(--color-accent);
+  --edge-shadow: color-mix(in srgb, var(--color-accent) 62%, #02130f);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1511,11 +1513,11 @@ article.cv-auto:not(.group):active {
   margin-top: calc(clamp(3.9rem, 27cqw, 5.4rem) * -0.13); /* papan menutup dagu & syal, mulut tetap kelihatan */
   padding: clamp(1.15rem, 8cqw, 1.4rem) clamp(0.7rem, 5.4cqw, 1rem);
   border-radius: clamp(0.85rem, 6.5cqw, 1.1rem);
-  border: 2.5px solid var(--ink);
+  border: 2.5px solid var(--edge);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 38%),
     linear-gradient(180deg, #fffdf6 0%, #f3ebd9 100%);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--edge-shadow);
 }
 /* Empat sekrup simetris di keempat sudut papan (jarak sama dari tepi). */
 .sb-sign__board { --screw: rgba(13, 21, 24, 0.34); --screw-hi: rgba(255, 255, 255, 0.7); }
@@ -1533,18 +1535,23 @@ article.cv-auto:not(.group):active {
 }
 .sb-sign__board::before { top: 8px; }
 .sb-sign__board::after { bottom: 8px; }
-.dark .sb-sign { --ink: #04090a; }
+.dark .sb-sign {
+  /* Mode gelap: teal lebih terang agar tepinya tetap jelas di atas papan gelap. */
+  --edge: color-mix(in srgb, var(--color-accent) 62%, var(--color-accent-strong));
+  --edge-shadow: color-mix(in srgb, var(--color-accent) 55%, #02130f);
+}
 .dark .sb-sign__board {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 46%),
     linear-gradient(180deg, #1a3237 0%, #0f1e24 100%);
   box-shadow:
-    0 4px 0 var(--ink),
-    0 0 0 1px color-mix(in srgb, var(--color-accent) 42%, transparent);
+    0 4px 0 var(--edge-shadow),
+    0 0 18px -4px color-mix(in srgb, var(--color-accent) 55%, transparent);
 }
 .dark .sb-sign__board { --screw: rgba(255, 255, 255, 0.24); }
 
 .sb-sign__paw {
+  color: var(--edge); /* garis telapak ikut warna tepi papan */
   position: absolute;
   z-index: 2;
   top: calc(var(--paw) * -0.62);

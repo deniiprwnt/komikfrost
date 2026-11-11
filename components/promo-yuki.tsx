@@ -100,7 +100,7 @@ export function PromoYukiPaw({ className = "" }: { className?: string }) {
   ];
   return (
     <svg className={className} viewBox="0 0 34 30" aria-hidden="true" focusable="false">
-      <g fill={INK} stroke={INK} strokeWidth="4.200" strokeLinejoin="round">
+      <g fill="currentColor" stroke="currentColor" strokeWidth="4.200" strokeLinejoin="round">
         <ellipse cx="17" cy="10" rx="12.600" ry="8.200" />
         {toes.map(([x, y, rx, ry]) => <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} />)}
       </g>
@@ -110,7 +110,7 @@ export function PromoYukiPaw({ className = "" }: { className?: string }) {
       <path d="M5.600 12.400C11 16 23 16 28.400 12.400 27.600 15.600 22 16.600 17 16.600S6.400 15.600 5.600 12.400Z" fill={FUR_SHADE} opacity=".45" />
       <path d="M8.500 5.200C13 3 21 3 25.500 5.200" fill="none" stroke="#fff" strokeWidth="1.700" strokeLinecap="round" opacity=".55" />
       {/* lekukan pemisah jari */}
-      <path d="M11.300 18.400L11.500 22M17 20.200V24M22.700 18.400L22.500 22" stroke={INK} strokeWidth="1.100" strokeLinecap="round" opacity=".8" />
+      <path d="M11.300 18.400L11.500 22M17 20.200V24M22.700 18.400L22.500 22" stroke="currentColor" strokeWidth="1.100" strokeLinecap="round" opacity=".8" />
     </svg>
   );
 }
