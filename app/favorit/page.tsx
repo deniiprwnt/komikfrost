@@ -101,19 +101,29 @@ export default function FavoritPage() {
 
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
-      <div className="min-w-0">
-        <SectionHead title="Favorit" href="/riwayat" linkLabel="Riwayat" />
-        {bookmarks.length > 0 && (
-          <p className="-mt-2 text-xs text-muted dark:text-muted-dark">
-            {bookmarks.length} judul · tersimpan di perangkat ini
-            {updateCount > 0 && (
-              <span className="font-semibold text-fresh dark:text-fresh-dark">
-                {" "}
-                · {updateCount} update baru
-              </span>
-            )}
-          </p>
-        )}
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <SectionHead title="Favorit" />
+          {bookmarks.length > 0 && (
+            <p className="-mt-2 text-xs text-muted dark:text-muted-dark">
+              {bookmarks.length} judul · tersimpan di perangkat ini
+              {updateCount > 0 && (
+                <span className="font-semibold text-fresh dark:text-fresh-dark">
+                  {" "}
+                  · {updateCount} update baru
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link
+            href="/riwayat"
+            className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+          >
+            Riwayat →
+          </Link>
+        </div>
       </div>
 
       {bookmarks.length > 5 && (

@@ -87,9 +87,9 @@ export function SectionHead({
       {href && (
         <Link
           href={href}
-          className="section-link shrink-0 py-1 text-xs font-semibold"
+          className="shrink-0 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
         >
-          {linkLabel}
+          {linkLabel} →
         </Link>
       )}
     </div>

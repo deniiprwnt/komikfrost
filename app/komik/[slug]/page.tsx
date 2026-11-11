@@ -365,9 +365,9 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             </h2>
             <Link
               href={`/genre/${detail.genres[0].slug}`}
-              className="section-link shrink-0 py-1 text-xs font-semibold"
+              className="shrink-0 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
             >
-              Lihat semua
+              Lihat semua →
             </Link>
           </div>
           <div className="grid gap-x-6 2xl:grid-cols-2">

@@ -344,8 +344,8 @@ export default function HomePage() {
                 />
               </svg>
             </button>
-            <Link href="/populer" className="section-link py-1.5 text-xs font-semibold">
-              Lihat semua
+            <Link href="/populer" className="shrink-0 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark">
+              Lihat semua →
             </Link>
           </div>
         </div>
@@ -445,9 +445,9 @@ export default function HomePage() {
           </p>
           <Link
             href="/terbaru?orderby=rand"
-            className="mt-3 hidden w-fit rounded-md bg-accent px-3 py-2 text-xs font-bold text-white hover:bg-accent-strong lg:inline-block"
+            className="mt-3 hidden w-fit rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent lg:inline-block dark:border-line-dark"
           >
-            Lihat semua
+            Lihat semua →
           </Link>
         </div>
         <div className="min-w-0">

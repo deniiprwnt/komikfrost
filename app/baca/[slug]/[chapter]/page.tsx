@@ -14,6 +14,7 @@ import { ReaderPageImage, ReaderPageError } from "@/components/cover-image";
 import { Select } from "@/components/select";
 import { ReaderSkeleton } from "@/components/skeletons";
 import { ZoomMenu, type ZoomControl } from "@/components/zoom-menu";
+import { TocMenu, type TocControl } from "@/components/toc-menu";
 
 function IconChevron({ dir, className }: { dir: "left" | "right"; className?: string }) {
   return (
@@ -85,6 +86,7 @@ function ChapterNav({
   floating = false,
   zoom,
   zoomPlacement = "top",
+  toc,
 }: {
   data: ChapterData | null;
   slug: string;
@@ -95,6 +97,8 @@ function ChapterNav({
   zoom?: ZoomControl;
   /** Arah buka menu zoom: "top" ke atas nav, "bottom" ke bawah nav. */
   zoomPlacement?: "top" | "bottom";
+  /** Bila diisi, "Daftar isi" membuka modal daftar chapter (bukan pindah ke halaman detail). */
+  toc?: TocControl;
 }) {
   // nextUrl akurat dari server (daftar chapter). Bila absen (gagal scrape
   // daftar / chapter terbaru), tebak +1 seperti sebelumnya.
@@ -129,15 +133,19 @@ function ChapterNav({
         </span>
       )}
 
-      <Link
-        href={`/komik/${slug}`}
-        aria-label="Daftar isi"
-        title="Daftar isi"
-        className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl text-muted transition-[background-color,color,transform] duration-200 hover:bg-paper-3 hover:text-fg active:scale-95 dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
-      >
-        <IconList className="h-[18px] w-[18px] shrink-0" />
-        <span className="hidden sm:inline">Daftar isi</span>
-      </Link>
+      {toc ? (
+        <TocMenu toc={toc} placement={zoomPlacement} />
+      ) : (
+        <Link
+          href={`/komik/${slug}`}
+          aria-label="Daftar isi"
+          title="Daftar isi"
+          className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl text-muted transition-[background-color,color,transform] duration-200 hover:bg-paper-3 hover:text-fg active:scale-95 dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
+        >
+          <IconList className="h-[18px] w-[18px] shrink-0" />
+          <span className="hidden sm:inline">Daftar isi</span>
+        </Link>
+      )}
 
       {zoom && <ZoomMenu zoom={zoom} placement={zoomPlacement} />}
 
@@ -271,6 +279,20 @@ export default function ReaderPage({
     }, 6000);
   };
 
+  // Dipakai bersama oleh menu Settings dan modal Daftar isi: selama salah satu
+  // terbuka, overlay tap-nav tidak auto-sembunyi dan tombol melayang disembunyikan.
+  const onMenuOpenChange = (open: boolean) => {
+    zoomMenuOpenRef.current = open;
+    setZoomMenuOpen(open);
+    if (open) {
+      if (tapNavTimerRef.current) window.clearTimeout(tapNavTimerRef.current);
+      tapNavTimerRef.current = 0;
+    } else {
+      // Menu ditutup: beri waktu baca lagi sebelum overlay hilang.
+      armTapNavTimer();
+    }
+  };
+
   const zoomControl: ZoomControl = {
     value: zoom,
     min: ZOOM_MIN,
@@ -278,17 +300,7 @@ export default function ReaderPage({
     step: ZOOM_SLIDER_STEP,
     presets: ZOOM_PRESETS,
     onChange: applyZoom,
-    onOpenChange: (open) => {
-      zoomMenuOpenRef.current = open;
-      setZoomMenuOpen(open);
-      if (open) {
-        if (tapNavTimerRef.current) window.clearTimeout(tapNavTimerRef.current);
-        tapNavTimerRef.current = 0;
-      } else {
-        // Menu ditutup: beri waktu baca lagi sebelum overlay hilang.
-        armTapNavTimer();
-      }
-    },
+    onOpenChange: onMenuOpenChange,
   };
 
   const switchMode = (m: "scroll" | "page") => {
@@ -606,6 +618,13 @@ export default function ReaderPage({
   if (error) return <ErrorState message={error} onRetry={() => load()} />;
   if (!data) return <ReaderSkeleton />;
 
+  const tocControl: TocControl = {
+    chapters,
+    current: chapter,
+    slug: data.mangaSlug,
+    onOpenChange: onMenuOpenChange,
+  };
+
   const massFailure = data.images.length > 0 && (failed.size / data.images.length) >= 0.5;
 
   // Tap gambar (mode scroll): toggle overlay navigasi; sembunyikan otomatis
@@ -738,6 +757,7 @@ export default function ReaderPage({
         chapter={chapter}
         zoom={zoomControl}
         zoomPlacement="bottom"
+        toc={tocControl}
       />
 
       {/* Pindah chapter tanpa balik ke detail — daftar dari cache detail,
@@ -829,7 +849,7 @@ export default function ReaderPage({
         />
       )}
 
-      <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} zoom={zoomControl} />
+      <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} zoom={zoomControl} toc={tocControl} />
 
       {/* Komentar chapter dari 3 sumber — dimuat malas, di bawah nav. */}
       <Comments key={`${slug}/${chapter}`} slug={slug} chapter={chapter} />
@@ -838,7 +858,7 @@ export default function ReaderPage({
           Tab bar disembunyikan saat membaca, jadi cukup 1rem + safe-area dari bawah. */}
       {mode === "scroll" && showTapNav && (
         <div className="float-in fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-40 sm:bottom-6">
-          <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} floating zoom={zoomControl} />
+          <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} floating zoom={zoomControl} toc={tocControl} />
         </div>
       )}
 
