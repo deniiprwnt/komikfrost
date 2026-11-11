@@ -233,17 +233,22 @@ function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; s
   }, [path]);
 
   return (
-    <>
+    // Satu baris di tepi atas cover: tipe kiri, sumber kanan. Flex + gap
+    // (bukan dua badge absolute terpisah) supaya keduanya tidak pernah
+    // bertabrakan/terpotong di kartu riwayat 112px — sumber yang lebih
+    // panjang menyusut dengan elipsis bila ruang habis.
+    <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-1">
       {meta.type && (
-        <div className="absolute left-0 top-0 z-10 [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-2 sm:[&>span]:py-1 sm:[&>span]:text-[9px]">
+        <div className="min-w-0 max-w-[55%] shrink-0 [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-2 sm:[&>span]:py-1 sm:[&>span]:text-[9px]">
           <TypeBadge type={meta.type} flush />
         </div>
       )}
       <SourceBadge
-        className="absolute right-0 top-0 z-10 max-w-[55%] [&>span]:rounded-none [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-1.5 sm:[&>span]:py-1 sm:[&>span]:text-[9px]"
+        shrink
+        className="ml-auto min-w-0 [&>span]:rounded-none [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-1.5 sm:[&>span]:py-1 sm:[&>span]:text-[9px]"
         sources={meta.sources?.slice(0, 1)}
       />
-    </>
+    </div>
   );
 }
 

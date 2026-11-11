@@ -83,24 +83,31 @@ export function SourceBadge({
   sources,
   className = "",
   wide = false,
+  shrink = false,
 }: {
   sources?: string[];
   className?: string;
   /** Badge mengambang di luar cover (mis. kartu list): sedikit lebih lebar & lega. */
   wide?: boolean;
+  /** Izinkan menyusut + elipsis saat ruang sempit (mis. kartu riwayat 112px). */
+  shrink?: boolean;
 }) {
   if (!sources || sources.length === 0) return null;
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1 ${
+        shrink ? "min-w-0 shrink" : "shrink-0"
+      } ${className}`}
+    >
       {sources.map((s) => {
         const key = s.toLowerCase();
         const color = SOURCE_STYLE[key] ?? "bg-muted";
         return (
           <span
             key={s}
-            className={`inline-block shrink-0 truncate rounded-sm text-[10px] font-extrabold uppercase leading-tight tracking-wide text-white ${
-              wide ? "min-w-[3.75rem] px-2.5 py-1 text-center sm:min-w-[4rem]" : "px-1.5 py-0.5"
-            } ${color}`}
+            className={`inline-block truncate rounded-sm text-[10px] font-extrabold uppercase leading-tight tracking-wide text-white ${
+              shrink ? "min-w-0" : "shrink-0"
+            } ${wide ? "min-w-[3.75rem] px-2.5 py-1 text-center sm:min-w-[4rem]" : "px-1.5 py-0.5"} ${color}`}
           >
             {SOURCE_SHORT[key] ?? s}
           </span>
