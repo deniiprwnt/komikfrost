@@ -32,18 +32,15 @@ const IMG_EXT = /\.(jpe?g|png|webp|gif|avif)$/i;
 
 const IMG_CACHE_SECONDS = 604800;
 
-/**
- * In-flight dedupe per URL upstream: satu grid berisi puluhan cover baru bisa
- * meminta URL yang SAMA berkali-kali dalam satu batch render (kartu utama +
- * daftar serupa + prefetch). Tanpa ini kunjungan pertama menembak upstream
- * berulang untuk gambar yang sama dan memperlambat sampul above-the-fold.
- * Hasil sukses tetap disimpan cache HTTP Next (`next.revalidate` di bawah).
- */
-const imgInflight = new Map<string, Promise<{ body: Buffer; contentType: string }>>();
+// TIDAK ada dedupe buffer lagi: sebelumnya tiap gambar dibaca PENUH ke
+// Buffer (arrayBuffer) sebelum 1 byte pun dikirim â€” memori + CPU + durasi
+// fungsi membengkak per gambar reader (20-100 gambar/chapter). Sekarang
+// body upstream di-stream langsung ke browser; Next Data Cache
+// (next.revalidate di fetchImage) tetap meng-cache di server.
 
 /** Respons gambar dengan header cache yang sudah benar. */
-function imageResponse(body: Buffer, ct: string): Response {
-  return new Response(body as unknown as BodyInit, {
+function imageResponse(body: BodyInit, ct: string): Response {
+  return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": ct,
@@ -53,7 +50,6 @@ function imageResponse(body: Buffer, ct: string): Response {
       // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
       "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
       "X-Content-Type-Options": "nosniff",
-      "Content-Length": String(body.byteLength),
     },
   });
 }
@@ -67,7 +63,7 @@ function imageResponse(body: Buffer, ct: string): Response {
 async function fetchImage(
   target: string,
   signal: AbortSignal,
-): Promise<{ body: Buffer; contentType: string }> {
+): Promise<{ body: ReadableStream<Uint8Array> | null; contentType: string }> {
   const parsed = new URL(target);
   const upstream = await fetch(target, {
     headers: {
@@ -85,10 +81,10 @@ async function fetchImage(
   if (!ct.startsWith("image/")) {
     throw new Error("upstream-not-image");
   }
-  // Baca PENUH ke buffer: respons upstream berupa stream sekali-pakai;
-  // buffer bisa dipakai bersama request yang menunggu di dedupe di atas.
-  const body = Buffer.from(await upstream.arrayBuffer());
-  return { body, contentType: ct };
+  // Stream langsung, tanpa Buffer.from(arrayBuffer): pemanggil meneruskan
+  // upstream.body ke Response sehingga byte pertama mengalir tanpa menunggu
+  // seluruh file terunduh di memori fungsi.
+  return { body: upstream.body, contentType: ct };
 }
 
 /**
@@ -157,43 +153,24 @@ export async function GET(req: NextRequest) {
 
   const key = url.toString();
 
-  // Dedupe in-flight: request untuk URL yang sama saat fetch pertama belum
-  // selesai berbagi satu promise (bukan satu fetch per kartu).
-  const existing = imgInflight.get(key);
-  if (existing) {
-    try {
-      const { body, contentType } = await existing;
-      return imageResponse(body, contentType);
-    } catch {
-      return Response.json(
-        { error: { message: "Gambar upstream tidak tersedia.", source: "upstream" } },
-        { status: 502 },
-      );
-    }
-  }
-
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   req.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
-
-  const job = (async (): Promise<{ body: Buffer; contentType: string }> => {
+  try {
     let lastErr: unknown = null;
     for (const target of candidateUrls(key)) {
       try {
-        return await fetchImage(target, ctrl.signal);
+        const { body, contentType } = await fetchImage(target, ctrl.signal);
+        // Kandidat gagal (body null) = coba host alternatif; kandidat sukses
+        // langsung di-stream, tanpa menunggu kandidat lain / buffering.
+        if (body) return imageResponse(body, contentType);
+        lastErr = new Error("upstream-unavailable");
       } catch (e) {
         lastErr = e;
-        // Timeout/abort = seluruh rantai berhenti (tidak ada waktu tersisa).
         if (ctrl.signal.aborted) break;
       }
     }
     throw lastErr ?? new Error("upstream-unavailable");
-  })();
-
-  imgInflight.set(key, job);
-  try {
-    const { body, contentType } = await job;
-    return imageResponse(body, contentType);
   } catch {
     return Response.json(
       { error: { message: "Gagal mengambil gambar.", source: "upstream" } },
@@ -201,8 +178,5 @@ export async function GET(req: NextRequest) {
     );
   } finally {
     clearTimeout(timer);
-    // Lepas hanya bila entri masih milik job ini (hindari menghapus job baru
-    // dengan URL sama yang dimulai tepat setelah yang lama selesai).
-    if (imgInflight.get(key) === job) imgInflight.delete(key);
   }
 }

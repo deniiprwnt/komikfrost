@@ -30,8 +30,18 @@ async function hmacHex(key: string, msg: string): Promise<string> {
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Token sesi hanya bergantung pada SITE_PASSWORD (statis per proses), jadi
+// HMAC dihitung sekali dan dipakai ulang. Tanpa ini setiap request API
+// membayar 2x WebCrypto HMAC (middleware + guard memanggil isAuthed).
+let cachedToken: Promise<string> | null = null;
+let cachedPassword = "";
 export async function sessionToken(): Promise<string> {
-  return hmacHex(getPassword(), "komikfrost-gate-v1");
+  const pw = getPassword();
+  if (!cachedToken || cachedPassword !== pw) {
+    cachedPassword = pw;
+    cachedToken = hmacHex(pw, "komikfrost-gate-v1");
+  }
+  return cachedToken;
 }
 
 export async function isAuthed(req: NextRequest): Promise<boolean> {

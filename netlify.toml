@@ -1,0 +1,19 @@
+# Netlify + Next.js 15: runtime OpenNext (Essential Next.js) terdeteksi otomatis
+# dari package.json ("next build"). File ini mengunci build agar tidak
+# jatuh ke static export: publish harus .next, bukan out/.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "true"
+  NODE_VERSION = "22"
+
+# Header cache aset build (_next/static = hash konten, immutable) di edge.
+# Halaman /api/* TIDAK di-cache di sini: Cache-Control dari route handler
+# (app/api/_lib.ts, private + SWR) yang berlaku agar konten ber-gate
+# tidak pernah disajikan ke request tanpa sesi.
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

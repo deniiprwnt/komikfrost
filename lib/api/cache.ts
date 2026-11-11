@@ -79,6 +79,9 @@ export function createTtlCache<T>(ttlMs: number) {
 export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
   const entries = new Map<string, Entry<T>>();
   const inflight = new Map<string, Promise<T>>();
+  // Refresh background SWR dilacak terpisah dari inflight: promise-nya
+  // resolve void, jadi JANGAN sampai dikembalikan sebagai hasil load().
+  const refreshing = new Set<string>();
   // Key selalu ber-versi: entri lama tidak pernah cocok lagi.
   const vkey = (key: string): string => `${DATA_VERSION}:${key}`;
   return {
@@ -91,7 +94,32 @@ export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
     async load(key: string, fn: () => Promise<T>, keep?: (data: T) => boolean): Promise<T> {
       const k = vkey(key);
       const hit = entries.get(k);
-      if (hit && hit.v === DATA_VERSION && Date.now() - hit.at < ttlMs) return hit.data;
+      const now = Date.now();
+      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs) return hit.data;
+      // Stale-while-revalidate (server): entri basi < 2x TTL langsung
+      // dikembalikan agar request tidak memblokir scrape 3 sumber, sambil
+      // 1 refresh background memperbarui cache. Di luar jendela basi ini
+      // request menunggu refresh seperti sebelumnya (data tidak basi lama).
+      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs * 2 && !refreshing.has(k)) {
+        const bg = fn()
+          .then((data) => {
+            if (!keep || keep(data)) {
+              entries.set(k, { at: Date.now(), v: DATA_VERSION, data });
+              if (entries.size > maxEntries) {
+                const oldest = entries.keys().next().value;
+                if (oldest !== undefined) entries.delete(oldest);
+              }
+            }
+          })
+          .catch(() => { /* basi tetap tampil; refresh berikutnya mencoba lagi */ })
+          .finally(() => { refreshing.delete(k); });
+        refreshing.add(k);
+        void bg;
+        return hit.data;
+      }
+      // Refresh background sedang jalan: kembalikan basi, jangan mulai
+      // scrape kedua yang berbarengan dengan refresh tersebut.
+      if (hit && hit.v === DATA_VERSION && refreshing.has(k)) return hit.data;
       const pending = inflight.get(k);
       if (pending) return pending;
       const next = fn()

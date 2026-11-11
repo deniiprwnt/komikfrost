@@ -68,7 +68,14 @@ export async function handle<T>(
             headers: {
               // Route ber-gate (mis. /api/home) wajib scope "private" agar
               // CDN tidak menyajikan konten ke request yang belum autentik.
-              "Cache-Control": `${opts.scope ?? "public"}, ${opts.scope === "private" ? `max-age=${opts.revalidate}` : `s-maxage=${opts.revalidate}`}, stale-while-revalidate=${opts.revalidate * 2}`,
+              // Sertakan max-age DAN s-maxage: sebelumnya scope public hanya
+              // mengirim s-maxage (browser tidak meng-cache), scope private
+              // hanya max-age (CDN/edge tidak meng-cache). Keduanya + Vary:
+              // Cookie membuat browser & edge memakai SWR, bukan re-scrape.
+              // stale-if-error: upstream sesaat gagal tidak memicu retry
+              // berantai dari klien yang semuanya menembak scrape lagi.
+              "Cache-Control": `${opts.scope ?? "public"}, max-age=${opts.revalidate}, s-maxage=${opts.scope === "private" ? 0 : opts.revalidate}, stale-while-revalidate=${opts.revalidate * 2}, stale-if-error=${opts.revalidate * 4}`,
+              ...(opts.scope === "private" ? { Vary: "Cookie" } : {}),
             },
           }
         : undefined,
