@@ -1,6 +1,5 @@
 "use client";
 
-import type * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiGet } from "@/lib/client";
@@ -17,7 +16,9 @@ const LABEL: Record<ComicSourceId, string> = {
 
 type Tab = "all" | ComicSourceId;
 type Sort = "new" | "top";
-const PAGE = 10;
+const PAGE = 5;
+/** Jumlah komentar per tahap di dalam modal. */
+const MODAL_PAGE = 10;
 /** Teks lebih panjang dari ini dilipat dengan tombol "Selengkapnya". */
 const LONG = 280;
 
@@ -226,8 +227,8 @@ function Notice({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-8 text-center dark:border-line-dark">
-      <PromoYukiHead mood="sad" className="h-16 w-auto sm:h-[4.5rem]" />
+    <div role="status" className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+      <PromoYukiHead mood="sad" className="h-14 w-auto sm:h-16" />
       <p className="max-w-xs text-sm text-muted dark:text-muted-dark">{text}</p>
       {onRetry && (
         <button
@@ -243,62 +244,34 @@ function Notice({
 }
 
 /* ------------------------------------------------------------------ */
-/* Diagnosis: jelaskan dengan bahasa biasa kenapa tiap sumber tidak muncul */
+/* Diagnosis: tampilkan penyebab sumber gagal (alamat yang dicoba+status) */
 /* ------------------------------------------------------------------ */
-
-type DiagRow = { source: ComicSourceId; state: "ok" | "empty" | "fail"; title: string; detail: string };
-
-/** Ubah hasil pemeriksaan teknis jadi kalimat yang mudah dipahami. */
-function explain(src: SourceComments, traces: string[]): DiagRow {
-  const name = LABEL[src.source];
-  if (src.status === "ok") {
-    return {
-      source: src.source,
-      state: "ok",
-      title: "Berhasil dimuat",
-      detail: `${src.items.length} komentar berhasil diambil dari ${name}.`,
-    };
-  }
-  if (src.status === "empty") {
-    return {
-      source: src.source,
-      state: "empty",
-      title: "Tidak ada komentar",
-      detail: src.message ?? `Belum ada yang berkomentar di ${name}.`,
-    };
-  }
-  const codes = traces.map((t) => /^(\d{3}) /.exec(t)?.[1]).filter(Boolean) as string[];
-  const notFound = codes.includes("404") || traces.some((t) => t.includes("tidak ditemukan di HTML"));
-  const blocked = codes.some((c) => c === "403" || c === "429");
-  const down = codes.some((c) => c.startsWith("5")) || traces.some((t) => t.startsWith("ERR("));
-  let detail = `Komentar dari ${name} belum bisa dimuat. Coba periksa ulang sebentar lagi.`;
-  if (traces.length === 0) detail = `Komik ini tidak ditemukan di ${name}, jadi komentarnya tidak bisa diambil.`;
-  else if (notFound) detail = `Chapter ini belum tersedia di ${name}, jadi komentarnya tidak bisa diambil.`;
-  else if (blocked) detail = `${name} sedang membatasi akses. Coba lagi beberapa saat lagi.`;
-  else if (down) detail = `Server ${name} sedang bermasalah atau tidak merespons. Coba lagi nanti.`;
-  return { source: src.source, state: "fail", title: "Tidak bisa dimuat", detail };
-}
-
-const DIAG_CHIP: Record<DiagRow["state"], string> = {
-  ok: "bg-fresh/15 text-fresh dark:bg-fresh-dark/15 dark:text-fresh-dark",
-  empty: "bg-paper-3 text-muted dark:bg-ink-3 dark:text-muted-dark",
-  fail: "bg-danger/10 text-danger dark:bg-danger-dark/15 dark:text-danger-dark",
-};
 
 function Diagnosis({ path }: { path: string }) {
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<DiagRow[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [text, setText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const run = async () => {
     setBusy(true);
-    setFailed(false);
+    setCopied(false);
     try {
       const d = await apiGet<CommentsPayload>(`${path}${path.includes("?") ? "&" : "?"}debug=1`, { noStore: true });
-      setRows(d.sources.map((src) => explain(src, d.debug?.traces[src.source] ?? [])));
-    } catch {
-      setFailed(true);
+      const dbg = d.debug;
+      const lines: string[] = [];
+      if (dbg) {
+        lines.push(`slug: ${JSON.stringify(dbg.slugs)}`);
+        if (dbg.chapterSources.length) lines.push(`chapter: ${dbg.chapterSources.join(" | ")}`);
+      }
+      for (const src of d.sources) {
+        lines.push("", `[${src.source}] ${src.status}${src.message ? ` — ${src.message}` : ""}`);
+        for (const t of dbg?.traces[src.source] ?? []) lines.push(`  ${t}`);
+        if (!(dbg?.traces[src.source]?.length)) lines.push("  (tidak ada request: sumber tidak ditemukan untuk komik ini)");
+      }
+      setText(lines.join("\n"));
+    } catch (e) {
+      setText(e instanceof Error ? e.message : "Diagnosis gagal.");
     } finally {
       setBusy(false);
     }
@@ -311,51 +284,39 @@ function Diagnosis({ path }: { path: string }) {
         onClick={() => {
           const next = !open;
           setOpen(next);
-          if (next && rows === null) void run();
+          if (next && text === null) void run();
         }}
         className="text-[11px] font-semibold text-muted underline-offset-2 hover:text-accent hover:underline dark:text-muted-dark"
       >
         {open ? "Tutup diagnosis" : "Kenapa tidak muncul? Lihat diagnosis"}
       </button>
       {open && (
-        <div className="mt-2 rounded-xl border border-line bg-paper p-2.5 sm:p-3 dark:border-line-dark dark:bg-ink">
-          {busy && <p className="px-1 py-1 text-xs text-muted dark:text-muted-dark">Memeriksa sumber…</p>}
-          {failed && !busy && (
-            <p className="px-1 py-1 text-xs text-danger dark:text-danger-dark">
-              Pemeriksaan gagal. Periksa koneksi internet lalu coba lagi.
-            </p>
-          )}
-          {rows && !busy && (
-            <ul className="space-y-2">
-              {rows.map((r) => (
-                <li
-                  key={r.source}
-                  className="flex min-w-0 items-start gap-3 rounded-lg border border-line bg-paper-2 px-3 py-2.5 dark:border-line-dark dark:bg-ink-2"
+        <div className="mt-2 rounded-xl border border-line bg-paper p-3 dark:border-line-dark dark:bg-ink">
+          {busy && <p className="text-xs text-muted dark:text-muted-dark">Memeriksa sumber…</p>}
+          {text !== null && !busy && (
+            <>
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed text-fg/85 dark:text-fg-dark/80">
+                {text}
+              </pre>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(text).then(() => setCopied(true)).catch(() => {});
+                  }}
+                  className="rounded-lg border border-line px-3 py-1 text-[11px] font-semibold text-accent hover:border-accent dark:border-line-dark"
                 >
-                  <span aria-hidden className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${SOURCE_DOT[r.source]}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-bold text-fg dark:text-fg-dark">{LABEL[r.source]}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${DIAG_CHIP[r.state]}`}>
-                        {r.title}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted dark:text-muted-dark">{r.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {(rows || failed) && !busy && (
-            <div className="mt-2.5 flex">
-              <button
-                type="button"
-                onClick={() => void run()}
-                className="rounded-lg border border-line px-3 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent active:scale-[0.97] dark:border-line-dark dark:text-muted-dark"
-              >
-                Periksa ulang
-              </button>
-            </div>
+                  {copied ? "Tersalin ✓" : "Salin"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void run()}
+                  className="rounded-lg border border-line px-3 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
+                >
+                  Periksa ulang
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -364,74 +325,28 @@ function Diagnosis({ path }: { path: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Daftar komentar: gabungan/per-sumber + urutan (dipakai bagian & modal) */
-/* ------------------------------------------------------------------ */
-
-/** Titik warna sumber — sama dengan warna SourceBadge. */
-const SOURCE_DOT: Record<ComicSourceId, string> = {
-  shinigami: "bg-[#0e7c74] dark:bg-[#118079]",
-  komiku: "bg-mark-manhwa",
-  komikcast: "bg-mark-manga",
-};
-
-const SORTS: [Sort, string][] = [
-  ["new", "Terbaru"],
-  ["top", "Terpopuler"],
-];
-
-/**
- * "Semua" diurutkan bergilir antar sumber lebih dulu (komentar ke-1 tiap
- * sumber, lalu ke-2, ...) supaya komentar tanpa waktu pun tercampur, lalu
- * diurutkan menurut waktu / jumlah suka dengan urutan bergilir sebagai penentu seri.
- */
-function buildLists(sources: SourceComments[], sort: Sort) {
-  const lists = sources.map((s) => s.items);
-  const inter: CommentItem[] = [];
-  const max = Math.max(0, ...lists.map((l) => l.length));
-  for (let i = 0; i < max; i++) for (const l of lists) if (l[i]) inter.push(l[i]!);
-  const rank = new Map<CommentItem, number>();
-  inter.forEach((c, i) => rank.set(c, i));
-  const sorter = (items: CommentItem[]) =>
-    [...items].sort((a, b) => {
-      const byTime = (b.createdAtTs ?? 0) - (a.createdAtTs ?? 0);
-      const byLike = (b.likes ?? 0) - (a.likes ?? 0);
-      const tie = (rank.get(a) ?? 0) - (rank.get(b) ?? 0);
-      return sort === "top" ? byLike || byTime || tie : byTime || tie;
-    });
-  const by = new Map<ComicSourceId, CommentItem[]>();
-  sources.forEach((s) => by.set(s.source, sorter(s.items)));
-  return { all: sorter(inter), by };
-}
-
-/* ------------------------------------------------------------------ */
 /* Modal semua komentar                                                 */
 /* ------------------------------------------------------------------ */
 
-const MODAL_CHUNK = 20;
-
 function CommentsModal({
-  sources,
-  initialTab,
-  initialSort,
+  title,
+  count,
+  items,
   onClose,
 }: {
-  sources: SourceComments[];
-  initialTab: Tab;
-  initialSort: Sort;
+  title: string;
+  count: number;
+  items: CommentItem[];
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [tab, setTab] = useState<Tab>(initialTab);
-  const [sort, setSort] = useState<Sort>(initialSort);
-  const [shown, setShown] = useState(MODAL_CHUNK);
+  const [limit, setLimit] = useState(MODAL_PAGE);
 
   const close = useCallback(() => {
     setClosing(true);
-    window.setTimeout(onClose, 240);
+    window.setTimeout(onClose, 180);
   }, [onClose]);
 
   useEffect(() => {
@@ -454,105 +369,7 @@ function CommentsModal({
     };
   }, [close]);
 
-  // Geser ke bawah untuk menutup (HP). Memindahkan panel langsung lewat ref
-  // supaya tidak render ulang tiap pergerakan jari.
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; t: number; dy: number; v: number } | null>(null);
-  const isSheet = () => window.matchMedia("(max-width: 639px)").matches;
-
-  const onDragStart = (e: React.PointerEvent) => {
-    if (!isSheet() || (e.target as HTMLElement).closest("button, [role=tab]")) return;
-    drag.current = { y: e.clientY, t: performance.now(), dy: 0, v: 0 };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const panel = panelRef.current;
-    if (panel) {
-      panel.classList.add("cm-drag");
-      panel.style.transition = "none";
-    }
-  };
-  const onDragMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    const panel = panelRef.current;
-    if (!d || !panel) return;
-    const now = performance.now();
-    const dy = Math.max(0, e.clientY - d.y);
-    d.v = (dy - d.dy) / Math.max(1, now - d.t);
-    d.dy = dy;
-    d.t = now;
-    panel.style.transform = `translateY(${dy}px)`;
-    if (backdropRef.current)
-      backdropRef.current.style.opacity = String(Math.max(0, 1 - dy / panel.offsetHeight));
-  };
-  const onDragEnd = () => {
-    const d = drag.current;
-    const panel = panelRef.current;
-    drag.current = null;
-    if (!d || !panel) return;
-    const dismiss = d.dy > panel.offsetHeight * 0.28 || d.v > 0.6;
-    panel.style.transition = "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)";
-    if (dismiss) {
-      panel.style.transform = "translateY(105%)";
-      if (backdropRef.current) {
-        backdropRef.current.style.transition = "opacity 240ms ease-out";
-        backdropRef.current.style.opacity = "0";
-      }
-      window.setTimeout(onClose, 240);
-    } else {
-      panel.style.transform = "translateY(0)";
-      if (backdropRef.current) {
-        backdropRef.current.style.transition = "opacity 260ms ease-out";
-        backdropRef.current.style.opacity = "1";
-      }
-      window.setTimeout(() => {
-        panel.style.transition = "";
-        panel.style.transform = "";
-        panel.classList.remove("cm-drag");
-        if (backdropRef.current) {
-          backdropRef.current.style.transition = "";
-          backdropRef.current.style.opacity = "";
-        }
-      }, 270);
-    }
-  };
-
-  const lists = useMemo(() => buildLists(sources, sort), [sources, sort]);
-  const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
-  const current = tab === "all" ? null : sources.find((s) => s.source === tab);
-  const total = sources.reduce((n, s) => n + s.items.length, 0);
-  const tabs: Tab[] = ["all", ...sources.map((s) => s.source)];
-  const hasMore = list.length > shown;
-
-  const pick = (t: Tab) => {
-    setTab(t);
-    setShown(MODAL_CHUNK);
-    scrollRef.current?.scrollTo({ top: 0 });
-  };
-
-  // Muat berikutnya otomatis saat ujung daftar mendekat (tombol sebagai cadangan).
-  useEffect(() => {
-    if (!mounted || !hasMore) return;
-    const el = sentinelRef.current;
-    const root = scrollRef.current;
-    if (!el || !root || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + MODAL_CHUNK);
-      },
-      { root, rootMargin: "240px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [mounted, hasMore, shown, tab, sort]);
-
   if (!mounted) return null;
-
-  const emptyText =
-    tab === "all"
-      ? "Belum ada komentar."
-      : (current?.message ??
-        (current?.status === "unavailable"
-          ? `Komentar ${LABEL[tab]} belum bisa dimuat.`
-          : `Belum ada komentar di ${LABEL[tab]}.`));
 
   return createPortal(
     <div
@@ -562,7 +379,6 @@ function CommentsModal({
       role="presentation"
     >
       <div
-        ref={backdropRef}
         className="cm-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={close}
         aria-hidden
@@ -571,32 +387,21 @@ function CommentsModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={tab === "all" ? "Semua komentar" : `Komentar ${LABEL[tab]}`}
+        aria-label={title}
         tabIndex={-1}
-        className="cm-panel relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-paper-2 shadow-2xl outline-none sm:h-[min(44rem,84vh)] sm:max-w-3xl sm:rounded-3xl dark:border-line-dark dark:bg-ink-2"
+        className="cm-panel relative flex max-h-[68dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-paper-2 shadow-2xl outline-none sm:max-h-[80vh] sm:max-w-2xl sm:rounded-3xl dark:border-line-dark dark:bg-ink-2"
       >
-        {/* Pegangan (mobile): area ini bisa digeser ke bawah untuk menutup */}
-        <div
-          className="touch-none sm:touch-auto"
-          onPointerDown={onDragStart}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          onPointerCancel={onDragEnd}
-        >
-        <div className="flex cursor-grab justify-center pb-1 pt-2.5 sm:hidden" aria-hidden>
+        {/* Pegangan (mobile) */}
+        <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden>
           <span className="h-1 w-10 rounded-full bg-line dark:bg-line-dark" />
         </div>
-
-        {/* Kepala: judul + jumlah + tutup */}
-        <div className="flex items-center gap-3 px-4 pb-1 pt-2 sm:px-6 sm:pt-5">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent dark:bg-accent-soft-dark">
-            <IconChat className="h-5 w-5" />
-          </span>
-          <h3 className="display-cond min-w-0 flex-1 truncate text-lg leading-tight text-fg sm:text-xl dark:text-fg-dark">
-            {tab === "all" ? "Semua komentar" : `Komentar ${LABEL[tab]}`}
+        <div className="flex items-center gap-3 border-b border-line px-4 py-3 sm:px-6 sm:py-4 dark:border-line-dark">
+          <IconChat className="h-5 w-5 shrink-0 text-accent" />
+          <h3 className="display-cond min-w-0 flex-1 truncate text-lg text-fg dark:text-fg-dark">
+            {title}
           </h3>
           <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-bold tabular-nums text-accent dark:bg-accent-soft-dark">
-            {list.length}
+            {count}
           </span>
           <button
             type="button"
@@ -609,116 +414,19 @@ function CommentsModal({
             </svg>
           </button>
         </div>
-        </div>
-
-        {/* Tombol sumber + urutan */}
-        <div className="flex flex-col gap-2.5 border-b border-line px-4 pb-3 pt-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-line-dark">
-          <div
-            className="rail-scroll -mx-4 flex min-w-0 gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-            role="tablist"
-            aria-label="Sumber komentar"
-          >
-            {tabs.map((t) => {
-              const n = t === "all" ? total : (lists.by.get(t)?.length ?? 0);
-              const active = tab === t;
-              const failed = t !== "all" && sources.find((s) => s.source === t)?.status === "unavailable";
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => pick(t)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold outline-none transition-all focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.96] ${
-                    active
-                      ? "border-accent bg-accent text-white shadow-sm"
-                      : "border-line bg-paper text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink dark:text-muted-dark"
-                  }`}
-                >
-                  {t !== "all" && (
-                    <span
-                      aria-hidden
-                      className={`h-2 w-2 shrink-0 rounded-full ring-2 ${SOURCE_DOT[t]} ${
-                        active ? "ring-white/40" : "ring-transparent"
-                      } ${failed ? "opacity-40" : ""}`}
-                    />
-                  )}
-                  {t === "all" ? "Semua" : LABEL[t]}
-                  <span
-                    className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[10px] font-bold tabular-nums ${
-                      active
-                        ? "bg-white/25 text-white"
-                        : "bg-paper-3 text-muted dark:bg-ink-3 dark:text-muted-dark"
-                    }`}
-                  >
-                    {failed ? "!" : n}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            className="flex shrink-0 self-start rounded-full border border-line bg-paper p-0.5 text-[11px] font-semibold sm:self-auto dark:border-line-dark dark:bg-ink"
-            role="group"
-            aria-label="Urutkan komentar"
-          >
-            {SORTS.map(([k, label]) => (
+        <div className="cm-scroll min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-5">
+          {items.slice(0, limit).map((c) => (
+            <CommentRow key={`${c.source}:${c.id}`} c={c} />
+          ))}
+          {items.length > limit && (
+            <div className="flex justify-center pt-1">
               <button
-                key={k}
                 type="button"
-                aria-pressed={sort === k}
-                onClick={() => {
-                  setSort(k);
-                  setShown(MODAL_CHUNK);
-                  scrollRef.current?.scrollTo({ top: 0 });
-                }}
-                className={`rounded-full px-3 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 ${
-                  sort === k
-                    ? "bg-accent text-white"
-                    : "text-muted hover:text-accent dark:text-muted-dark"
-                }`}
+                onClick={() => setLimit((n) => n + MODAL_PAGE)}
+                className="rounded-full border border-line bg-paper px-5 py-2 text-xs font-semibold text-accent hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink"
               >
-                {label}
+                Muat lebih banyak ({items.length - limit})
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Isi: scrollbar mengikuti gaya global (tipis di desktop, tersembunyi di HP) */}
-        <div
-          ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-5"
-        >
-          {list.length === 0 ? (
-            <Notice text={emptyText} />
-          ) : (
-            <div key={`${tab}:${sort}`} className="space-y-4">
-              {list.slice(0, shown).map((c, i) => (
-                <div
-                  key={`${c.source}:${c.id}`}
-                  className="cm-item"
-                  style={{ "--i": Math.min(i % MODAL_CHUNK, 9) } as React.CSSProperties}
-                >
-                  <CommentRow c={c} />
-                </div>
-              ))}
-              {hasMore && (
-                <div ref={sentinelRef} className="flex justify-center pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShown((n) => n + MODAL_CHUNK)}
-                    className="rounded-full border border-line bg-paper px-5 py-2 text-xs font-semibold text-accent hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink"
-                  >
-                    Muat lebih banyak ({list.length - shown})
-                  </button>
-                </div>
-              )}
-              {!hasMore && list.length > MODAL_CHUNK && (
-                <p className="pt-1 text-center text-[11px] text-muted dark:text-muted-dark">
-                  Semua komentar sudah ditampilkan
-                </p>
-              )}
             </div>
           )}
         </div>
@@ -824,9 +532,40 @@ export function Comments({
     return m;
   }, [data]);
 
-  const lists = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
+  // Urutan dasar: bergilir antar sumber (komentar ke-1 tiap sumber, lalu ke-2, ...)
+  // supaya komentar tanpa waktu pun tercampur, bukan menumpuk per sumber.
+  const interleaved = useMemo(() => {
+    const out: CommentItem[] = [];
+    const lists = (data?.sources ?? []).map((s) => s.items);
+    const max = Math.max(0, ...lists.map((l) => l.length));
+    for (let i = 0; i < max; i++) for (const l of lists) if (l[i]) out.push(l[i]!);
+    return out;
+  }, [data]);
+
+  const rank = useMemo(() => {
+    const m = new Map<CommentItem, number>();
+    interleaved.forEach((c, i) => m.set(c, i));
+    return m;
+  }, [interleaved]);
+
+  const sortList = useCallback(
+    (items: CommentItem[]) =>
+      [...items].sort((a, b) => {
+        const byTime = (b.createdAtTs ?? 0) - (a.createdAtTs ?? 0);
+        const byLike = (b.likes ?? 0) - (a.likes ?? 0);
+        const tie = (rank.get(a) ?? 0) - (rank.get(b) ?? 0);
+        return sort === "top" ? byLike || byTime || tie : byTime || tie;
+      }),
+    [sort, rank],
+  );
+
+  // Tab "Semua" = komentar dari ketiga sumber sekaligus, terbaru dulu.
+  const merged = useMemo(() => sortList(interleaved), [interleaved, sortList]);
   const total = (data?.sources ?? []).reduce((n, s) => n + s.items.length, 0);
-  const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
+  const list = useMemo(
+    () => (tab === "all" ? merged : sortList(bySource.get(tab)?.items ?? [])),
+    [tab, merged, bySource, sortList],
+  );
   const current = tab === "all" ? null : bySource.get(tab);
   const failedSources = (data?.sources ?? []).filter((s) => s.status === "unavailable");
   const loading = visible && !data && !error;
@@ -855,7 +594,12 @@ export function Comments({
             role="group"
             aria-label="Urutkan komentar"
           >
-            {SORTS.map(([k, label]) => (
+            {(
+              [
+                ["new", "Terbaru"],
+                ["top", "Terpopuler"],
+              ] as [Sort, string][]
+            ).map(([k, label]) => (
               <button
                 key={k}
                 type="button"
@@ -943,9 +687,9 @@ export function Comments({
           )}
           {modalOpen && (
             <CommentsModal
-              sources={data.sources}
-              initialTab={tab}
-              initialSort={sort}
+              title={tab === "all" ? "Semua komentar" : `Komentar ${LABEL[tab]}`}
+              count={list.length}
+              items={list}
               onClose={() => setModalOpen(false)}
             />
           )}

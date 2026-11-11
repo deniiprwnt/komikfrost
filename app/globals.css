@@ -1468,9 +1468,7 @@ article.cv-auto:not(.group):active {
 }
 .sb-sign {
   --paw: clamp(1.45rem, 11.5cqw, 2rem);
-  /* Tepi papan & telapak: teal primer (bukan hitam). */
-  --edge: var(--color-accent);
-  --edge-shadow: color-mix(in srgb, var(--color-accent) 62%, #02130f);
+  --ink: #0d1518;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1513,11 +1511,11 @@ article.cv-auto:not(.group):active {
   margin-top: calc(clamp(3.9rem, 27cqw, 5.4rem) * -0.13); /* papan menutup dagu & syal, mulut tetap kelihatan */
   padding: clamp(1.15rem, 8cqw, 1.4rem) clamp(0.7rem, 5.4cqw, 1rem);
   border-radius: clamp(0.85rem, 6.5cqw, 1.1rem);
-  border: 2.5px solid var(--edge);
+  border: 2.5px solid var(--ink);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 38%),
     linear-gradient(180deg, #fffdf6 0%, #f3ebd9 100%);
-  box-shadow: 0 4px 0 var(--edge-shadow);
+  box-shadow: 0 4px 0 var(--ink);
 }
 /* Empat sekrup simetris di keempat sudut papan (jarak sama dari tepi). */
 .sb-sign__board { --screw: rgba(13, 21, 24, 0.34); --screw-hi: rgba(255, 255, 255, 0.7); }
@@ -1535,23 +1533,18 @@ article.cv-auto:not(.group):active {
 }
 .sb-sign__board::before { top: 8px; }
 .sb-sign__board::after { bottom: 8px; }
-.dark .sb-sign {
-  /* Mode gelap: teal lebih terang agar tepinya tetap jelas di atas papan gelap. */
-  --edge: color-mix(in srgb, var(--color-accent) 62%, var(--color-accent-strong));
-  --edge-shadow: color-mix(in srgb, var(--color-accent) 55%, #02130f);
-}
+/* --ink sama di terang & gelap: garis papan = garis tangan/kepala Yuki (tidak berubah di dark mode). */
 .dark .sb-sign__board {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 46%),
     linear-gradient(180deg, #1a3237 0%, #0f1e24 100%);
   box-shadow:
-    0 4px 0 var(--edge-shadow),
-    0 0 18px -4px color-mix(in srgb, var(--color-accent) 55%, transparent);
+    0 4px 0 var(--ink),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .dark .sb-sign__board { --screw: rgba(255, 255, 255, 0.24); }
 
 .sb-sign__paw {
-  color: var(--edge); /* garis telapak ikut warna tepi papan */
   position: absolute;
   z-index: 2;
   top: calc(var(--paw) * -0.62);
@@ -2635,28 +2628,14 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 }
 
 
-/* Modal komentar
-   HP      : sheet naik dari bawah (kurva ala iOS), bisa digeser turun.
-   Desktop : kartu muncul dari tengah dengan sedikit membal. */
-.cm-modal .cm-backdrop { animation: cm-fade 260ms ease-out both; }
-.cm-modal .cm-panel { animation: cm-sheet-in 420ms cubic-bezier(0.32, 0.72, 0, 1) both; will-change: transform; }
-.cm-modal-out .cm-backdrop { animation: cm-fade 240ms ease-in reverse both; }
-.cm-modal-out .cm-panel { animation: cm-sheet-out 240ms cubic-bezier(0.4, 0, 1, 1) both; }
-.cm-panel.cm-drag { animation: none !important; }
+/* Modal komentar */
+.cm-modal .cm-backdrop { animation: cm-fade 180ms ease-out both; }
+.cm-modal .cm-panel { animation: cm-sheet 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-modal-out .cm-backdrop { animation: cm-fade 180ms ease-in reverse both; }
+.cm-modal-out .cm-panel { animation: cm-sheet-out 180ms ease-in both; }
 @keyframes cm-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes cm-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
-@keyframes cm-sheet-out { from { transform: none; } to { transform: translateY(100%); } }
-@media (min-width: 640px) {
-  .cm-modal .cm-panel { animation-name: cm-pop-in; animation-duration: 340ms; animation-timing-function: cubic-bezier(0.34, 1.32, 0.64, 1); }
-  .cm-modal-out .cm-panel { animation-name: cm-pop-out; animation-duration: 200ms; }
-}
-@keyframes cm-pop-in { from { opacity: 0; transform: translateY(18px) scale(0.94); } to { opacity: 1; transform: none; } }
-@keyframes cm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px) scale(0.97); } }
-
-/* Komentar muncul bergantian */
-.cm-item { animation: cm-item-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 38ms + 90ms); }
-@keyframes cm-item-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-
+@keyframes cm-sheet { from { opacity: 0; transform: translateY(32px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes cm-sheet-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(24px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) {
-  .cm-modal .cm-backdrop, .cm-modal .cm-panel, .cm-modal-out .cm-backdrop, .cm-modal-out .cm-panel, .cm-item { animation-duration: 1ms; animation-delay: 0ms; }
+  .cm-modal .cm-backdrop, .cm-modal .cm-panel, .cm-modal-out .cm-backdrop, .cm-modal-out .cm-panel { animation-duration: 1ms; }
 }
