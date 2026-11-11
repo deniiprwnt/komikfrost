@@ -13,6 +13,8 @@ const FUR = "#22b5a9";
 const FUR_LIGHT = "#6fe6d8";
 const FUR_SHADE = "#0e8580";
 const CREAM = "#f6fdfb";
+/** Garis luar karakter: ikut --yuki-line (teal di mode terang) di kartu promo; di tempat lain tetap INK. */
+const EDGE = { stroke: `var(--yuki-line, ${INK})` } as const;
 
 export function PromoYukiHead({
   className = "",
@@ -28,7 +30,7 @@ export function PromoYukiHead({
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill={FUR} />
       <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0b4e52" />
       <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#ffd3dc" />
-      <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" style={EDGE} strokeWidth="2" strokeLinejoin="round" />
     </>
   );
   const eye = (cx: number) => (
@@ -45,14 +47,14 @@ export function PromoYukiHead({
       <g>{ear}</g>
       <g transform="translate(64 0) scale(-1 1)">{ear}</g>
       {/* rumbai pipi */}
-      <path d="M12 41Q6 41 3.500 44.500Q7.500 45 8 47Q5 49 6.500 52Q11 52.500 15 51Z" fill={CREAM} stroke={INK} strokeWidth="1.900" strokeLinejoin="round" />
-      <path d="M52 41Q58 41 60.500 44.500Q56.500 45 56 47Q59 49 57.500 52Q53 52.500 49 51Z" fill={CREAM} stroke={INK} strokeWidth="1.900" strokeLinejoin="round" />
+      <path d="M12 41Q6 41 3.500 44.500Q7.500 45 8 47Q5 49 6.500 52Q11 52.500 15 51Z" fill={CREAM} style={EDGE} strokeWidth="1.900" strokeLinejoin="round" />
+      <path d="M52 41Q58 41 60.500 44.500Q56.500 45 56 47Q59 49 57.500 52Q53 52.500 49 51Z" fill={CREAM} style={EDGE} strokeWidth="1.900" strokeLinejoin="round" />
       {/* kepala + muka krem */}
       <ellipse cx="32" cy="40" rx="24" ry="19" fill={FUR_SHADE} />
       <ellipse cx="30.500" cy="38.500" rx="23.400" ry="17.800" fill={FUR} />
       <ellipse cx="26" cy="31" rx="14" ry="6" fill={FUR_LIGHT} opacity=".4" />
       <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill={CREAM} />
-      <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.200" />
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" style={EDGE} strokeWidth="2.200" />
       {/* wajah */}
       {eye(22)}
       {eye(42)}
@@ -77,13 +79,13 @@ export function PromoYukiHead({
         </>
       )}
       {/* ikat kepala Konoha */}
-      <path d="M9 27 Q32 15.500 55 27 L54.500 32 Q32 22 9.500 32 Z" fill="#1f5fd6" stroke={INK} strokeWidth="1.300" strokeLinejoin="round" />
+      <path d="M9 27 Q32 15.500 55 27 L54.500 32 Q32 22 9.500 32 Z" fill="#1f5fd6" style={EDGE} strokeWidth="1.300" strokeLinejoin="round" />
       <path d="M11 27 Q32 18 53 27" fill="none" stroke="#7aa6f5" strokeWidth="1.100" opacity=".8" />
-      <rect x="21" y="20.200" width="22" height="11" rx="2.800" fill="#d9e4ec" stroke={INK} strokeWidth="1.600" />
+      <rect x="21" y="20.200" width="22" height="11" rx="2.800" fill="#d9e4ec" style={EDGE} strokeWidth="1.600" />
       <rect x="22.600" y="21.500" width="18.800" height="8.400" rx="1.600" fill="none" stroke="#fff" strokeWidth=".7" opacity=".9" />
       <KonohaMark x={27} y={22} w={10} h={7.2} color="#26343c" />
       {/* syal */}
-      <path d="M15 53C25 60 39 60 49 53l1.500 6L32 66.500 13.500 59z" fill="#1f5fd6" stroke={INK} strokeWidth="2.200" strokeLinejoin="round" />
+      <path d="M15 53C25 60 39 60 49 53l1.500 6L32 66.500 13.500 59z" fill="#1f5fd6" style={EDGE} strokeWidth="2.200" strokeLinejoin="round" />
       <path d="M18 56C26 61 38 61 46 56" fill="none" stroke="#fff" strokeWidth="1" strokeLinecap="round" opacity=".35" />
       <UzumakiMark x={28.500} y={58.200} w={7} h={7} />
     </svg>
@@ -100,7 +102,7 @@ export function PromoYukiPaw({ className = "" }: { className?: string }) {
   ];
   return (
     <svg className={className} viewBox="0 0 34 30" aria-hidden="true" focusable="false">
-      <g fill={INK} stroke={INK} strokeWidth="4.200" strokeLinejoin="round">
+      <g fill="currentColor" stroke="currentColor" strokeWidth="4.200" strokeLinejoin="round">
         <ellipse cx="17" cy="10" rx="12.600" ry="8.200" />
         {toes.map(([x, y, rx, ry]) => <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} />)}
       </g>
@@ -110,7 +112,7 @@ export function PromoYukiPaw({ className = "" }: { className?: string }) {
       <path d="M5.600 12.400C11 16 23 16 28.400 12.400 27.600 15.600 22 16.600 17 16.600S6.400 15.600 5.600 12.400Z" fill={FUR_SHADE} opacity=".45" />
       <path d="M8.500 5.200C13 3 21 3 25.500 5.200" fill="none" stroke="#fff" strokeWidth="1.700" strokeLinecap="round" opacity=".55" />
       {/* lekukan pemisah jari */}
-      <path d="M11.300 18.400L11.500 22M17 20.200V24M22.700 18.400L22.500 22" stroke={INK} strokeWidth="1.100" strokeLinecap="round" opacity=".8" />
+      <path d="M11.300 18.400L11.500 22M17 20.200V24M22.700 18.400L22.500 22" stroke="currentColor" strokeWidth="1.100" strokeLinecap="round" opacity=".8" />
     </svg>
   );
 }
