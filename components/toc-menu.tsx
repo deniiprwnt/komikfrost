@@ -200,9 +200,22 @@ export function TocMenu({
         >
           {/* Header + menu: kembali ke chapter yang sedang dibaca */}
           <div className="flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate px-1 text-xs font-bold uppercase tracking-wider text-muted dark:text-muted-dark">
-              Daftar isi{total > 0 ? ` (${total})` : ""}
-            </p>
+            {/* Judul = tautan ke halaman detail komik */}
+            <Link
+              href={`/komik/${slug}`}
+              onClick={() => setOpenNotify(false)}
+              title="Buka halaman detail komik"
+              aria-label={`Daftar isi${total > 0 ? `, ${total} chapter` : ""} — buka halaman detail komik`}
+              className="group/toc flex h-9 min-w-0 touch-manipulation items-center gap-1.5 rounded-lg px-1 text-xs font-bold uppercase tracking-wider text-muted transition-colors hover:text-accent active:opacity-70 dark:text-muted-dark dark:hover:text-accent-strong"
+            >
+              <span className="min-w-0 truncate">Daftar isi{total > 0 ? ` (${total})` : ""}</span>
+              <span
+                aria-hidden="true"
+                className="shrink-0 transition-transform duration-200 group-hover/toc:translate-x-0.5"
+              >
+                →
+              </span>
+            </Link>
             {hasCurrent && (
               <button
                 type="button"

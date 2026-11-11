@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, peekApiCache } from "@/lib/client";
 import { DATA_VERSION } from "@/lib/api/cache";
 import { usePageTitle } from "@/lib/page-title";
@@ -12,6 +12,7 @@ const GENRES_PATH = `/api/genres?v=${DATA_VERSION}`;
 import type { GenreRef } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { GenreGridSkeleton } from "@/components/skeletons";
+import { ClearButton } from "@/components/clear-button";
 
 export default function GenreListPage() {
   usePageTitle("Daftar Genre");
@@ -22,6 +23,7 @@ export default function GenreListPage() {
   const [q, setQ] = useState("");
   // Multi-pilih: maks 2 genre (batas filter sumber data genre+genre2).
   const [picked, setPicked] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -58,13 +60,27 @@ export default function GenreListPage() {
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
       <SectionHead title="Daftar Genre" />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Ketik nama genre…"
-        enterKeyHint="search"
-        className="search-field h-12 w-full min-w-0 rounded-lg border border-line bg-paper-2 px-4 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:max-w-xs sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
-      />
+      <div className="relative w-full min-w-0 sm:max-w-xs">
+        <input
+          ref={searchRef}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Ketik nama genre…"
+          aria-label="Cari genre"
+          enterKeyHint="search"
+          className="search-field h-12 w-full min-w-0 rounded-lg border border-line bg-paper-2 pl-4 pr-11 text-base text-fg outline-none placeholder:text-muted sm:h-10 sm:text-sm dark:border-line-dark dark:bg-ink-2 dark:text-fg-dark dark:placeholder:text-muted-dark"
+        />
+        {q && (
+          <ClearButton
+            onClear={() => {
+              setQ("");
+              searchRef.current?.focus();
+            }}
+            label="Hapus pencarian genre"
+            className="right-3 top-1/2 -translate-y-1/2"
+          />
+        )}
+      </div>
       {picked.length > 0 && (
         <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-accent/40 bg-accent-soft/40 p-3 sm:p-4 dark:border-accent/30 dark:bg-accent-soft-dark/40">
           <p className="truncate text-xs font-semibold text-accent-strong sm:text-sm dark:text-accent-strong">
@@ -105,38 +121,41 @@ export default function GenreListPage() {
           {filtered.map((g) => {
             const active = picked.includes(g.slug);
             return (
-              <div
+              <button
                 key={g.slug}
-                className={`flex min-h-12 min-w-0 items-center justify-between gap-1.5 rounded-xl border px-2.5 py-2.5 transition-colors min-[420px]:px-3.5 min-[420px]:py-3 ${
+                type="button"
+                onClick={() => toggle(g.slug)}
+                aria-pressed={active}
+                aria-label={active ? `Batalkan genre ${g.name}` : `Pilih genre ${g.name}`}
+                className={`flex min-h-12 w-full min-w-0 touch-manipulation items-center justify-between gap-1.5 rounded-xl border px-2.5 py-2.5 text-left transition-[background-color,border-color,transform] active:scale-[0.98] min-[420px]:px-3.5 min-[420px]:py-3 ${
                   active
                     ? "border-accent bg-accent-soft/50 dark:bg-accent-soft-dark/60"
-                    : "border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2"
+                    : "border-line bg-paper-2 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
                 }`}
               >
-                <Link
-                  href={`/genre/${g.slug}`}
-                  className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg hover:text-accent sm:text-sm dark:text-fg-dark"
+                <span
+                  className={`min-w-0 flex-1 truncate text-[13px] font-medium sm:text-sm ${
+                    active ? "text-accent-strong dark:text-fg-dark" : "text-fg dark:text-fg-dark"
+                  }`}
                 >
                   {g.name}
-                </Link>
+                </span>
                 {typeof g.count === "number" && (
                   <span className="hidden shrink-0 rounded-lg bg-paper-3 px-1.5 py-0.5 text-[10px] tabular-nums text-muted min-[420px]:px-2 min-[420px]:text-[11px] sm:inline dark:bg-ink-3 dark:text-muted-dark">
                     {g.count.toLocaleString("id-ID")}
                   </span>
                 )}
-                <button
-                  onClick={() => toggle(g.slug)}
-                  aria-pressed={active}
-                  aria-label={active ? `Batalkan genre ${g.name}` : `Pilih genre ${g.name}`}
-                  className={`flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-lg border text-base font-bold leading-none transition-colors ${
+                <span
+                  aria-hidden="true"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-base font-bold leading-none transition-colors ${
                     active
                       ? "border-transparent bg-accent text-white"
-                      : "border-line text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
+                      : "border-line text-muted dark:border-line-dark dark:text-muted-dark"
                   }`}
                 >
                   {active ? "✓" : "+"}
-                </button>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>

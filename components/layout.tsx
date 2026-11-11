@@ -7,6 +7,7 @@ import { SearchSuggest } from "./search-suggest";
 import { BrandMark } from "./brand-mark";
 import { PromoYukiHead, PromoYukiPaw } from "./promo-yuki";
 import { NavLink } from "./nav-link";
+import { ClearButton } from "./clear-button";
 import { warmPrimaryNav } from "@/lib/nav-prefetch";
 import { ClientDataVersion } from "./client-cache-version";
 
@@ -27,23 +28,6 @@ function isActive(pathname: string, href: string) {
 function Mark() {
   return (
     <BrandMark className="h-9 w-9 transition-transform duration-200 group-hover/logo:scale-105" />
-  );
-}
-
-/** Tombol X untuk mengosongkan pencarian; fokus kembali ke input. */
-function ClearButton({ onClear, className = "" }: { onClear: () => void; className?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClear}
-      aria-label="Hapus pencarian"
-      title="Hapus pencarian"
-      className={`absolute z-10 flex h-6 w-6 items-center justify-center rounded-lg text-muted transition-colors hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark ${className}`}
-    >
-      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
-        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    </button>
   );
 }
 
