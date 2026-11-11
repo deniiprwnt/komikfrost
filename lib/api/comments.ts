@@ -12,7 +12,7 @@ import { fetchShiniChaptersAll, parseNumToken } from "./shinigami";
 import { normalizeChapterKey, SOURCE_PRIORITY, type MergedMangaDetail } from "./aggregator";
 import { createKeyedCache, withDataVersion } from "./cache";
 import { proxiedImage } from "./img-proxy";
-import type { CommentItem, CommentsPayload, ComicSourceId, SourceComments } from "./types";
+import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceComments } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* ENDPOINT                                                            */
@@ -23,13 +23,16 @@ const KC_API = "https://komikcast.top/api/v1";
 const KOMIKU_BASE = "https://komiku.org";
 const SHINI_WALINE = "https://commento.shngm.io/comment";
 
-const shiniCandidates = (q: { mangaId: string; chapterId?: string }): string[] => {
-  const tail = "&page=1&pageSize=30&lang=en-US&sortBy=insertedAt_desc";
-  const paths = q.chapterId
-    ? [`chapter/${q.chapterId}`, `/chapter/${q.chapterId}`]
-    : [`series/${q.mangaId}`, `/series/${q.mangaId}`, `manga/${q.mangaId}`];
-  return paths.map((p) => `${SHINI_WALINE}?path=${encodeURIComponent(p)}${tail}`);
-};
+/** Kandidat path Waline Shinigami. Situs aslinya memakai pathname (diawali "/"), jadi itu dicoba lebih dulu. */
+const shiniPaths = (q: { mangaId: string; chapterId?: string }): string[] =>
+  q.chapterId
+    ? [`/chapter/${q.chapterId}`, `chapter/${q.chapterId}`]
+    : [`/series/${q.mangaId}`, `series/${q.mangaId}`, `/manga/${q.mangaId}`, `manga/${q.mangaId}`];
+
+const SHINI_PAGE_SIZE = 30;
+const SHINI_MAX_PAGES = 80; // s.d. 2400 komentar top-level
+const shiniUrl = (path: string, page: number): string =>
+  `${SHINI_WALINE}?path=${encodeURIComponent(path)}&page=${page}&pageSize=${SHINI_PAGE_SIZE}&lang=en-US&sortBy=insertedAt_desc`;
 
 interface KcIds {
   seriesId?: string;
@@ -148,6 +151,7 @@ const ENTITIES: Record<string, string> = {
 export function toPlainText(raw: unknown): string {
   if (typeof raw !== "string") return "";
   const s = raw
+    .replace(/<img\b[^>]*>/gi, "")
     .replace(/<\s*br\s*\/?>/gi, "\n")
     .replace(/<\/\s*p\s*>/gi, "\n")
     .replace(/<[^>]*>/g, "")
@@ -196,10 +200,94 @@ function findList(raw: unknown, depth = 0): unknown[] | null {
   return null;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Media di komentar (gambar / GIF / sticker)                          */
+/* ------------------------------------------------------------------ */
+
+const MAX_MEDIA = 8;
+const BARE_IMG_URL = /https?:\/\/[^\s<>"')]+?\.(?:gif|png|jpe?g|webp|avif)(?:\?[^\s<>"')]*)?/gi;
+const MD_IMG = /!\[[^\]]*\]\(\s*(https?:\/\/[^)\s]+)[^)]*\)/g;
+
+function mediaUrl(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  let u = v.trim();
+  if (!u) return undefined;
+  if (u.startsWith("//")) u = "https:" + u;
+  u = u.replace(/^http:\/\//i, "https://");
+  if (!/^https:\/\//i.test(u) || u.length > 800) return undefined;
+  return proxiedImage(u) || undefined;
+}
+
+/** Ambil <img> dari HTML komentar (Waline: gambar, GIF, emoji/sticker). */
+function mediaFromHtml(html: string): CommentMedia[] {
+  const out: CommentMedia[] = [];
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = m[0];
+    const srcRaw = /\b(?:data-src|src)\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1];
+    const src = mediaUrl(srcRaw?.replace(/&amp;/g, "&"));
+    if (!src) continue;
+    const alt = /\balt\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    const emoji = /wl-emoji|emoji|sticker/i.test(tag);
+    out.push({ src, kind: emoji ? "emoji" : "image", ...(alt ? { alt: alt.slice(0, 80) } : {}) });
+  }
+  return out;
+}
+
+/** Markdown ![](url) dan URL gambar telanjang di teks → media; URL-nya dibuang dari teks. */
+function pullTextMedia(text: string): { text: string; media: CommentMedia[] } {
+  const media: CommentMedia[] = [];
+  const take = (u: string) => {
+    const src = mediaUrl(u);
+    if (src) media.push({ src, kind: "image" });
+  };
+  const t = text
+    .replace(MD_IMG, (_m, u: string) => (take(u), ""))
+    .replace(BARE_IMG_URL, (u: string) => (take(u), ""))
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { text: t, media };
+}
+
+/** Field terstruktur (API Komiku dsb.): sticker / gif / gambar sebagai string atau objek. */
+function mediaFromFields(raw: Rec): CommentMedia[] {
+  const out: CommentMedia[] = [];
+  const keys = ["images", "image_url", "image_urls", "attachments", "attachment", "media", "sticker", "stickers", "sticker_url", "gif", "gifs", "gif_url", "comment_image", "comment_images"];
+  const visit = (v: unknown, kind: CommentMedia["kind"], depth = 0) => {
+    if (depth > 2 || v == null) return;
+    if (typeof v === "string") {
+      const src = mediaUrl(v);
+      if (src) out.push({ src, kind });
+    } else if (Array.isArray(v)) {
+      for (const x of v) visit(x, kind, depth + 1);
+    } else if (isRec(v)) {
+      for (const k of ["url", "src", "image", "image_url", "original", "large", "path"]) {
+        if (typeof v[k] === "string") return visit(v[k], kind, depth + 1);
+      }
+    }
+  };
+  for (const k of keys) {
+    if (raw[k] === undefined) continue;
+    visit(raw[k], /sticker|emoji/i.test(k) ? "emoji" : "image");
+  }
+  return out;
+}
+
+function dedupeMedia(list: CommentMedia[]): CommentMedia[] {
+  const seen = new Set<string>();
+  return list.filter((m) => (seen.has(m.src) ? false : (seen.add(m.src), true))).slice(0, MAX_MEDIA);
+}
+
 function mapComment(raw: unknown, source: ComicSourceId, idx: number, level = 0): CommentItem | null {
   if (!isRec(raw)) return null;
-  const text = toPlainText(pick(raw, ["content", "comment", "body", "text", "message", "comment_content", "isi"]));
-  if (!text) return null;
+  const rawBody = pick(raw, ["content", "comment", "body", "text", "message", "comment_content", "isi"]);
+  const rawStr = typeof rawBody === "string" ? rawBody : "";
+  const pulled = pullTextMedia(toPlainText(rawBody));
+  const text = pulled.text;
+  const media = dedupeMedia([...mediaFromHtml(rawStr), ...pulled.media, ...mediaFromFields(raw)]);
+  // Komentar berisi hanya gambar/sticker tetap dipertahankan.
+  if (!text && media.length === 0) return null;
   const user = isRec(raw.user) ? raw.user : isRec(raw.author) ? raw.author : isRec(raw.member) ? raw.member : null;
   const nameRaw =
     (user && pick(user, ["name", "username", "display_name", "nickname", "full_name"])) ??
@@ -219,6 +307,7 @@ function mapComment(raw: unknown, source: ComicSourceId, idx: number, level = 0)
     text,
   };
   if (avatar) out.avatar = avatar;
+  if (media.length) out.media = media;
   const ts = toTs(pick(raw, ["insertedAt", "created_at", "createdAt", "date", "created", "comment_date", "time", "timestamp"]));
   if (ts) out.createdAtTs = ts;
   if (Number.isFinite(likes) && likes > 0) out.likes = likes;
@@ -228,20 +317,20 @@ function mapComment(raw: unknown, source: ComicSourceId, idx: number, level = 0)
       const list = rep
         .map((r, i) => mapComment(r, source, i, 1))
         .filter((r): r is CommentItem => r !== null)
-        .slice(0, 20);
+        .slice(0, 100);
       if (list.length) out.replies = list;
     }
   }
   return out;
 }
 
-function normalizeJsonComments(raw: unknown, source: ComicSourceId): CommentItem[] | null {
+function normalizeJsonComments(raw: unknown, source: ComicSourceId, max: number = MAX_ITEMS): CommentItem[] | null {
   const list = findList(raw);
   if (!list) return null;
   return list
     .map((r, i) => mapComment(r, source, i))
     .filter((c): c is CommentItem => c !== null)
-    .slice(0, MAX_ITEMS);
+    .slice(0, max);
 }
 
 async function firstJsonList(
@@ -267,9 +356,91 @@ async function firstJsonList(
 /* Adapter per sumber                                                  */
 /* ------------------------------------------------------------------ */
 
+interface WalinePage {
+  items: CommentItem[];
+  totalPages: number;
+  count: number;
+}
+
+function parseWalinePage(body: string): WalinePage | null {
+  const json = JSON.parse(body) as unknown;
+  const items = normalizeJsonComments(json, "shinigami", Infinity);
+  if (!items) return null;
+  const d = isRec(json) && isRec(json.data) ? json.data : null;
+  const tp = d ? Number(d.totalPages) : NaN;
+  const cnt = d ? Number(d.count) : NaN;
+  return {
+    items,
+    totalPages: Number.isFinite(tp) && tp > 0 ? tp : 1,
+    count: Number.isFinite(cnt) ? cnt : items.length,
+  };
+}
+
 async function shinigamiComments(q: { mangaId: string; chapterId?: string }, trace?: Trace): Promise<SourceComments> {
-  const items = await firstJsonList(shiniCandidates(q), "shinigami", "https://11.shinigami.asia/", trace);
-  return finish("shinigami", items);
+  const referer = "https://11.shinigami.asia/";
+  // 1) Cari path yang benar-benar berisi komentar (jangan berhenti di jawaban kosong).
+  let hit: { path: string; first: WalinePage } | null = null;
+  let reachable = false;
+  for (const path of shiniPaths(q)) {
+    try {
+      const pg = parseWalinePage(await fetchText(shiniUrl(path, 1), "application/json", referer, trace));
+      if (!pg) continue;
+      reachable = true;
+      trace?.push(`  -> path "${path}": ${pg.count} komentar, ${pg.totalPages} halaman`);
+      if (pg.count > 0 || pg.items.length > 0) {
+        hit = { path, first: pg };
+        break;
+      }
+    } catch {
+      // kandidat berikut
+    }
+  }
+  if (!hit) return finish("shinigami", reachable ? [] : null);
+  const found = hit;
+
+  // 2) Ambil halaman 2..N. TIDAK bergantung pada totalPages (bisa hilang/beda format):
+  //    lanjut sampai halaman kosong / tanpa komentar baru. Per 3 halaman paralel, dengan retry.
+  const all: CommentItem[] = [...found.first.items];
+  const seen = new Set(all.map((c) => c.id));
+  const hinted = found.first.totalPages > 1 ? found.first.totalPages : Math.ceil(found.first.count / SHINI_PAGE_SIZE);
+  const started = Date.now();
+  let failedPages = 0;
+  let done = found.first.items.length === 0;
+  const loadPage = async (pg: number): Promise<WalinePage | null> => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return parseWalinePage(await fetchText(shiniUrl(found.path, pg), "application/json", referer, trace));
+      } catch {
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+    return null;
+  };
+  for (let from = 2; !done && from <= SHINI_MAX_PAGES && Date.now() - started < 20_000; from += 3) {
+    const pages = [from, from + 1, from + 2].filter((n) => n <= SHINI_MAX_PAGES);
+    const res = await Promise.all(pages.map(loadPage));
+    for (const r of res) {
+      if (!r) {
+        failedPages++;
+        continue;
+      }
+      let fresh = 0;
+      for (const c of r.items) {
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
+        all.push(c);
+        fresh++;
+      }
+      if (fresh === 0) done = true;
+    }
+    if (res.every((r) => !r)) break; // server menolak terus — jangan buang waktu
+  }
+  trace?.push(`  -> total ${all.length} komentar top-level (perkiraan ${found.first.count}, halaman gagal ${failedPages}, hint ${hinted} hlm)`);
+  const out = finish("shinigami", all);
+  if (failedPages > 0 || (found.first.count > all.length && all.length >= SHINI_MAX_PAGES * SHINI_PAGE_SIZE)) {
+    out.message = `Sebagian komentar belum termuat (${all.length} dari ±${found.first.count}).`;
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -453,24 +624,45 @@ async function komikcastComments(q: { series: string; chapterSlug?: string }, tr
 /* Adapter Komiku via API internal                                     */
 /* ------------------------------------------------------------------ */
 
+const KOMIKU_MAX_PAGES = 15;
+
 async function komikuApiComments(seriesId: string, chapterId: string | undefined, trace?: Trace): Promise<SourceComments> {
   const base = "https://plus.komiku.org/api/mobile/v1.0/comment/list";
-  const qs = new URLSearchParams({
-    series_id: seriesId,
-    ...(chapterId ? { chapter_id: chapterId } : {}),
-    page: "1",
-    sort_type: "latest",
-  });
-  const url = `${base}?${qs.toString()}`;
-  try {
-    const body = await fetchText(url, "application/json", KOMIKU_BASE + "/", trace, {
+  const fetchPage = async (page: number): Promise<CommentItem[] | null> => {
+    const qs = new URLSearchParams({
+      series_id: seriesId,
+      ...(chapterId ? { chapter_id: chapterId } : {}),
+      page: String(page),
+      sort_type: "latest",
+    });
+    const body = await fetchText(`${base}?${qs.toString()}`, "application/json", KOMIKU_BASE + "/", trace, {
       "x-package-name": "id.komiku.plus",
       "x-version-code": "5",
     });
-    const json = JSON.parse(body) as unknown;
-    const items = normalizeJsonComments(json, "komiku");
-    trace?.push(items ? `  -> ${items.length} komentar (API)` : "  -> API tanpa daftar komentar");
-    return finish("komiku", items);
+    return normalizeJsonComments(JSON.parse(body) as unknown, "komiku", Infinity);
+  };
+  try {
+    const first = await fetchPage(1);
+    trace?.push(first ? `  -> ${first.length} komentar (API, hlm 1)` : "  -> API tanpa daftar komentar");
+    if (!first) return finish("komiku", null);
+    const all: CommentItem[] = [...first];
+    const seen = new Set(all.map((c) => c.id));
+    const started = Date.now();
+    // Lanjut ke halaman berikutnya sampai kosong / tidak ada komentar baru.
+    for (let page = 2; first.length > 0 && page <= KOMIKU_MAX_PAGES && Date.now() - started < 12_000; page++) {
+      let next: CommentItem[] | null;
+      try {
+        next = await fetchPage(page);
+      } catch {
+        break;
+      }
+      const fresh = (next ?? []).filter((c) => !seen.has(c.id));
+      if (fresh.length === 0) break;
+      for (const c of fresh) seen.add(c.id);
+      all.push(...fresh);
+      trace?.push(`  -> hlm ${page}: +${fresh.length}`);
+    }
+    return finish("komiku", all);
   } catch (e) {
     trace?.push(`  -> gagal API: ${e instanceof Error ? e.message : "?"}`);
     return finish("komiku", null);

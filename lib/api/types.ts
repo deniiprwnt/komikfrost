@@ -182,6 +182,14 @@ export interface ApiError {
 }
 
 /** Satu komentar (sudah dinormalkan dari salah satu dari 3 sumber). */
+/** Gambar / GIF / sticker di dalam komentar. */
+export interface CommentMedia {
+  src: string;
+  /** emoji = sticker kecil sebaris; image = gambar/GIF ukuran biasa. */
+  kind: "emoji" | "image";
+  alt?: string;
+}
+
 export interface CommentItem {
   id: string;
   source: ComicSourceId;
@@ -190,6 +198,8 @@ export interface CommentItem {
   avatar?: string;
   /** Teks polos (HTML sumber sudah dibersihkan). */
   text: string;
+  /** Gambar, GIF, dan sticker yang dilampirkan di komentar. */
+  media?: CommentMedia[];
   /** Waktu absolut (epoch ms) — label relatif dihitung di klien. */
   createdAtTs?: number;
   likes?: number;

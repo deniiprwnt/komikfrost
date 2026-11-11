@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiGet } from "@/lib/client";
 import { formatAgo } from "@/lib/relative-time";
-import type { CommentItem, CommentsPayload, ComicSourceId, SourceComments } from "@/lib/api/types";
+import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceComments } from "@/lib/api/types";
 import { SourceBadge } from "@/components/cards";
 import { PromoYukiHead } from "@/components/promo-yuki";
 
@@ -121,6 +121,46 @@ function Avatar({ name, src, size }: { name: string; src?: string; size: "md" | 
 /* Satu komentar                                                        */
 /* ------------------------------------------------------------------ */
 
+/** Gambar / GIF / sticker di dalam komentar. Gagal dimuat → disembunyikan (bukan ikon rusak). */
+function CommentMediaItem({ m }: { m: CommentMedia }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  const img = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={m.src}
+      alt={m.alt ?? ""}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      draggable={false}
+      onError={() => setFailed(true)}
+      className={
+        m.kind === "emoji"
+          ? "pointer-events-none inline-block h-7 w-auto select-none align-middle sm:h-8"
+          : "pointer-events-none max-h-64 max-w-full select-none rounded-lg border border-line bg-paper-3 object-contain dark:border-line-dark dark:bg-ink-3"
+      }
+    />
+  );
+  // Tidak dibungkus tautan: gambar/GIF/sticker hanya tampil, tidak bisa diklik ke halaman lain.
+  return img;
+}
+
+function CommentMediaList({ media }: { media: CommentMedia[] }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {media.map((m, i) => (
+        <CommentMediaItem key={`${m.src}:${i}`} m={m} />
+      ))}
+    </div>
+  );
+}
+
+/** Jumlah komentar termasuk balasan — sama seperti angka yang ditampilkan situs sumber. */
+function countAll(items: CommentItem[]): number {
+  return items.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0);
+}
+
 function CommentRow({ c, reply = false }: { c: CommentItem; reply?: boolean }) {
   const [openReplies, setOpenReplies] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -148,20 +188,25 @@ function CommentRow({ c, reply = false }: { c: CommentItem; reply?: boolean }) {
               </time>
             )}
           </div>
-          <p
-            className={`mt-1.5 whitespace-pre-line break-words text-[13px] leading-relaxed text-fg/90 sm:text-sm dark:text-fg-dark/85 ${
-              long && !expanded ? "line-clamp-5" : ""
-            }`}
-          >
-            {c.text}
-          </p>
+          {c.text && (
+            <p
+              className={`mt-1.5 whitespace-pre-line break-words text-[13px] leading-relaxed text-fg/90 sm:text-sm dark:text-fg-dark/85 ${
+                long && !expanded ? "line-clamp-5" : ""
+              }`}
+            >
+              {c.text}
+            </p>
+          )}
+          {c.media && c.media.length > 0 && <CommentMediaList media={c.media} />}
           {long && (
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="mt-1 text-xs font-semibold text-accent hover:underline"
+              aria-expanded={expanded}
+              className="-ml-2 mt-1 inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-accent outline-none transition-all duration-150 hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.96] active:bg-accent/15 sm:min-h-0 sm:px-2.5 sm:py-1"
             >
               {expanded ? "Ringkas" : "Selengkapnya"}
+              <IconChevron open={expanded} className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -180,7 +225,7 @@ function CommentRow({ c, reply = false }: { c: CommentItem; reply?: boolean }) {
                 type="button"
                 onClick={() => setOpenReplies((o) => !o)}
                 aria-expanded={openReplies}
-                className="inline-flex items-center gap-1 rounded-md py-0.5 font-semibold text-accent hover:underline"
+                className="-ml-2 inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-accent outline-none transition-all duration-150 hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.96] active:bg-accent/15 sm:min-h-0 sm:px-2.5 sm:py-1"
               >
                 <IconChevron open={openReplies} className="h-3.5 w-3.5" />
                 {openReplies ? "Sembunyikan balasan" : `${n} balasan`}
@@ -256,7 +301,7 @@ function explain(src: SourceComments, traces: string[]): DiagRow {
       source: src.source,
       state: "ok",
       title: "Berhasil dimuat",
-      detail: `${src.items.length} komentar berhasil diambil dari ${name}.`,
+      detail: `${countAll(src.items)} komentar berhasil diambil dari ${name}.`,
     };
   }
   if (src.status === "empty") {
@@ -422,7 +467,6 @@ function CommentsModal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -518,31 +562,16 @@ function CommentsModal({
   const lists = useMemo(() => buildLists(sources, sort), [sources, sort]);
   const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
   const current = tab === "all" ? null : sources.find((s) => s.source === tab);
-  const total = sources.reduce((n, s) => n + s.items.length, 0);
+  const total = sources.reduce((n, s) => n + countAll(s.items), 0);
   const tabs: Tab[] = ["all", ...sources.map((s) => s.source)];
   const hasMore = list.length > shown;
+  const remaining = hasMore ? countAll(list.slice(shown)) : 0;
 
   const pick = (t: Tab) => {
     setTab(t);
     setShown(MODAL_CHUNK);
     scrollRef.current?.scrollTo({ top: 0 });
   };
-
-  // Muat berikutnya otomatis saat ujung daftar mendekat (tombol sebagai cadangan).
-  useEffect(() => {
-    if (!mounted || !hasMore) return;
-    const el = sentinelRef.current;
-    const root = scrollRef.current;
-    if (!el || !root || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + MODAL_CHUNK);
-      },
-      { root, rootMargin: "240px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [mounted, hasMore, shown, tab, sort]);
 
   if (!mounted) return null;
 
@@ -619,7 +648,7 @@ function CommentsModal({
             aria-label="Sumber komentar"
           >
             {tabs.map((t) => {
-              const n = t === "all" ? total : (lists.by.get(t)?.length ?? 0);
+              const n = t === "all" ? total : countAll(lists.by.get(t) ?? []);
               const active = tab === t;
               const failed = t !== "all" && sources.find((s) => s.source === t)?.status === "unavailable";
               return (
@@ -704,13 +733,20 @@ function CommentsModal({
                 </div>
               ))}
               {hasMore && (
-                <div ref={sentinelRef} className="flex justify-center pt-1">
+                <div className="flex flex-col items-center gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setShown((n) => n + MODAL_CHUNK)}
                     className="rounded-full border border-line bg-paper px-5 py-2 text-xs font-semibold text-accent hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink"
                   >
-                    Muat lebih banyak ({list.length - shown})
+                    Tampilkan lebih banyak ({remaining} tersisa)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShown(list.length)}
+                    className="inline-flex min-h-[32px] items-center rounded-full px-3.5 py-1 text-[11px] font-semibold text-muted outline-none transition-all duration-150 hover:bg-accent/10 hover:text-accent focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.96] active:bg-accent/15 sm:min-h-0 dark:text-muted-dark dark:hover:text-accent"
+                  >
+                    Tampilkan semua
                   </button>
                 </div>
               )}
@@ -825,7 +861,7 @@ export function Comments({
   }, [data]);
 
   const lists = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
-  const total = (data?.sources ?? []).reduce((n, s) => n + s.items.length, 0);
+  const total = (data?.sources ?? []).reduce((n, s) => n + countAll(s.items), 0);
   const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
   const current = tab === "all" ? null : bySource.get(tab);
   const failedSources = (data?.sources ?? []).filter((s) => s.status === "unavailable");
@@ -885,7 +921,7 @@ export function Comments({
           aria-label="Sumber komentar"
         >
           {(["all", ...data.sources.map((s) => s.source)] as Tab[]).map((t) => {
-            const count = t === "all" ? total : (bySource.get(t)?.items.length ?? 0);
+            const count = t === "all" ? total : countAll(bySource.get(t)?.items ?? []);
             const active = tab === t;
             return (
               <button
