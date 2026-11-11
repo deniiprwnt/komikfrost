@@ -57,7 +57,7 @@ import {
 import { createKeyedCache } from "./cache";
 import { isMeaningfulSynopsis, pickBestSynopsis, splitAltTitles, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
-import type { GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
+import type { ComicSourceId, GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
 
 /** Batas waktu kerja tambahan agar respons tidak tertahan upstream.
  *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
@@ -956,6 +956,9 @@ export interface MangaSummary {
   genre?: string;
   cover: string;
   latestChapter?: MangaDetail["latestChapter"];
+  /** Sumber yang punya judul ini — dipakai badge sumber di kartu (opsional
+   *  agar respons lama tetap valid). */
+  sources?: ComicSourceId[];
 }
 
 const summaryCache = createKeyedCache<{ summary: MangaSummary; complete: boolean }>(
@@ -1002,6 +1005,8 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
     ...(shinigami ? { shinigami } : {}),
     ...(komiku ? { komiku } : {}),
   };
+  /** Sumber yang punya judul ini, urut prioritas — untuk badge kartu. */
+  const srcList = Object.keys(byDetail) as ComicSourceId[];
   if (!komiku && !shinigami) {
     // Judul khusus Komikcast → ringkasan dari endpoint series Komikcast
     // (1 request, tercache 6 jam di adapter).
@@ -1020,6 +1025,7 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
         cover: brief.cover ?? "",
         ...(brief.type ? { type: brief.type } : {}),
         ...(briefGenre ? { genre: briefGenre } : {}),
+        sources: ["komikcast"],
       },
     };
   }
@@ -1067,6 +1073,7 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
             ...(briefType ? { type: briefType } : {}),
             genre: g,
             ...summaryLatest(byDetail, displaySlug),
+            sources: [...srcList, "komikcast"],
           },
         };
       }
@@ -1084,6 +1091,7 @@ async function buildSummary(clean: string): Promise<{ summary: MangaSummary; com
       ...(type ? { type } : {}),
       ...(pick ? { genre: pick.genre.name } : {}),
       ...summaryLatest(byDetail, displaySlug),
+      sources: srcList,
     },
   };
 }

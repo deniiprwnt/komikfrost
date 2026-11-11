@@ -454,6 +454,8 @@ export default function ReaderPage({
         slug: data.mangaSlug,
         title: baseTitle,
         cover,
+        type: cachedDetail?.type,
+        sources: cachedDetail?.sources,
         chapter,
         chapterLabel: data.chapterLabel,
         route: `/baca/${data.mangaSlug}/${chapter}`,

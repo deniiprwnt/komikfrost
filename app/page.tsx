@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { timeAgo, useHistory } from "@/lib/history";
-import type { MangaCard } from "@/lib/api/types";
+import type { ComicSourceId, MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { RankListSkeleton, LatestGridSkeleton, RailSkeleton } from "@/components/skeletons";
-import { MangaGridCard, RankRow } from "@/components/cards";
+import { MangaGridCard, RankRow, SourceBadge, TypeBadge } from "@/components/cards";
 import { CoverImage } from "@/components/cover-image";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { cardSig, useNowTick } from "@/lib/relative-time";
@@ -194,6 +194,59 @@ function HistoryTime({ ts }: { ts: number }) {
   return <>{timeAgo(ts, now ?? Date.now())}</>;
 }
 
+/** Bentuk minimal /api/manga/<slug>?ringkas=1 — cukup untuk badge. */
+type HistoryMeta = { type?: string; sources?: ComicSourceId[] };
+
+/**
+ * Badge tipe + sumber di kartu "Lanjut membaca". Riwayat lama belum
+ * menyimpan tipe/sumber, jadi dilengkapi sekali lewat ringkasan server
+ * (1 request, cache 1 jam) — tanpa itu kartu lama tampil polos sampai
+ * komiknya dibaca ulang.
+ */
+function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; sources?: ComicSourceId[] }) {
+  const path = `/api/manga/${encodeURIComponent(slug)}?ringkas=1`;
+  const [meta, setMeta] = useState<HistoryMeta>({ type, sources });
+  const complete = Boolean(meta.type && meta.sources?.length);
+
+  useEffect(() => {
+    if (complete) return;
+    const cached = peekApiCache<HistoryMeta>(path);
+    if (cached) {
+      setMeta((m) => ({
+        type: m.type ?? cached.type,
+        sources: m.sources?.length ? m.sources : cached.sources,
+      }));
+      if (cached.type && cached.sources?.length) return;
+    }
+    let off = false;
+    apiGet<HistoryMeta>(path)
+      .then((d) => {
+        if (off || !d) return;
+        setMeta((m) => ({ type: m.type ?? d.type, sources: m.sources?.length ? m.sources : d.sources }));
+      })
+      .catch(() => {});
+    return () => {
+      off = true;
+    };
+    // `complete` sengaja abai: efek cukup sekali per slug.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
+
+  return (
+    <>
+      {meta.type && (
+        <div className="absolute left-0 top-0 z-10 [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-2 sm:[&>span]:py-1 sm:[&>span]:text-[9px]">
+          <TypeBadge type={meta.type} flush />
+        </div>
+      )}
+      <SourceBadge
+        className="absolute right-0 top-0 z-10 max-w-[55%] [&>span]:rounded-none [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[8px] sm:[&>span]:px-1.5 sm:[&>span]:py-1 sm:[&>span]:text-[9px]"
+        sources={meta.sources?.slice(0, 1)}
+      />
+    </>
+  );
+}
+
 export default function HomePage() {
   const { entries: history } = useHistory();
   // 1 request gabungan untuk 3 section (hemat handshake, ramah rate limit).
@@ -331,6 +384,7 @@ export default function HomePage() {
                       title={h.title}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     />
+                    <HistoryBadges slug={h.slug} type={h.type} sources={h.sources} />
                     {h.progress > 0 && (
                       <span aria-hidden className="absolute inset-x-0 bottom-0 z-10 h-1 bg-black/40">
                         <span className="block h-full bg-accent" style={{ width: `${Math.round(h.progress * 100)}%` }} />

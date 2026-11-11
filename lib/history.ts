@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ComicSourceId } from "./api/types";
 
 /** Satu entri riwayat baca — disimpan per perangkat di localStorage. */
 export interface HistoryEntry {
@@ -10,6 +11,10 @@ export interface HistoryEntry {
   title: string;
   /** cover komik (boleh kosong bila belum pernah termuat) */
   cover: string;
+  /** Tipe komik (Manga/Manhwa/Manhua) saat terakhir dibaca — badge kartu. */
+  type?: string;
+  /** Sumber data komik saat terakhir dibaca — badge kartu. */
+  sources?: ComicSourceId[];
   /** nomor chapter ala Komiku, mis. "360" atau "11-2" */
   chapter: string;
   /** label tampilan, mis. "Chapter 360" */
@@ -66,6 +71,10 @@ export function saveHistory(entry: Omit<HistoryEntry, "updatedAt">): HistoryEntr
   // (mis. cache detail tidak tersedia saat chapter dibuka langsung —
   // `rest` sudah membuang entri lama jadi cari di `prev`).
   if (!next.cover && old?.cover) next.cover = old.cover;
+  // Tipe/sumber tidak diketahui saat membuka chapter langsung (cache detail
+  // kosong) — jangan hapus badge yang sudah tersimpan.
+  if (!next.type && old?.type) next.type = old.type;
+  if (!next.sources?.length && old?.sources?.length) next.sources = old.sources;
   const all = [next, ...prev.filter((e) => e.slug !== entry.slug)].slice(0, MAX);
   writeAll(all);
   window.dispatchEvent(new CustomEvent("bk-history-changed"));
