@@ -9,6 +9,7 @@ import type { MangaCard, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge, UpdateRow } from "@/components/cards";
 import { ErrorState, EmptyState } from "@/components/states";
 import { CoverImage } from "@/components/cover-image";
+import { Comments } from "@/components/comments";
 import { DetailSkeleton } from "@/components/skeletons";
 import Link from "next/link";
 
@@ -349,6 +350,9 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
         </div>
         )}
       </section>
+
+      {/* Komentar dari 3 sumber — dimuat malas saat mendekati layar. */}
+      <Comments slug={detail.slug} className="lg:col-start-1" />
 
       {/* Komik Serupa — 12 judul se-genre utama (tanpa judul saat ini),
           dibungkus kartu + baris horizontal seperti section beranda.

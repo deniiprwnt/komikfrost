@@ -2626,3 +2626,16 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 .zoom-range:focus-visible::-moz-range-thumb {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
+
+
+/* Modal komentar */
+.cm-modal .cm-backdrop { animation: cm-fade 180ms ease-out both; }
+.cm-modal .cm-panel { animation: cm-sheet 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-modal-out .cm-backdrop { animation: cm-fade 180ms ease-in reverse both; }
+.cm-modal-out .cm-panel { animation: cm-sheet-out 180ms ease-in both; }
+@keyframes cm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cm-sheet { from { opacity: 0; transform: translateY(32px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes cm-sheet-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(24px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) {
+  .cm-modal .cm-backdrop, .cm-modal .cm-panel, .cm-modal-out .cm-backdrop, .cm-modal-out .cm-panel { animation-duration: 1ms; }
+}

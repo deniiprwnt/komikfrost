@@ -522,7 +522,19 @@ function titleCandidates(rawTitle: string, altTitle?: string): string[] {
   const cands: string[] = [];
   for (const raw of [rawTitle, ...splitAltTitles(altTitle)]) {
     const base = raw.replace(/-/g, " ").replace(/\s+/g, " ").trim();
-    for (const v of [base.replace(/\s+id\s*\d*$/i, "").trim(), base]) {
+    // Variations: full title, first word only, without trailing "id number", reversed word order
+    for (const v of [
+      base.replace(/\s+id\s*\d*$/i, "").trim(),
+      base,
+      // Ambil 2 kata pertama
+      base.split(/\s+/).slice(0, 2).join(" "),
+      // Tanggal/volume dipisahkan
+      base.replace(/\s+\d+[^a-z]*$/i, "").trim(),
+      // Coba inverted order (jika ada kata ganda)
+      ...(base.split(" ").length > 2
+        ? [base.split(" ").reverse().join(" ")]
+        : []),
+    ]) {
       if (v && !cands.includes(v)) cands.push(v);
     }
   }
@@ -544,6 +556,7 @@ export async function resolveKomikcastBriefForTitle(
   const matches = (title?: string, alt?: string): boolean =>
     (!!title && want.includes(norm(title))) ||
     splitAltTitles(alt).some((a) => want.includes(norm(a)));
+  // Tahap 1: coba slug tebakan per candidate (cached, 6 jam)
   for (const q of cands) {
     const guess = q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     if (!guess) continue;
@@ -551,18 +564,44 @@ export async function resolveKomikcastBriefForTitle(
       const brief = await fetchKomikcastBrief(guess);
       if (matches(brief.title, brief.altTitle)) return { slug: guess, brief };
     } catch {
-      // tidak ada, lanjut
+      // tidak ada, lanjut ke candidate selanjutnya
     }
   }
-  for (const q of cands.slice(0, 3)) {
-    const { items } = await searchKomikcastRemote(q, 1);
-    const hit = items.find((c) => matches(c.title, c.altTitle));
-    if (hit) {
-      try {
-        return { slug: hit.slug, brief: await fetchKomikcastBrief(hit.slug) };
-      } catch {
-        // coba kueri berikutnya
+  // Tahap 2: coba search API untuk setiap candidate (jika slug tebakan gagal)
+  for (const q of cands.slice(0, 5)) {
+    try {
+      const { items } = await searchKomikcastRemote(q, 1);
+      const filtered = items.filter((s: any) => s?.slug && s.title);
+      const hit = filtered.find((c: any) => matches(c.title, c.altTitle));
+      if (hit) {
+        try {
+          const brief = await fetchKomikcastBrief(hit.slug);
+          return { slug: hit.slug, brief };
+        } catch {
+          // lanjut
+        }
       }
+    } catch {
+      // lanjut ke candidate selanjutnya
+    }
+  }
+  // Tahap 3: search dengan query disingkat (kata pertama saja)
+  const firstWord = rawTitle.trim().split(/\s+/)[0];
+  if (firstWord) {
+    try {
+      const { items } = await searchKomikcastRemote(firstWord, 1);
+      const filtered = items.filter((s: any) => s?.slug && s.title);
+      const hit = filtered.find((c: any) => matches(c.title, c.altTitle));
+      if (hit) {
+        try {
+          const brief = await fetchKomikcastBrief(hit.slug);
+          return { slug: hit.slug, brief };
+        } catch {
+          // lanjut
+        }
+      }
+    } catch {
+      // abaikan - coba candidate lain
     }
   }
   throw new KomikcastError(`Tidak ditemukan di Komikcast: ${rawTitle}.`, `${KC_API}/search`, 404);

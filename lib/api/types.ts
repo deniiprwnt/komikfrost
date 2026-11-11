@@ -180,3 +180,40 @@ export interface ApiError {
   source: string;
   status?: number;
 }
+
+/** Satu komentar (sudah dinormalkan dari salah satu dari 3 sumber). */
+export interface CommentItem {
+  id: string;
+  source: ComicSourceId;
+  author: string;
+  /** URL foto profil (https) bila sumber menyediakannya. */
+  avatar?: string;
+  /** Teks polos (HTML sumber sudah dibersihkan). */
+  text: string;
+  /** Waktu absolut (epoch ms) — label relatif dihitung di klien. */
+  createdAtTs?: number;
+  likes?: number;
+  /** Balasan (maks. 1 tingkat). */
+  replies?: CommentItem[];
+}
+
+/** Hasil komentar dari SATU sumber. Satu sumber gagal tidak merusak yang lain. */
+export interface SourceComments {
+  source: ComicSourceId;
+  /** ok = ada komentar · empty = sumber menjawab tapi kosong · unavailable = gagal/tidak tersedia */
+  status: "ok" | "empty" | "unavailable";
+  items: CommentItem[];
+  message?: string;
+}
+
+export interface CommentsPayload {
+  /** "komik" = komentar halaman detail; "chapter" = komentar satu chapter. */
+  scope: "komik" | "chapter";
+  sources: SourceComments[];
+  /** Hanya ada pada ?debug=1: jejak percobaan tiap sumber. */
+  debug?: {
+    slugs: Record<string, string>;
+    chapterSources: string[];
+    traces: Record<string, string[]>;
+  };
+}

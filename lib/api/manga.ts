@@ -169,7 +169,7 @@ async function canonSlot<T>(fn: () => Promise<T>): Promise<T> {
 const aliasId = (aliases: string[]): string => aliasKeys(...aliases).sort().join("|");
 
 const shiniIdCache = createKeyedCache<{ id: string | null }>(CANON_TTL, 800);
-const shiniIdForTitles = (aliases: string[]): Promise<string | null> =>
+export const shiniIdForTitles = (aliases: string[]): Promise<string | null> =>
   shiniIdCache
     .load(aliasId(aliases), async () => ({ id: await findShiniIdByTitles(aliases) }))
     .then((r) => r.id);
@@ -178,22 +178,33 @@ const shiniMetaCache = createKeyedCache<Awaited<ReturnType<typeof fetchShiniMeta
 const shiniMetaById = (id: string) => shiniMetaCache.load(id, () => fetchShiniMeta(id));
 
 const komikuSlugCache = createKeyedCache<{ slug: string | null }>(CANON_TTL, 800);
-const komikuSlugForTitles = (aliases: string[]): Promise<string | null> =>
+export const komikuSlugForTitles = (aliases: string[]): Promise<string | null> =>
   komikuSlugCache
     .load(aliasId(aliases), async () => {
-      const want = aliasKeys(...aliases);
-      const queries = [...new Set(aliases.flatMap((a) => splitAltTitles(a)))];
-      for (const q of queries.filter(Boolean).slice(0, 4)) {
+      const want = aliasId(aliases);
+      // Coba berbagai variasi query: judul lengkap, kata pertama, alias pengganti
+      const queries = [
+        ...new Set(aliases.flatMap((a) => splitAltTitles(a))),
+        // Ambil kata pertama dari setiap alias untuk pencarian singkat
+        ...aliases.map((a) => a.trim().split(/\s+/)[0]).filter(Boolean),
+        // Coba tanpa angka/volume jika ada
+        ...aliases.map((a) => a.replace(/\s+\d+[^a-z]*$/i, "").trim()).filter(Boolean),
+      ].filter(Boolean).slice(0, 6);
+      for (const q of queries.filter(Boolean)) {
         const { items } = await searchMangaRemote(q, 1);
         const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.includes(x)));
         if (hit) return { slug: hit.slug };
+        // Fallback: cek apakah query itu sendiri langsung cocok
+        if (items.some((k) => aliasKeys(k.title, k.altTitle).some((x) => q.includes(x)))) {
+          return { slug: items[0].slug };
+        }
       }
       return { slug: null };
     })
     .then((r) => r.slug);
 
 const kcBriefCache = createKeyedCache<{ slug: string; brief: KcBrief } | null>(CANON_TTL, 800);
-const kcBriefForTitles = (title: string, alt?: string): Promise<{ slug: string; brief: KcBrief } | null> =>
+export const kcBriefForTitles = (title: string, alt?: string): Promise<{ slug: string; brief: KcBrief } | null> =>
   kcBriefCache.load(aliasId([title, alt ?? ""]), async () => {
     try {
       return await resolveKomikcastBriefForTitle(title, dedupeKey, alt);
