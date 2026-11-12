@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { Yuki, type Mood } from "@/components/mascot";
+import { BrandMark } from "@/components/brand-mark";
 import { SceneMotion } from "@/components/scene-motion";
 
 /**
  * Layar penuh tanpa chrome aplikasi (login, 403, 404, 429, 500, global-error).
- * Gaya: halaman manga — panel berbingkai tinta, bayangan keras, screentone,
- * garis fokus, efek suara (SFX) katakana, dan maskot Yuki.
+ * Gaya: dua kolom tanpa kotak — teks di halaman, adegan salju di panel
+ * berbingkai tipis (maskot Yuki berdiri di gundukan salju, efek suara
+ * katakana kecil, gelembung ucapan).
  *
  * Menutup seluruh viewport; sidebar/header/footer/tab bar disembunyikan lewat
  * aturan `:has([data-bare-screen])` di globals.css. Tanpa hook → aman dipakai
@@ -29,7 +31,6 @@ export function BareScreen({
       data-bare-screen
       className={`bs bs-t-${tone}${shock ? " bs-shock" : ""} fixed inset-0 z-[300] overflow-y-auto overflow-x-hidden`}
     >
-      <div aria-hidden="true" className="bs-tone-page" />
       <div className="bs-inner relative z-10 flex min-h-full items-center justify-center px-4 py-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
         {children}
       </div>
@@ -125,6 +126,10 @@ export function StatusScreen({
   return (
     <BareScreen tone={tone} shock={shock}>
       <main role="main" className="mg-wrap">
+        <Link href="/" className="mg-brand mg-in">
+          <BrandMark className="h-7 w-7" />
+          KomikFrost
+        </Link>
         <div className="mg-card mg-in" style={{ "--d": "80ms" } as CSSProperties}>
           <Scene mood={mood} sfx={sfx} bubble={bubble} code={code} props={scene} />
           <div className="mg-body">

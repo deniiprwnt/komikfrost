@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePageTitle } from "@/lib/page-title";
 import { BareScreen, Scene } from "@/components/bare-screen";
+import { BrandMark } from "@/components/brand-mark";
 import { LockedDoor, type DoorState } from "@/components/scene-props";
 import type { Mood } from "@/components/mascot";
 
@@ -91,7 +92,11 @@ function MasukForm() {
   return (
     <BareScreen tone="teal">
       <main className="mg-wrap">
-        <div className="mg-card mg-in">
+        <div className="mg-brand mg-in">
+          <BrandMark className="h-7 w-7" />
+          KomikFrost
+        </div>
+        <div className="mg-card mg-in" style={{ "--d": "80ms" } as CSSProperties}>
         <Scene
           mood={mood}
           fx={ok ? "open" : undefined}

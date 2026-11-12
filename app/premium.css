@@ -1,0 +1,201 @@
+/* ====================================================================== */
+/* Lapisan akhir — bahasa visual "tenang & editorial".                     */
+/* Prinsip: cover adalah visual utama, chrome mundur. Tanpa blur kaca,      */
+/* tanpa gradasi, tanpa glow; hierarki dari ukuran, jarak, dan serif.       */
+/* Dimuat SETELAH globals.css, jadi hanya menimpa yang perlu.               */
+/* ====================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+body {
+  font-optical-sizing: auto;
+  font-feature-settings: "ss01" 0, "kern" 1;
+}
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+/* Fokus keyboard: cincin tipis yang jelas, bukan halo. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.dark :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: var(--color-accent-strong);
+}
+
+/* ---- Tipografi display ------------------------------------------------ */
+/* Judul bergaya serif tidak boleh tebal-tebal: berat seragam, sedikit rapat. */
+.font-display.font-extrabold,
+.font-display.font-bold,
+.font-display.font-black {
+  font-weight: 560;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.dark .eyebrow {
+  color: var(--color-accent-strong);
+}
+.bar-grow {
+  display: none;
+}
+
+/* ---- Cover ------------------------------------------------------------ */
+/* Garis dalam 1px menjaga tepi cover tetap rapi di atas latar apa pun. */
+.cover-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+  pointer-events: none;
+}
+.dark .cover-ring::after {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* ---- Header: solid, satu garis tipis ---------------------------------- */
+@media (min-width: 768px) {
+  [data-app-header] {
+    background: var(--color-paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .dark [data-app-header] {
+    background: var(--color-ink);
+    border-bottom-color: var(--color-line-dark);
+  }
+  [data-app-header]::after {
+    display: none;
+  }
+}
+.hdr-search .search-field {
+  border-radius: 10px;
+  background: var(--color-paper-2);
+  box-shadow: none;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.dark .hdr-search .search-field {
+  background: var(--color-ink-2);
+}
+.hdr-search:focus-within .search-field {
+  border-color: var(--color-accent);
+  box-shadow: none;
+}
+.dark .hdr-search:focus-within .search-field {
+  border-color: var(--color-accent-strong);
+}
+.hdr-btn {
+  border-radius: 10px;
+  background: var(--color-paper-2);
+}
+.dark .hdr-btn {
+  background: var(--color-ink-2);
+}
+@media (hover: hover) {
+  .hdr-btn:hover {
+    box-shadow: none;
+    border-color: color-mix(in srgb, var(--color-fg) 35%, transparent);
+  }
+  .dark .hdr-btn:hover {
+    border-color: color-mix(in srgb, var(--color-fg-dark) 35%, transparent);
+  }
+}
+
+/* ---- Sidebar: teks + ikon, tanpa kotak ikon --------------------------- */
+:root {
+  --sb-full: 15.5rem;
+  --sb-rail: 4.5rem;
+}
+.sb-ico,
+.dark .sb-ico {
+  width: 1.75rem;
+  height: 1.75rem;
+  background: transparent;
+  border-radius: 0;
+}
+@media (hover: hover) {
+  .sb-item:hover {
+    background-color: color-mix(in srgb, var(--color-fg) 5%, transparent);
+  }
+  .dark .sb-item:hover {
+    background-color: color-mix(in srgb, var(--color-fg-dark) 7%, transparent);
+  }
+  .sb-item:hover .sb-ico,
+  .dark .sb-item:hover .sb-ico {
+    background: transparent;
+    color: inherit;
+    transform: none;
+  }
+}
+.sb-active,
+.dark .sb-active {
+  background-color: var(--color-paper-3);
+  box-shadow: none;
+}
+.dark .sb-active {
+  background-color: var(--color-ink-3);
+}
+.sb-item[aria-current="page"] .sb-ico {
+  background: transparent;
+  color: var(--color-accent);
+}
+.dark .sb-item[aria-current="page"] .sb-ico {
+  background: transparent;
+  color: var(--color-accent-strong);
+}
+.sb-item[aria-current="page"]::before {
+  display: none;
+}
+.sb-section-label {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.sb-promo {
+  display: none;
+}
+
+/* ---- Dock mobile ------------------------------------------------------- */
+.dock {
+  border-radius: 18px;
+  box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.35);
+}
+.dark .dock {
+  box-shadow: 0 12px 30px -14px rgb(0 0 0 / 0.85);
+}
+.dock-pill {
+  border-radius: 14px;
+  background: var(--color-paper-3);
+}
+.dark .dock-pill {
+  background: var(--color-ink-3);
+}
+
+/* ---- Gerak: halus, tanpa blur ------------------------------------------ */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.page-in {
+  animation: page-in 340ms var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-in, .cv-auto, .cv-row { animation: none !important; }
+}
+
+/* Scrollbar tipis untuk rail & daftar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 45%, transparent) transparent;
+}

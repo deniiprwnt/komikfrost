@@ -571,7 +571,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
       </defs>
 
       {/* tanah */}
-      <ellipse className="yk-shadow" cx={110} cy={262} rx={62} ry={5} fill={INK} opacity={0.16} />
+      <ellipse className="yk-shadow" cx={110} cy={262} rx={66} ry={6.5} fill="#0b3b40" opacity={0.3} />
+      <ellipse cx={110} cy={261.5} rx={44} ry={3.4} fill="#06262a" opacity={0.28} />
 
       <g transform={mood === "faint" ? "rotate(-11 110 210)" : undefined}>
         <g className={mood === "faint" ? "yk-limp" : "yk-bob"}>

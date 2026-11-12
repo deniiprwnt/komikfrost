@@ -1886,10 +1886,11 @@ article.cv-auto:not(.group):active {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Layar mandiri (login, 403, 404, 429, 500, global-error).                */
-/* Satu kartu membulat bergaya app: panel ilustrasi (maskot Yuki + SFX      */
-/* katakana tipis) di samping teks. Tanpa chrome aplikasi — aturan :has()   */
-/* di bawah menyembunyikan sidebar/header/footer/tab bar.                   */
+/* Layar mandiri (login, offline, 400 / 401 / 403 / 404 / 429 / 500).      */
+/* Dua kolom tanpa kotak pembungkus: teks di halaman, adegan di panel      */
+/* "salju" — langit tenang, hujan salju tipis, gundukan salju sebagai      */
+/* lantai tempat Yuki berdiri. Satu bintang: maskotnya. Di ponsel adegan   */
+/* ada di atas dan teks di bawahnya. Tanpa chrome aplikasi (aturan :has()).*/
 /* ---------------------------------------------------------------------- */
 html:has([data-bare-screen]) {
   overflow: hidden;
@@ -1900,252 +1901,258 @@ html:has([data-bare-screen]) :is(aside.sb, [data-app-header], .app-shell > foote
 
 .bs {
   --pg: var(--color-paper);
-  --card: #ffffff;
   --ln: var(--color-line);
+  --ln2: #b7cccd;
   --tx: var(--color-fg);
   --mu: var(--color-muted);
-  --sp: #dcefed;            /* permukaan panel ilustrasi */
-  --pk: rgba(11, 107, 102, 0.5); /* garis & coretan dekoratif di panel */
-  --pf: #ffffff;
-  --in: #ffffff;
   --bad: #bf3b34;
+  --pk: rgba(11, 107, 102, 0.55);   /* garis properti adegan */
+  --pf: #ffffff;                    /* isi properti adegan */
+  --sp: #d3ebe9;                    /* permukaan lubang/kunci di properti */
+  --sky-a: #b9dedc;
+  --sky-b: #e6f4f3;
+  --drift-a: #ffffff;
+  --drift-b: #d9ecea;
+  --snow: #ffffff;
   --kfont: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP", var(--font-display), sans-serif;
   background: var(--pg);
   color: var(--tx);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 html.dark .bs {
   --pg: var(--color-ink);
-  --card: var(--color-ink-2);
   --ln: var(--color-line-dark);
+  --ln2: #2c464e;
   --tx: var(--color-fg-dark);
   --mu: var(--color-muted-dark);
-  --sp: #123033;
-  --pk: rgba(127, 227, 214, 0.45);
-  --pf: #1c3f43;
-  --in: var(--color-ink-3);
   --bad: #ef857c;
+  --pk: rgba(150, 236, 226, 0.5);
+  --pf: #1b3d42;
+  --sp: #0f2a2f;
+  --sky-a: #07151a;
+  --sky-b: #12363b;
+  --drift-a: #bfdedb;
+  --drift-b: #84b3b0;
 }
 
-/* Warna bercak per halaman: dipakai SFX, penanda, gelembung — tombol utama tetap teal. */
-.bs-t-teal   { --t: #1a9a92; }
-.bs-t-blue   { --t: #4d8fd1; }
-.bs-t-amber  { --t: #d8a84a; }
-.bs-t-orange { --t: #e8743b; }
-.bs-t-red    { --t: #e5594f; }
-html.dark .bs-t-teal { --t: #62d6c8; }
-.bs-shock .mg-scene { --sp: #1a0f12; --pk: rgba(240, 120, 110, .5); --pf: #2a1a1d; }
-html:not(.dark) .bs-shock .mg-scene { --sp: #f6dedb; }
+/* Warna aksen halaman: --t untuk bidang/garis, --ti untuk TEKS (kontras cukup di atas halaman). */
+.bs-t-teal   { --t: #1a9a92; --ti: #0b6b66; }
+.bs-t-blue   { --t: #4d8fd1; --ti: #2b66a8; }
+.bs-t-amber  { --t: #d8a84a; --ti: #8f6410; }
+.bs-t-orange { --t: #e8743b; --ti: #b24d17; }
+.bs-t-red    { --t: #e5594f; --ti: #b5342b; }
+.bs-t-violet { --t: #8f7ee6; --ti: #6354c4; }
+html.dark .bs-t-teal   { --t: #62d6c8; --ti: #62d6c8; }
+html.dark .bs-t-blue   { --t: #6ea8ec; --ti: #8ebcf2; }
+html.dark .bs-t-amber  { --t: #e4b861; --ti: #ecc678; }
+html.dark .bs-t-orange { --t: #f08c5a; --ti: #f4a37a; }
+html.dark .bs-t-red    { --t: #ee7066; --ti: #f2877e; }
+html.dark .bs-t-violet { --t: #a99bf2; --ti: #bcb1f5; }
 
-.bs-tone-page {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(circle, var(--ln) 1.2px, transparent 1.6px);
-  background-size: 9px 9px;
-  -webkit-mask-image: radial-gradient(55% 60% at 0% 100%, #000, transparent 70%), radial-gradient(45% 50% at 100% 0%, #000, transparent 70%);
-  mask-image: radial-gradient(55% 60% at 0% 100%, #000, transparent 70%), radial-gradient(45% 50% at 100% 0%, #000, transparent 70%);
-  opacity: .8;
-}
+/* 500: langit gelap bernuansa merah, salju gosong. */
+.bs-shock .mg-scene { --sky-a: #2a1013; --sky-b: #4a1d22; --drift-a: #6b3a3c; --drift-b: #3f2022; --pk: rgba(255, 150, 140, .5); --pf: #3a1b1e; --sp: #22100f; }
+html:not(.dark) .bs-shock .mg-scene { --sky-a: #efc9c5; --sky-b: #fbeae8; --drift-a: #ffffff; --drift-b: #f0d4d0; --pk: rgba(150, 40, 35, .5); --pf: #fff; --sp: #f6dedb; }
 
 /* ---- Susunan ------------------------------------------------------------ */
-.mg-wrap { width: 100%; max-width: 62rem; display: flex; flex-direction: column; gap: 1rem; }
+.mg-wrap { width: 100%; max-width: 72rem; margin-inline: auto; display: flex; flex-direction: column; gap: clamp(.9rem, 2.2vw, 1.6rem); }
 .mg-brand {
-  align-self: flex-start; display: inline-flex; align-items: center; gap: .6rem;
-  font: 800 1.05rem/1 var(--font-display), sans-serif; color: var(--tx); text-decoration: none;
+  align-self: flex-start; display: inline-flex; align-items: center; gap: .6rem; padding: .15rem;
+  font: 700 .98rem/1 var(--font-display), sans-serif; letter-spacing: -.01em; color: var(--tx); text-decoration: none; border-radius: 10px;
 }
-.mg-brand em { font-style: normal; color: var(--color-accent); }
-html.dark .mg-brand em { color: var(--color-accent-strong); }
-
-.mg-card {
-  display: grid; grid-template-columns: 1fr; gap: 0; overflow: hidden;
-  background: var(--card); border: 1px solid var(--ln); border-radius: 20px;
-}
+.mg-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(1.1rem, 3.5vw, 1.6rem); }
 @media (min-width: 860px) {
-  .mg-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); align-items: center; padding: 14px; gap: 0; }
+  .mg-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "body scene"; align-items: center; gap: clamp(2.5rem, 6vw, 5rem); }
+  .mg-card > .mg-scene { grid-area: scene; margin-inline: auto 0; }
+  .mg-card > :is(.mg-body, .mg-form) { grid-area: body; }
 }
-.mg-card > .mg-scene { margin: 12px 12px 0; }
-@media (min-width: 860px) { .mg-card > .mg-scene { margin: 0; } }
 
-.mg-body { padding: 1.5rem 1.5rem 1.7rem; display: flex; flex-direction: column; align-items: flex-start; }
-@media (min-width: 860px) { .mg-body { padding: 2.2rem 2.6rem 2.4rem; } }
+.mg-body, .mg-form { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding-inline: .2rem; }
+@media (min-width: 860px) { .mg-body, .mg-form { max-width: 29rem; padding-inline: 0; } }
 
-.mg-kicker {
-  display: inline-flex; align-items: center; gap: .5rem; margin: 0 0 1rem; padding: .3rem .8rem .3rem .35rem;
-  border: 1px solid var(--ln); border-radius: 999px; background: color-mix(in srgb, var(--t) 10%, transparent);
-  font: 700 .72rem/1 var(--font-sans), sans-serif; color: var(--mu);
-}
+.mg-kicker { display: flex; align-items: center; gap: .75rem; margin: 0 0 1.15rem; font: 500 .86rem/1 var(--font-sans), sans-serif; color: var(--mu); }
 .mg-kicker > span {
-  display: grid; place-items: center; height: 1.45rem; padding: 0 .55rem; border-radius: 999px;
-  background: var(--t); color: #0d1518; font: 800 .72rem/1 var(--font-display), sans-serif; letter-spacing: .04em;
+  padding-right: .75rem; border-right: 1px solid var(--ln2); color: var(--ti);
+  font: 700 .95rem/1 var(--font-display), sans-serif; font-stretch: 112%; letter-spacing: .01em; font-variant-numeric: tabular-nums;
 }
 .mg-title {
-  margin: 0; font: 900 clamp(1.7rem, 4.4vw, 2.5rem)/1.06 var(--font-display), sans-serif;
-  font-stretch: 108%; letter-spacing: -.025em; text-wrap: balance;
+  margin: 0; font: 680 clamp(2rem, 1.25rem + 3.2vw, 3.3rem)/1.04 var(--font-display), sans-serif;
+  font-stretch: 100%; letter-spacing: -.035em; text-wrap: balance;
 }
-.mg-desc { margin: .85rem 0 0; font-size: .97rem; line-height: 1.6; color: var(--mu); max-width: 36ch; text-wrap: pretty; }
+.mg-desc { margin: 1rem 0 0; font-size: 1.02rem; line-height: 1.65; color: var(--mu); max-width: 40ch; text-wrap: pretty; }
 
-.mg-actions { display: flex; flex-direction: column; gap: .7rem; margin-top: 1.7rem; width: 100%; }
-@media (min-width: 480px) { .mg-actions { flex-direction: row; flex-wrap: wrap; width: auto; } }
-.mg-links { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1.6rem; padding-top: 1.2rem; border-top: 1px solid var(--ln); width: 100%; }
-.mg-links > span { font-size: .75rem; color: var(--mu); margin-right: .15rem; }
+.mg-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.9rem; width: 100%; }
+.mg-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1.15rem; margin-top: 2rem; padding-top: 1.15rem; border-top: 1px solid var(--ln); width: 100%; }
+.mg-links > span { font-size: .82rem; color: var(--mu); }
 .mg-chip {
-  border: 1px solid var(--ln); background: transparent; color: var(--tx); text-decoration: none;
-  padding: .38rem .8rem; font-size: .78rem; font-weight: 600; border-radius: 999px;
-  transition: border-color .2s, color .2s, transform .2s;
+  color: var(--tx); text-decoration: underline; text-decoration-color: var(--ln2); text-decoration-thickness: 1px; text-underline-offset: .32em;
+  font-size: .9rem; font-weight: 600; border-radius: 4px; transition: color .2s, text-decoration-color .2s;
 }
-.mg-chip:hover { border-color: var(--color-accent); color: var(--color-accent); transform: translateY(-1px); }
-html.dark .mg-chip:hover { color: var(--color-accent-strong); border-color: var(--color-accent-strong); }
-.mg-note { margin: 1.1rem 0 0; font: 500 .7rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--mu); word-break: break-all; }
+.mg-chip:hover { color: var(--ti); text-decoration-color: currentColor; }
+.mg-note { margin: 1.2rem 0 0; font: 500 .72rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--mu); word-break: break-all; }
 
-/* ---- Tombol (selaras tombol app) ---------------------------------------- */
+/* ---- Tombol ------------------------------------------------------------- */
 .mg-btn {
-  position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  height: 3rem; padding: 0 1.4rem; cursor: pointer; text-decoration: none; white-space: nowrap;
-  font: 600 .88rem/1 var(--font-sans), sans-serif; color: var(--tx);
-  background: color-mix(in srgb, var(--card) 60%, transparent); border: 1px solid var(--ln); border-radius: 8px;
-  transition: transform .2s, border-color .2s, color .2s, filter .2s;
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+  height: 3rem; padding: 0 1.3rem; cursor: pointer; text-decoration: none; white-space: nowrap;
+  font: 600 .92rem/1 var(--font-sans), sans-serif; color: var(--tx);
+  background: transparent; border: 1px solid var(--ln2); border-radius: 12px;
+  transition: transform .2s var(--ease-out), background-color .2s, border-color .2s, box-shadow .2s;
 }
-.mg-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-html.dark .mg-btn:hover { border-color: var(--color-accent-strong); color: var(--color-accent-strong); }
-.mg-btn:active { transform: scale(.97); }
-.mg-btn:focus-visible, .mg-chip:focus-visible, .mg-brand:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 45%, transparent); outline-offset: 3px; }
+@media (hover: hover) {
+  .mg-btn:hover { background: color-mix(in srgb, var(--tx) 6%, transparent); border-color: color-mix(in srgb, var(--tx) 38%, transparent); }
+}
+.mg-btn:active { transform: scale(.975); }
+.mg-btn:focus-visible, .mg-chip:focus-visible, .mg-brand:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+html.dark .mg-btn:focus-visible, html.dark .mg-chip:focus-visible, html.dark .mg-brand:focus-visible { outline-color: var(--color-accent-strong); }
 .mg-btn-primary {
   color: #fff; border-color: transparent; background: var(--color-accent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), 0 8px 16px -12px color-mix(in srgb, var(--color-accent) 90%, #000);
 }
-.mg-btn-primary:hover { color: #fff; border-color: transparent; background: var(--color-accent-strong); }
-html.dark .mg-btn-primary:hover { color: #fff; background: #1a9a92; }
-.mg-btn:disabled { opacity: .5; cursor: not-allowed; }
+@media (hover: hover) {
+  .mg-btn-primary:hover { color: #fff; border-color: transparent; background: var(--color-accent-strong); transform: translateY(-1px); }
+  html.dark .mg-btn-primary:hover { background: #1a9a92; }
+}
+.mg-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-/* ---- Panel ilustrasi ----------------------------------------------------- */
+/* ---- Panel adegan -------------------------------------------------------- */
 .mg-scene {
-  position: relative; container-type: inline-size; overflow: hidden; user-select: none;
-  aspect-ratio: 1 / .86; border-radius: 20px; background: var(--sp); color: var(--pk);
+  position: relative; container-type: inline-size; overflow: hidden; user-select: none; isolation: isolate;
+  aspect-ratio: 1 / .9; width: min(100%, max(15rem, calc((100dvh - 22rem) / .9))); margin-inline: auto; border-radius: 26px;
+  color: var(--pk);
+  background: linear-gradient(180deg, var(--sky-a) 0%, color-mix(in srgb, var(--t) 14%, var(--sky-b)) 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 9%, transparent);
 }
-@media (min-width: 860px) { .mg-scene { aspect-ratio: 1 / 1.02; border-radius: 18px; } }
+html:not(.dark) .mg-scene { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 7%, transparent), 0 40px 70px -46px rgba(8, 70, 68, .55); }
+@media (min-width: 860px) {
+  .mg-scene { aspect-ratio: 1 / 1.04; width: min(100%, max(20rem, calc((100dvh - 7rem) / 1.04))); border-radius: 30px; }
+}
 .mg-scene > * { position: absolute; }
 
-/* Titik screentone halus + sorot cahaya di belakang maskot */
+/* Salju: lima lapis titik berkecepatan beda; tiap lapis bergeser tepat satu ubin → mulus. */
 .mg-tone {
-  inset: 0;
-  background-image: radial-gradient(circle, var(--pk) 1.3px, transparent 1.7px);
-  background-size: 10px 10px; opacity: .35;
-  -webkit-mask-image: linear-gradient(200deg, #000 0%, transparent 55%);
-  mask-image: linear-gradient(200deg, #000 0%, transparent 55%);
+  inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(circle at 22% 18%, var(--snow) 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 68% 52%, var(--snow) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 40% 80%, var(--snow) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 84% 24%, var(--snow) 0 2px, transparent 2.8px),
+    radial-gradient(circle at 12% 62%, var(--snow) 0 .9px, transparent 1.5px);
+  background-size: 97px 131px, 151px 113px, 71px 89px, 211px 179px, 127px 163px;
+  opacity: .75;
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 55%, transparent 88%);
+  mask-image: linear-gradient(180deg, #000 0, #000 55%, transparent 88%);
+  animation: mg-snow 22s linear infinite;
 }
+/* Cahaya lembut di belakang kepala Yuki (bukan sinar manga). */
 .mg-focus {
-  inset: -30%;
-  background: repeating-conic-gradient(from 2deg at 50% 66%, var(--pk) 0 .45deg, transparent .45deg 7.5deg);
-  -webkit-mask-image: radial-gradient(circle at 50% 66%, transparent 20%, #000 48%, transparent 72%);
-  mask-image: radial-gradient(circle at 50% 66%, transparent 20%, #000 48%, transparent 72%);
-  opacity: .55; animation: mg-jitter .5s steps(2, end) infinite;
+  left: 50%; top: 56%; width: 96cqw; aspect-ratio: 1; translate: -50% -50%; z-index: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--t) 42%, transparent), transparent 100%);
+  opacity: .85; animation: mg-breathe 6s ease-in-out infinite;
 }
-.mg-glow { display: none; }
+html:not(.dark) .mg-focus { background: radial-gradient(closest-side, rgba(255, 255, 255, .95), transparent 100%); opacity: .9; }
+/* Gundukan salju = lantai. */
+.mg-glow {
+  left: -34cqw; right: -34cqw; bottom: -20cqw; height: 40cqw; z-index: 1;
+  border-radius: 50% 50% 0 0 / 80% 80% 0 0;
+  background: linear-gradient(180deg, var(--drift-a), var(--drift-b));
+  box-shadow: 0 -1.2cqw 5cqw -1cqw color-mix(in srgb, var(--t) 28%, transparent);
+}
 
-/* Angka status: besar, hanya kontur tipis — latar, bukan bintang utama. */
+/* Angka status: tonal, rata, tanpa kontur — latar, bukan bintang. */
 .mg-code {
-  left: 50%; top: 8cqw; translate: -50% 0;
-  font: 900 40cqw/1 var(--font-display), sans-serif; font-stretch: 112%; letter-spacing: -.05em;
-  color: transparent; -webkit-text-stroke: .5cqw color-mix(in srgb, var(--t) 70%, transparent); opacity: .55;
-  white-space: nowrap;
+  left: 50%; top: 15cqw; translate: -50% 0; z-index: 0;
+  font: 800 34cqw/1 var(--font-display), sans-serif; font-stretch: 118%; letter-spacing: -.05em;
+  color: color-mix(in srgb, var(--t) 22%, transparent); white-space: nowrap;
 }
 
-.mg-yuki { left: 50%; bottom: 3cqw; width: 52cqw; translate: -50% 0; z-index: 3; }
-.mg-yuki > svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 2cqw 3cqw rgba(0, 0, 0, .28)); }
+.mg-yuki { left: 50%; bottom: 6cqw; width: 46cqw; translate: -50% 0; z-index: 3; }
+.mg-yuki > svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 .8cqw 1.4cqw rgba(0, 30, 35, .32)); }
+html.dark .mg-yuki > svg { filter: drop-shadow(0 0 3.2cqw color-mix(in srgb, var(--t) 30%, transparent)) drop-shadow(0 .8cqw 1.4cqw rgba(0, 0, 0, .4)); }
 
-/* SFX katakana: huruf berkontur, miring — aksen, bukan teriakan. */
-.mg-sfx { right: 6cqw; top: 6cqw; z-index: 4; text-align: right; rotate: -6deg; animation: mg-slam .5s cubic-bezier(.2, 1.5, .4, 1) .3s both; }
-.mg-sfx b {
-  display: block; font: 900 10.5cqw/1 var(--kfont); letter-spacing: -.02em; transform: skewX(-6deg);
-  color: transparent; -webkit-text-stroke: .55cqw var(--t);
-}
-.mg-sfx i {
-  display: inline-block; margin-top: 1cqw; font: 600 2.7cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-style: normal;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--t);
-}
+/* Efek suara katakana: kecil, solid, miring sedikit — aksen manga, bukan teriakan. */
+.mg-sfx { right: 7cqw; top: 6cqw; z-index: 4; text-align: right; rotate: -5deg; animation: mg-slam .5s cubic-bezier(.2, 1.5, .4, 1) .3s both; }
+.mg-sfx b { display: block; font: 800 8.4cqw/1 var(--kfont); letter-spacing: -.02em; color: var(--ti); }
+html:not(.dark) .mg-sfx b { color: color-mix(in srgb, var(--ti) 90%, #000); }
+.mg-sfx i { display: block; margin-top: 1.2cqw; font: 500 2.9cqw/1 var(--font-sans), sans-serif; font-style: normal; letter-spacing: .06em; color: var(--ti); opacity: .85; }
 
-/* Gelembung ucapan */
+/* Gelembung ucapan: komik, ekor ke arah Yuki. */
 .mg-bubble {
-  left: 6cqw; top: 31cqw; z-index: 5; margin: 0; max-width: 36cqw;
-  background: #fff; color: #0d1518; border-radius: 4.5cqw; padding: 2.6cqw 3.6cqw;
-  font: 700 3.5cqw/1.3 var(--font-sans), sans-serif; box-shadow: 0 2cqw 4cqw -2cqw rgba(0, 0, 0, .35);
-  transform-origin: 85% 100%; animation: mg-pop .4s cubic-bezier(.2, 1.5, .4, 1) .7s both;
+  left: 7cqw; top: 31cqw; z-index: 5; margin: 0; max-width: 34cqw;
+  background: #fff; color: #0d1518; border-radius: 4.2cqw 4.2cqw 4.2cqw 1.2cqw; padding: 2.5cqw 3.5cqw;
+  font: 600 3.4cqw/1.32 var(--font-sans), sans-serif; box-shadow: 0 1.4cqw 3.4cqw -1.4cqw rgba(0, 30, 35, .45);
+  transform-origin: 20% 100%; animation: mg-pop .4s cubic-bezier(.2, 1.5, .4, 1) .7s both;
 }
 .mg-bubble::after {
-  content: ""; position: absolute; right: 5cqw; bottom: -2.6cqw; width: 4cqw; height: 3cqw; background: #fff;
-  clip-path: polygon(0 0, 100% 0, 65% 100%);
+  content: ""; position: absolute; left: 5cqw; bottom: -2.4cqw; width: 3.6cqw; height: 2.8cqw; background: #fff;
+  clip-path: polygon(0 0, 100% 0, 30% 100%);
 }
 
+/* Kilau salju di sekeliling Yuki. */
+.mg-scene::before, .mg-scene::after {
+  content: "✦"; position: absolute; z-index: 4; line-height: 1; color: #fff; pointer-events: none;
+  text-shadow: 0 0 2cqw color-mix(in srgb, var(--t) 60%, transparent);
+  animation: mg-twinkle 3.4s ease-in-out infinite;
+}
+.mg-scene::before { left: 15cqw; top: 60cqw; font-size: 4.4cqw; }
+.mg-scene::after { right: 13cqw; top: 54cqw; font-size: 3.2cqw; animation-delay: -1.7s; }
+html:not(.dark) .mg-scene::before, html:not(.dark) .mg-scene::after { color: var(--t); text-shadow: none; }
+
 /* Properti adegan */
-.mg-layer { inset: 0; z-index: 1; pointer-events: none; }
+.mg-layer { inset: 0; z-index: 2; pointer-events: none; }
 .mg-float { animation: mg-float 5s ease-in-out infinite; z-index: 1; }
 .mg-steam { z-index: 2; animation: mg-steam 1.9s ease-in-out infinite; transform-origin: 50% 100%; }
 .mg-burst { left: 50%; top: 60%; width: 74cqw; translate: -50% -50%; z-index: 1; animation: mg-boom .55s cubic-bezier(.2, 1.4, .4, 1) .1s both; }
-.mg-door { left: 50%; bottom: 0; width: 46cqw; translate: -50% 0; z-index: 1; }
+.mg-door { left: 50%; bottom: 0; width: 46cqw; translate: -50% 0; z-index: 2; }
 .mg-cracks { inset: 0; width: 100%; height: 100%; z-index: 7; color: rgba(255, 255, 255, .8); pointer-events: none; }
 html:not(.dark) .bs-shock .mg-cracks { color: rgba(60, 20, 20, .5); }
 .mg-padlock { z-index: 2; width: 17cqw; right: 12cqw; bottom: 40cqw; rotate: 10deg; animation: mg-float 4s ease-in-out infinite; }
 .mg-scene[data-mood="faint"] .mg-bubble { top: 25cqw; }
 
-/* ---- Meteran stamina (429) ---------------------------------------------- */
-.mg-meter { margin-top: 1.4rem; width: 100%; max-width: 21rem; }
-.mg-meter-head { display: flex; justify-content: space-between; align-items: baseline; font: 700 .68rem/1 var(--font-sans), sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--mu); margin-bottom: .55rem; }
-.mg-meter-head output { font: 700 .8rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0; color: var(--tx); }
-.mg-meter-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
-.mg-meter-bar i { height: .6rem; border-radius: 3px; background: color-mix(in srgb, var(--ln) 100%, transparent); transition: background-color .3s; }
+/* ---- Meteran stamina (429, offline) ------------------------------------- */
+.mg-meter { margin-top: 1.5rem; width: 100%; max-width: 21rem; }
+.mg-meter-head { display: flex; justify-content: space-between; align-items: baseline; font: 600 .82rem/1 var(--font-sans), sans-serif; color: var(--mu); margin-bottom: .6rem; }
+.mg-meter-head output { font: 700 .86rem/1 var(--font-display), sans-serif; font-variant-numeric: tabular-nums; color: var(--tx); }
+.mg-meter-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.mg-meter-bar i { height: .42rem; border-radius: 99px; background: var(--ln); transition: background-color .3s; }
 .mg-meter-bar i[data-on="1"] { background: var(--t); }
-.mg-meter-msg { margin: .55rem 0 0; font-size: .78rem; color: var(--mu); }
+.mg-meter-msg { margin: .6rem 0 0; font-size: .82rem; color: var(--mu); }
 
 /* ---- Masuk (form) -------------------------------------------------------- */
-.mg-form { padding: 1.5rem 1.5rem 1.7rem; display: flex; flex-direction: column; justify-content: center; }
-@media (min-width: 860px) { .mg-form { padding: 2rem 2.6rem 2.2rem; } }
-.mg-label { display: block; margin-bottom: .5rem; font: 600 .75rem/1 var(--font-sans), sans-serif; color: color-mix(in srgb, var(--tx) 80%, transparent); }
+.mg-form { justify-content: center; }
+.mg-label { display: block; margin-bottom: .55rem; font: 600 .82rem/1 var(--font-sans), sans-serif; color: color-mix(in srgb, var(--tx) 82%, transparent); }
 .mg-field { position: relative; }
 .mg-input {
-  width: 100%; min-width: 0; height: 3.25rem; padding: 0 3.1rem 0 2.8rem; font-size: 1rem; color: var(--tx);
-  background: color-mix(in srgb, var(--in) 70%, transparent); border: 1px solid var(--ln); border-radius: 8px; outline: none;
-  transition: border-color .2s, box-shadow .2s;
+  width: 100%; min-width: 0; height: 3.3rem; padding: 0 3.1rem 0 2.9rem; font-size: 1rem; color: var(--tx);
+  background: color-mix(in srgb, var(--tx) 4%, transparent); border: 1px solid var(--ln2); border-radius: 12px; outline: none;
+  transition: border-color .2s, box-shadow .2s, background-color .2s;
 }
 .mg-input::placeholder { color: var(--mu); opacity: .6; }
-.mg-input:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(17, 128, 121, .16); }
-.mg-input[aria-invalid="true"] { border-color: color-mix(in srgb, var(--bad) 60%, transparent); }
-.mg-field-ico { position: absolute; left: 1rem; top: 50%; translate: 0 -50%; width: 1.15rem; height: 1.15rem; color: var(--mu); pointer-events: none; z-index: 1; }
+.mg-input:focus-visible { border-color: var(--color-accent); background: transparent; box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.mg-input[aria-invalid="true"] { border-color: color-mix(in srgb, var(--bad) 65%, transparent); }
+.mg-field-ico { position: absolute; left: 1.05rem; top: 50%; translate: 0 -50%; width: 1.15rem; height: 1.15rem; color: var(--mu); pointer-events: none; z-index: 1; }
 .mg-eye {
-  position: absolute; right: .45rem; top: 50%; translate: 0 -50%; width: 2.3rem; height: 2.3rem; display: grid; place-items: center;
+  position: absolute; right: .5rem; top: 50%; translate: 0 -50%; width: 2.4rem; height: 2.4rem; display: grid; place-items: center;
   background: transparent; border: 0; border-radius: 9px; color: var(--mu); cursor: pointer; z-index: 1;
 }
-.mg-eye:hover { background: color-mix(in srgb, var(--ln) 70%, transparent); color: var(--tx); }
+.mg-eye:hover { background: color-mix(in srgb, var(--tx) 8%, transparent); color: var(--tx); }
 .mg-alert {
-  display: flex; align-items: flex-start; gap: .55rem; margin: 0; padding: .7rem .9rem; font-size: .85rem; line-height: 1.4;
+  display: flex; align-items: flex-start; gap: .55rem; margin: 0; padding: .75rem .95rem; font-size: .86rem; line-height: 1.4;
   border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent); color: var(--bad); border-radius: 12px; background: color-mix(in srgb, var(--bad) 8%, transparent);
 }
-.mg-caps { margin: .55rem 0 0; font-size: .78rem; font-weight: 600; color: #94650f; }
+.mg-caps { margin: .55rem 0 0; font-size: .8rem; font-weight: 600; color: #94650f; }
 html.dark .mg-caps { color: var(--color-gold); }
-.mg-fine { margin: 1.3rem 0 0; font-size: .78rem; color: var(--mu); }
+.mg-fine { margin: 1.3rem 0 0; font-size: .8rem; color: var(--mu); }
 .mg-spin { animation: mg-spin .8s linear infinite; }
 
-/* ---- Mobile: satu layar penuh, tanpa scroll ------------------------------ */
+/* ---- Ponsel: adegan di atas, teks di bawah; boleh digulir bila layar pendek ---- */
 @media (max-width: 859px) {
-  .bs { overflow: hidden !important; }
-  .bs-inner { height: 100%; min-height: 0; padding: max(.75rem, env(safe-area-inset-top)) 1rem max(.75rem, env(safe-area-inset-bottom)); }
-  .mg-wrap { gap: .6rem; }
-  .mg-brand { font-size: .95rem; }
-  .mg-card { border-radius: 16px; }
-  .mg-card > .mg-scene {
-    width: min(calc(100% - 20px), max(9.5rem, calc((100dvh - var(--bs-rest, 26rem)) / .86)));
-    margin: 10px auto 0; border-radius: 16px;
-  }
-  .mg-body, .mg-form { padding: 1rem 1.1rem 1.15rem; }
-  .mg-kicker { margin-bottom: .7rem; }
-  .mg-title { font-size: clamp(1.45rem, 6.4vw, 1.8rem); }
-  .mg-desc { margin-top: .55rem; font-size: .88rem; line-height: 1.5; max-width: none; }
-  .mg-meter { margin-top: .9rem; max-width: none; }
-  .mg-actions { flex-direction: row; flex-wrap: nowrap; gap: .55rem; margin-top: 1.1rem; }
-  .mg-actions > .mg-btn { flex: 1 1 0; min-width: 0; height: 2.85rem; padding: 0 .8rem; }
-  .mg-links, .mg-foot { display: none; }
-  .mg-note { margin-top: .7rem; }
-  .mg-input { height: 3rem; }
-  .mg-fine { margin-top: .8rem; }
-  .mg-card:has(.mg-form, .mg-note) { --bs-rest: 28.5rem; }
+  .bs-inner { padding: max(.9rem, env(safe-area-inset-top)) 1rem max(1.2rem, env(safe-area-inset-bottom)) !important; }
+  .mg-scene { border-radius: 24px; }
+  .mg-actions > .mg-btn { flex: 1 1 0; min-width: 0; padding: 0 .9rem; }
+  .mg-links { margin-top: 1.5rem; }
+  .mg-meter { max-width: none; }
 }
 
 /* ---- Gerak -------------------------------------------------------------- */
@@ -2156,7 +2163,10 @@ html.dark .mg-caps { color: var(--color-gold); }
 @keyframes mg-slam { 0% { opacity: 0; scale: 1.8; } 60% { opacity: 1; scale: .96; } 100% { opacity: 1; scale: 1; } }
 @keyframes mg-pop { from { opacity: 0; scale: .4; } to { opacity: 1; scale: 1; } }
 @keyframes mg-boom { from { opacity: 0; scale: .3; } to { opacity: 1; scale: 1; } }
-@keyframes mg-jitter { 0% { rotate: 0deg; } 100% { rotate: .8deg; } }
+@keyframes mg-snow {
+  to { background-position: -97px 131px, 0 113px, 71px 89px, -211px 179px, 0 163px; }
+}
+@keyframes mg-twinkle { 0%, 100% { opacity: .35; scale: .7; } 50% { opacity: 1; scale: 1.15; } }
 @keyframes mg-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2cqw; } }
 @keyframes mg-steam { 0% { opacity: 0; translate: 0 3cqw; } 40% { opacity: .8; } 100% { opacity: 0; translate: 0 -4cqw; } }
 @keyframes mg-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
@@ -2203,7 +2213,7 @@ html.dark .mg-caps { color: var(--color-gold); }
 @keyframes yk-soul { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-4px); opacity: .9; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .mg-in, .mg-sfx, .mg-bubble, .mg-burst, .mg-focus, .mg-float, .mg-steam, .mg-shake, .mg-spin, .mg-padlock,
+  .mg-in, .mg-sfx, .mg-bubble, .mg-burst, .mg-focus, .mg-tone, .mg-scene::before, .mg-scene::after, .mg-float, .mg-steam, .mg-shake, .mg-spin, .mg-padlock,
   .yk-bob, .yk-limp, .yk-blink, .yk-tail, .yk-fox-tail, .yk-wing, .yk-flame, .yk-twinkle, .yk-spin, .yk-orbit, .yk-drip, .yk-qmark, .yk-soul { animation: none !important; }
   .mg-steam { opacity: .6; }
 }
@@ -2238,7 +2248,7 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 .mg-scene[data-fx="rested"] .yk-tired .yk-bob { animation: yk-bob 2.4s ease-in-out infinite; }
 
 @keyframes yk-swap { 0% { transform: scale(1.03, .96); opacity: 0; } 50% { transform: scale(.99, 1.015); opacity: 1; } 100% { transform: none; opacity: 1; } }
-@keyframes yk-shadow { 0%, 100% { transform: scaleX(1); opacity: .16; } 50% { transform: scaleX(.86); opacity: .1; } }
+@keyframes yk-shadow { 0%, 100% { transform: scaleX(1); opacity: .34; } 50% { transform: scaleX(.88); opacity: .26; } }
 @keyframes yk-vein { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 @keyframes yk-card { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-1px); } }
 @keyframes yk-poke {
@@ -2252,9 +2262,8 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 @keyframes yk-spark { 0% { opacity: 0; translate: 0 2cqw; scale: .4; rotate: 0deg; } 30% { opacity: 1; } 100% { opacity: 0; translate: 2cqw -6cqw; scale: 1.2; rotate: 90deg; } }
 
 /* ---- Semua adegan -------------------------------------------------------- */
-.mg-glow { animation: mg-breathe 5s ease-in-out infinite; }
-.mg-code { animation: mg-code-in .8s cubic-bezier(.2, 1.2, .4, 1) both; }
-.mg-motes { inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.mg-code { animation: mg-code-in .9s cubic-bezier(.2, 1, .3, 1) both; }
+.mg-motes { display: none; }
 .mg-motes i { position: absolute; bottom: -3cqw; width: 1.4cqw; height: 1.4cqw; border-radius: 50%; background: var(--t); opacity: 0; animation: mg-mote 8s linear infinite; }
 .mg-motes i:nth-child(1) { left: 8cqw; animation-delay: 0s; }
 .mg-motes i:nth-child(2) { left: 22cqw; width: 1cqw; height: 1cqw; animation-delay: -2.4s; animation-duration: 9s; }
@@ -2263,8 +2272,8 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 .mg-motes i:nth-child(5) { left: 70cqw; animation-delay: -6.1s; }
 .mg-motes i:nth-child(6) { left: 84cqw; width: 1.8cqw; height: 1.8cqw; animation-delay: -3.3s; animation-duration: 9s; }
 .mg-motes i:nth-child(7) { left: 93cqw; width: 1cqw; height: 1cqw; animation-delay: -7s; animation-duration: 11s; }
-@keyframes mg-breathe { 0%, 100% { opacity: .75; scale: 1; } 50% { opacity: 1; scale: 1.12; } }
-@keyframes mg-code-in { from { opacity: 0; translate: -50% 5cqw; scale: .9; } to { opacity: .55; translate: -50% 0; scale: 1; } }
+@keyframes mg-code-in { from { opacity: 0; translate: -50% 4cqw; } to { opacity: 1; translate: -50% 0; } }
+@keyframes mg-breathe { 0%, 100% { opacity: .7; scale: 1; } 50% { opacity: 1; scale: 1.08; } }
 @keyframes mg-mote { 0% { opacity: 0; translate: 0 0; } 15% { opacity: .75; } 85% { opacity: .5; } 100% { opacity: 0; translate: 4cqw -90cqw; } }
 
 /* ---- 401: gerbang pemeriksaan ------------------------------------------- */
@@ -2330,7 +2339,6 @@ html.dark .bs-t-violet { --t: #a99bf2; }
   .yk, .yk-shadow, .yk-vein, .yk-card, .mg-yuki, .mg-glow, .mg-code, .mg-motes i, .mg-barrier, .mg-beam, .mg-led, .mg-padlock, .mg-shackle,
   .mg-tape, .mg-ring, .mg-req, .mg-burst, .mg-shock, .mg-spark, .mg-puff, .mg-door, .mg-door-key,
   .bs-t-red .mg-scene, .bs-t-red .mg-code { animation: none !important; }
-  .mg-code { opacity: .55; }
   .mg-req, .mg-spark, .mg-puff, .mg-motes { display: none; }
   .mg-door-leaf { transition: none; }
 }
@@ -2338,7 +2346,7 @@ html.dark .bs-t-violet { --t: #a99bf2; }
 /* ==========================================================================
    Yuki: tangan, kaki, kilau ikat kepala
    ========================================================================== */
-.mg-yuki { width: 48cqw; } /* viewBox lebih tinggi (ada kaki) → lebar dikecilkan agar tinggi tetap pas */
+.mg-yuki { width: 46cqw; } /* viewBox lebih tinggi (ada kaki) → lebar dikecilkan agar tinggi tetap pas */
 .yk-wave { animation: yk-wave 1.8s ease-in-out infinite; }
 .yk-hold { animation: yk-hold 3.8s ease-in-out infinite; }
 .yk-search { animation: yk-search 3.6s ease-in-out infinite; }
