@@ -1,5 +1,5 @@
 # KomikFrost 
- 
+  
 Platform baca komik pribadi untuk **manga, manhwa, dan manhua** berbahasa
 Indonesia. Antarmuka dibangun dengan Next.js App Router; seluruh data
 (judul, cover, genre, sinopsis, chapter, peringkat, dan gambar reader)
