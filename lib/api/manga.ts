@@ -39,7 +39,9 @@ import {
 import {
   aliasKeys,
   dedupeKey,
+  dedupeKeys,
   fetchAllSettled,
+  filterUnseenCards,
   fixTitle,
   mergeCards,
   mergeDetails,
@@ -436,45 +438,77 @@ export async function completeCardsBounded(cards: MergedMangaCard[], ms: number)
   for (const c of cards) if (!applied.has(c)) sanitizeCardLabels(c);
 }
 
-/** Chapter terbaru (Shinigami is_update utama + Komiku ?orderby=modified pelengkap). */
+/**
+ * Chapter terbaru (Shinigami is_update utama + Komiku ?orderby=modified
+ * pelengkap). Deduplikasi bertier Shinigami â†’ Komiku â†’ Komikcast:
+ * kartu duplikat TIDAK dibuang â€” filterUnseenCards hanya mencatat
+ * kuncinya ke `seen`, lalu mergeCards menyatukan semua sumber
+ * (fallback + metadata sumber kalah tetap utuh). Ketiga sumber tetap
+ * diperiksa setiap panggilan (termasuk probe live 60 dtk) agar update
+ * terbaru dari sumber mana pun tetap terdeteksi.
+ */
 export async function getLatest(page = 1): Promise<MangaCard[]> {
   const params: MangaListParams = { orderby: "modified", page };
-  const jobs = {
-    komiku: async () => {
-      // Coba 2x — kegagalan fragment API sering cuma sementara (beban
-      // bersamaan saat /api/home menembak beberapa request sekaligus),
-      // jadi jangan langsung jatuh ke fetchHome() yang datanya lebih basi.
-      // Total waktu (retry + fallback) dibatasi 10 dtk: kalau fragment API
-      // sedang down, 2 retry (16 dtk) + fetchHome (5-8 dtk) bisa menahan
-      // /api/home sampai 24 dtk. Timeout membuat source ini gagal cepat
-      // sehingga agregator lanjut tanpa menunggu ekor lambatnya.
-      const attempt = async () => {
-        for (let i = 0; i < 2; i++) {
-          try {
-            const { items } = await fetchMangaList(params);
-            if (items.length > 0) return items;
-          } catch {
-            // coba lagi (attempt berikutnya) sebelum fallback
+  // Tier 1: Shinigami (prioritas tertinggi). fetchAllSettled tetap dipakai
+  // untuk partial-failure yang seragam -- bila Shinigami gagal, tier 2/3 tetap
+  // jalan tanpa filter (seen kosong = semua lolos).
+  const shiniRes = await fetchAllSettled(
+    {
+      shinigami: async () => {
+        const { items } = await fetchShiniLatest(page);
+        return items;
+      },
+    },
+    "latest:shinigami",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
+  const shiniCards = shiniRes.data.shinigami ?? [];
+  // seen = kunci semua judul yang sudah ditemukan tier sebelumnya.
+  const seen = new Set<string>();
+  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
+  // Tier 2: Komiku â€” duplikat Shinigami tetap diteruskan ke mergeCards
+  // (filterUnseenCards hanya mencatat kunci ke `seen`).
+  const komikuRes = await fetchAllSettled(
+    {
+      komiku: async () => {
+        // Coba 2x -- kegagalan fragment API sering cuma sementara (beban
+        // bersamaan saat /api/home menembak beberapa request sekaligus),
+        // jadi jangan langsung jatuh ke fetchHome() yang datanya lebih basi.
+        // Total waktu (retry + fallback) dibatasi 10 dtk: kalau fragment API
+        // sedang down, 2 retry (16 dtk) + fetchHome (5-8 dtk) bisa menahan
+        // /api/home sampai 24 dtk. Timeout membuat source ini gagal cepat
+        // sehingga agregator lanjut tanpa menunggu ekor lambatnya.
+        const attempt = async () => {
+          for (let i = 0; i < 2; i++) {
+            try {
+              const { items } = await fetchMangaList(params);
+              if (items.length > 0) return items;
+            } catch {
+              // coba lagi (attempt berikutnya) sebelum fallback
+            }
           }
-        }
-        const home = await fetchHome();
-        return page > 1 ? [] : home.latest;
-      };
-      return (await withTimeout(attempt(), 10_000)) ?? [];
+          const home = await fetchHome();
+          return page > 1 ? [] : home.latest;
+        };
+        return (await withTimeout(attempt(), 10_000)) ?? [];
+      },
     },
-    shinigami: async () => {
-      const { items } = await fetchShiniLatest(page);
-      return items;
+    "latest:komiku",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
+  const komikuCards = filterUnseenCards(komikuRes.data.komiku ?? [], seen);
+  // Tier 3: Komikcast â€” duplikat tier di atasnya tetap diteruskan ke mergeCards.
+  // /api/v1/home -> latest_comic (tanpa paging upstream; hanya halaman 1
+  // agar tidak duplikat antar halaman UI).
+  const kcRes = await fetchAllSettled(
+    {
+      komikcast: async () => (page > 1 ? [] : fetchKomikcastLatest()),
     },
-    // Komikcast: /api/v1/home → latest_comic (tanpa paging upstream;
-    // hanya halaman 1 agar tidak duplikat antar halaman UI).
-    komikcast: async () => (page > 1 ? [] : fetchKomikcastLatest()),
-  };
-  const { data } = await fetchAllSettled(jobs, "latest");
+    "latest:komikcast",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
+  const kcCards = filterUnseenCards(kcRes.data.komikcast ?? [], seen);
   const merged = mergeCards({
-    komiku: data.komiku ?? [],
-    shinigami: data.shinigami ?? [],
-    komikcast: data.komikcast ?? [],
+    komiku: komikuCards,
+    shinigami: shiniCards,
+    komikcast: kcCards,
   });
   // Kartu komikcast-only yang miskin (timing lolos dari halaman-1 source
   // lain) diperkaya via search exact-match — pola sama seperti search.
@@ -580,7 +614,35 @@ async function buildLatestPaged(
   // romantis). Filter genre diteruskan lewat varian ini, bukan slug mentah.
   const genreVars = opts.genre ? upstreamGenreSlugs(opts.genre) : [];
   const genre2Vars = opts.genre2 ? upstreamGenreSlugs(opts.genre2) : [];
-  const { data } = await fetchAllSettled(
+  // Deduplikasi bertier Shinigami â†’ Komiku â†’ Komikcast: tiap tier diambil
+  // terpisah, kunci tier di atasnya dicatat ke `seen` (filterUnseenCards
+  // TIDAK membuang duplikat â€” mergeCards yang menyatukan). Ketiga sumber
+  // tetap diperiksa setiap
+  // panggilan (termasuk probe live 60 dtk) agar update terbaru dari sumber
+  // mana pun tetap terdeteksi. Partial failure satu tier tidak menahan
+  // tier lain (fetchAllSettled + .catch -> data kosong).
+  // Tier 1: Shinigami (prioritas tertinggi).
+  const shiniRes = await fetchAllSettled(
+    {
+      shinigami: async () => {
+        const base = {
+          pageSize: limit,
+          ...(opts.live ? { fresh: true } : {}),
+          ...(opts.tipe ? { format: opts.tipe } : {}),
+        };
+        if (genreVars.length === 0) return fetchShiniLatest(p, base);
+        const hit = await firstWithItems(genreVars, (g) => fetchShiniLatest(p, { ...base, genre: g }));
+        return hit ?? { items: [] as MangaCard[], hasNextPage: false };
+      },
+    },
+    "latest-paged:shinigami",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
+  const shiniPaged = shiniRes.data.shinigami;
+  const shiniCards = shiniPaged?.items ?? [];
+  const seen = new Set<string>();
+  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
+  // Tier 2: Komiku â€” duplikat Shinigami tetap diteruskan ke mergeCards.
+  const komikuRes = await fetchAllSettled(
     {
       komiku: async () => {
         const base = {
@@ -595,28 +657,28 @@ async function buildLatestPaged(
         const hit = await firstWithItems(genreVars, (g) => fetchMangaList({ ...base, genre: g }));
         return hit ?? { items: [] as MangaCard[], hasNextPage: false };
       },
-      shinigami: async () => {
-        const base = {
-          pageSize: limit,
-          ...(opts.live ? { fresh: true } : {}),
-          ...(opts.tipe ? { format: opts.tipe } : {}),
-        };
-        if (genreVars.length === 0) return fetchShiniLatest(p, base);
-        const hit = await firstWithItems(genreVars, (g) => fetchShiniLatest(p, { ...base, genre: g }));
-        return hit ?? { items: [] as MangaCard[], hasNextPage: false };
-      },
-      // Komikcast tanpa paging/filter upstream — hanya halaman 1 tanpa filter.
+    },
+    "latest-paged:komiku",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
+  const komikuPaged = komikuRes.data.komiku;
+  const komikuCards = filterUnseenCards(komikuPaged?.items ?? [], seen);
+  // Tier 3: Komikcast â€” duplikat tier di atasnya tetap diteruskan ke mergeCards.
+  // Komikcast tanpa paging/filter upstream -- hanya halaman 1 tanpa filter.
+  const kcRes = await fetchAllSettled(
+    {
       komikcast: () =>
         p > 1 || opts.tipe || opts.genre || opts.genre2 || opts.status
-          ? Promise.resolve({ items: [], hasNextPage: false })
+          ? Promise.resolve({ items: [] as MangaCard[], hasNextPage: false })
           : fetchKomikcastLatest({ fresh: opts.live === true }).then((items) => ({ items, hasNextPage: false })),
     },
-    "latest-paged",
-  );
+    "latest-paged:komikcast",
+  ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
+  const kcPaged = kcRes.data.komikcast;
+  const kcCards = filterUnseenCards(kcPaged?.items ?? [], seen);
   const merged = mergeCards({
-    komiku: data.komiku?.items ?? [],
-    shinigami: data.shinigami?.items ?? [],
-    komikcast: data.komikcast?.items ?? [],
+    komiku: komikuCards,
+    shinigami: shiniCards,
+    komikcast: kcCards,
   });
   // Prioritas data sumber (Shinigami > Komiku > Komikcast) sudah ditangani
   // oleh mergeCards. Di sini cukup urutkan secara global berdasarkan waktu
@@ -630,7 +692,7 @@ async function buildLatestPaged(
   // panjang dari limit walau ini halaman terakhir → tombol halaman berikut
   // muncul lalu menampilkan halaman kosong.
   const hasNext = Boolean(
-    data.komiku?.hasNextPage || data.shinigami?.hasNextPage || data.komikcast?.hasNextPage,
+    komikuPaged?.hasNextPage || shiniPaged?.hasNextPage || kcPaged?.hasNextPage,
   );
   // Halaman terakhir (tidak ada lanjutan) → kirim semua sisa, jangan potong.
   // Potong dulu baru perkaya agar enrich detail hanya mengejar kartu yang
@@ -674,9 +736,16 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     },
     "popular",
   );
-  const ku = data.komiku ?? [];
+  // Deduplikasi bertier Shinigami â†’ Komiku â†’ Komikcast, aturan yang SAMA
+  // dengan Update terbaru dan Rekomendasi. Kartu duplikat TIDAK dibuang:
+  // filterUnseenCards hanya mencatat kunci yang sudah terlihat, lalu
+  // mergeCards menyatukan seluruh sumber (views, genre, sinopsis, sampul,
+  // dan chapter fallback dari sumber kalah tetap utuh).
   const sh = data.shinigami ?? [];
-  const kc = data.komikcast ?? [];
+  const seen = new Set<string>();
+  for (const c of sh) for (const k of dedupeKeys(c)) seen.add(k);
+  const ku = filterUnseenCards(data.komiku ?? [], seen);
+  const kc = filterUnseenCards(data.komikcast ?? [], seen);
   const merged = mergeCards({ komiku: ku, shinigami: sh, komikcast: kc });
   // "37,061 views" → 37061; tanpa angka (kartu murni Shinigami) → -1 (belakang).
   const viewsNum = (m: { views?: string }): number => {
@@ -684,11 +753,13 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     const n = parseInt(digits, 10);
     return Number.isFinite(n) && digits ? n : -1;
   };
-  const top = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a)).slice(0, 20);
+  // Ranking SETELAH seluruh metadata dipulihkan: satu kali enrich di sini,
+  // lalu urutkan + potong. Tanpa enrich kedua setelah ranking (itu request
+  // tambahan dan metadata yang datang sesudah ranking tidak ikut ranking).
   // Tipe/genre/sinopsis kanonis: peringkat menampilkan nilai yang SAMA dengan
-  // beranda, pencarian, dan halaman detail (dulu tidak diperkaya sama sekali,
-  // sehingga label Komiku/Tema bocor dan tipe diambil terpisah lewat ringkasan).
-  await completeCardsBounded(top, 2500);
+  // beranda, pencarian, dan halaman detail.
+  await completeCardsBounded(merged, 2500);
+  const top = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a)).slice(0, 20);
   return top.map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
@@ -729,10 +800,19 @@ export async function getRecommended(): Promise<MangaCard[]> {
     },
     "recommended",
   );
+  // Deduplikasi bertier Shinigami â†’ Komiku â†’ Komikcast, aturan yang SAMA
+  // dengan Update terbaru / Terbaru berhalaman / Populer. Kartu duplikat
+  // TIDAK dibuang: filterUnseenCards hanya mencatat kunci ke `seen`, lalu
+  // mergeCards menyatukan seluruh sumber (fallback + metadata tetap utuh).
+  const sh = data.shinigami ?? [];
+  const seen = new Set<string>();
+  for (const c of sh) for (const k of dedupeKeys(c)) seen.add(k);
+  const ku = filterUnseenCards(data.komiku ?? [], seen);
+  const kc = filterUnseenCards(data.komikcast ?? [], seen);
   const merged = mergeCards({
-    komiku: data.komiku ?? [],
-    shinigami: data.shinigami ?? [],
-    komikcast: data.komikcast ?? [],
+    komiku: ku,
+    shinigami: sh,
+    komikcast: kc,
   });
   const shuffled = shuffle(merged);
   // Rekomendasi memakai aturan kanonis yang sama dengan Update terbaru

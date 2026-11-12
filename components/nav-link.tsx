@@ -15,9 +15,14 @@ type NavLinkProps = ComponentProps<typeof Link>;
  * pertama. Jadi saat menu ditekan, halaman tujuan langsung terisi dari
  * cache — bukan menampilkan skeleton panjang seperti reload.
  */
+// `prefetch` default FALSE: prefetch otomatis Next (saat link masuk viewport)
+// memicu RSC request + scrape untuk SETIAP menu yang terlihat, padahal
+// sebagian besar tidak pernah dibuka. Prefetch tetap ada, tetapi HANYA dari
+// niat user: hover, fokus keyboard, sentuh, atau pointerdown (handler di
+// bawah). Itu yang dipertahankan.
 export function NavLink({
   href,
-  prefetch = true,
+  prefetch = false,
   onMouseEnter,
   onFocus,
   onTouchStart,

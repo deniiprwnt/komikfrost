@@ -8,7 +8,6 @@ import { BrandMark } from "./brand-mark";
 import { PromoYukiHead, PromoYukiPaw } from "./promo-yuki";
 import { NavLink } from "./nav-link";
 import { ClearButton } from "./clear-button";
-import { warmPrimaryNav } from "@/lib/nav-prefetch";
 import { ClientDataVersion } from "./client-cache-version";
 
 const NAV = [
@@ -207,11 +206,10 @@ export function Header() {
     setMobileSearch(false);
   }, [pathname]);
 
-  // Panaskan data menu lain saat browser idle — tap menu di ponsel
-  // langsung menampilkan isi, bukan skeleton yang terasa seperti reload.
-  useEffect(() => {
-    warmPrimaryNav(pathname);
-  }, [pathname]);
+  // Prefetch OTOMATIS menu lain DIHAPUS (jangan dipulihkan): tap menu di ponsel
+  // memicu scrape 3 sumber, sehingga satu load beranda menembak upstream untuk
+  // halaman yang mungkin tak pernah dibuka. Prefetch sekarang hanya terjadi
+  // saat niat user terlihat (hover/fokus/sentuh) — lihat NavLink.
 
   const currentLabel = NAV.find((n) => isActive(pathname, n.href))?.label ?? "KomikFrost";
 

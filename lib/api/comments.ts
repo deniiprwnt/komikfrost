@@ -822,6 +822,15 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
     // memuat wadah komentar (tanpa Disqus/Waline/Giscus) dan tidak ada
     // endpoint komentar di API-nya (semua kandidat /api/v1/*comment* → 404).
     // Jadi jangan tembak request yang pasti gagal; beri pesan yang jelas.
+    // Komikcast tidak menyediakan komentar - DIVERIFIKASI ULANG dengan probe
+    // (scripts/probe-kc-comments.mjs), bukan asumsi:
+    //  - /api/v1/comments, /api/v1/comments?series_slug=..., ...?type=... dan
+    //    /api/v1/chapters/<slug>/comments semuanya 404 ("The route api/v1/
+    //    comments could not be found.").
+    //  - Halaman chapter (200, ~103 KB) tidak memuat satu pun kemunculan
+    //    "disqus", "waline", "giscus", "utteranc", "comment", "komentar".
+    // Jangan menembak request yang pasti gagal dan JANGAN mengarang komentar.
+    // Status "empty" + pesan jelas = satu-satunya jawaban jujur.
     komikcast: async () => none("komikcast", "Komikcast tidak menyediakan komentar."),
   };
 

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { alternateImageUrls, isAllowedImageHost } from "@/lib/api/img-proxy";
+import { etagMatches, weakEtag } from "@/lib/api/http-cache";
 import { guard } from "../_lib";
 
 /**
@@ -21,6 +22,12 @@ import { guard } from "../_lib";
 // dipaksa `force-dynamic`: opsi itu setara `fetchCache = "force-no-store"` dan
 // mematikan `next.revalidate` di bawah, sehingga cache server 7 hari tidak
 // pernah terpakai.
+//
+// AUTENTIKASI: middleware mengecualikan /api/img (agar tidak membayar HMAC
+// sesi untuk tiap gambar), jadi gerbang password route ini SEPENUHNYA
+// bergantung pada guard() di bawah â€” guard() memanggil isAuthed() dan
+// mengembalikan 401 sebelum satu byte pun diambil dari upstream. Jangan
+// pernah menghapus/melonggarkan panggilan itu.
 // Upstream gambar bisa lambat (abort 15 dtk di bawah) â€” jangan biarkan batas
 // fungsi default memutus stream sebelum itu.
 export const maxDuration = 30;
@@ -38,17 +45,51 @@ const IMG_CACHE_SECONDS = 604800;
 // body upstream di-stream langsung ke browser; Next Data Cache
 // (next.revalidate di fetchImage) tetap meng-cache di server.
 
+/**
+ * Header cache gambar. SENGAJA `private` + `max-age` (bukan `public`):
+ * route ini di belakang gerbang password, jadi cache gambar TIDAK BOLEH
+ * disajikan CDN/edge kepada request tanpa sesi. Penghematan bandwidth
+ * dilakukan lewat ETag (304 tanpa body), BUKAN dengan membuka cache ke
+ * publik.
+ */
+function imageCacheControl(): string {
+  return `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`;
+}
+
+/** ETag isi gambar = identitas file upstream (stabil, tanpa baca body). */
+function imageEtag(key: string): string {
+  return weakEtag("img-v1", key);
+}
+
 /** Respons gambar dengan header cache yang sudah benar. */
-function imageResponse(body: BodyInit, ct: string): Response {
+function imageResponse(body: BodyInit, ct: string, etag: string): Response {
   return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": ct,
-      // Route ini di belakang gate â†’ cache browser saja (private), jangan
-      // biarkan CDN menyajikan gambar kepada request tanpa sesi.
+      "Cache-Control": imageCacheControl(),
       // `immutable`: URL gambar berisi nama file unik dan tidak berubah,
       // jadi browser tidak perlu memvalidasi ulang tiap kunjungan.
-      "Cache-Control": `private, max-age=${IMG_CACHE_SECONDS}, immutable, stale-while-revalidate=${IMG_CACHE_SECONDS}`,
+      ETag: etag,
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
+/**
+ * 304 Not Modified â€” HANYA menghemat bandwidth. Pemanggilan fungsi tetap
+ * terjadi (route tetap dieksekusi, guard tetap dijalankan) dan tidak ada
+ * data komik yang di-cache lebih lama karenanya.
+ *
+ * Header cache WAJIB diulang di 304: browser memakai header dari respons
+ * 304 untuk memperbarui masa berlaku entri yang sudah dimilikinya.
+ */
+function notModified(etag: string): Response {
+  return new Response(null, {
+    status: 304,
+    headers: {
+      "Cache-Control": imageCacheControl(),
+      ETag: etag,
       "X-Content-Type-Options": "nosniff",
     },
   });
@@ -152,6 +193,13 @@ export async function GET(req: NextRequest) {
   }
 
   const key = url.toString();
+  const etag = imageEtag(key);
+  // Validasi ulang dari browser: isi untuk URL gambar ini tidak pernah
+  // berubah, jadi 304 sudah benar tanpa menyentuh upstream (hemat
+  // bandwidth + satu fetch upstream). Ini BUKAN cache data komik.
+  if (etagMatches(req.headers.get("if-none-match"), etag)) {
+    return notModified(etag);
+  }
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
@@ -163,7 +211,7 @@ export async function GET(req: NextRequest) {
         const { body, contentType } = await fetchImage(target, ctrl.signal);
         // Kandidat gagal (body null) = coba host alternatif; kandidat sukses
         // langsung di-stream, tanpa menunggu kandidat lain / buffering.
-        if (body) return imageResponse(body, contentType);
+        if (body) return imageResponse(body, contentType, etag);
         lastErr = new Error("upstream-unavailable");
       } catch (e) {
         lastErr = e;

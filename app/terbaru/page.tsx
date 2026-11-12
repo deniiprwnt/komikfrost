@@ -216,9 +216,12 @@ function TerbaruContent() {
       // Abaikan — daftar lama tetap tampil.
     }
   }, [orderby, buildQs, applyItems]);
-  // 30 dtk: probe `live` melewati semua cache & menembak 3 sumber — tiap
-  // 5 dtk itu terlalu berat untuk upstream. Update tetap terdeteksi <30 dtk.
-  useAutoRefresh(silentCheck, 30_000);
+  // 60 dtk (ketentuan): probe `live` melewati semua cache memori + cache
+  // HTTP upstream dan menembak 3 sumber sekaligus, jadi interval lebih
+  // pendek hanya membakar invocation + request upstream tanpa hasil.
+  // Chapter baru dari ketiga sumber tetap terdeteksi <=60 dtk. Jangan
+  // diturunkan: lantai 60 dtk juga ditegakkan di useAutoRefresh.
+  useAutoRefresh(silentCheck, 60_000);
 
   const scrollToList = useCallback(() => {
     requestAnimationFrame(() => {

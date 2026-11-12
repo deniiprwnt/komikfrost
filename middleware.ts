@@ -24,6 +24,14 @@ export async function middleware(req: NextRequest) {
     // /sw.js sudah tercakup regex .js di bawah.
     pathname === "/manifest.webmanifest" ||
     pathname === "/offline.html" ||
+    // Proxy gambar: SATU-SATUNYA /api/* yang tidak menghitung HMAC sesi di
+    // middleware. Satu chapter reader memuat 20-100 gambar, dan tiap request
+    // sebelumnya membayar verifikasi cookie dua kali (middleware + guard).
+    // Keamanan TIDAK dilonggarkan: route /api/img sendiri tetap memanggil
+    // guard() â†’ isAuthed() â†’ rate limit, jadi tanpa sesi route menjawab 401
+    // dan tidak satu byte gambar pun diteruskan. Cache-nya pun tetap
+    // `private` (tidak pernah disajikan CDN ke request tanpa sesi).
+    pathname === "/api/img" ||
     // Aset statis publik. Rute /api/* DIKECUALIKAN dari aturan ekstensi:
     // tanpa ini path API berakhiran .js/.css/.png akan lolos gerbang
     // password (tidak ada hari ini, tapi jangan bergantung pada itu).

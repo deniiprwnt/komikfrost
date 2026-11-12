@@ -2,9 +2,9 @@ import type { ChapterItem, ChapterRef, GenreRef, KomikType, MangaCard, MangaDeta
 // ID source terpusat di types (satu definisi, dipakai client + server).
 import type { ComicSourceId } from "./types";
 export type { ComicSourceId } from "./types";
-import { canonicalGenre, themeDisplayName } from "./genre-canonical";
-import { pickBestSynopsis, splitAltTitles } from "./text";
-import { splitRating } from "./rating";
+import { canonicalGenre, themeDisplayName } from "./genre-canonical.ts";
+import { pickBestSynopsis, splitAltTitles } from "./text.ts";
+import { splitRating } from "./rating.ts";
 
 /**
  * Aggregator multi-source: Shinigami + Komiku → satu bentuk data gabungan.
@@ -141,6 +141,66 @@ export function cardIdentityKeys(c: Pick<MangaCard, "title" | "thumbnail">): str
     if (id) keys.push(`c:${id}`);
   }
   return keys;
+}
+
+/**
+ * Himpunan kunci identitas satu kartu untuk pre-filter sumber: kunci judul
+ * utama + kunci alias (altTitle) + identitas sampul (bila bukan
+ * placeholder). Konservatif â€” sama dengan aturan `mergeCards`, tanpa fuzzy:
+ * dua kartu hanya dianggap sama bila salah satu kuncinya BERIRISAN. Dipakai
+ * `filterUnseenCards` agar Komiku/Komikcast tidak mengambil ulang judul yang
+ * sudah ditemukan Shinigami (tahap 1: /terbaru + beranda).
+ */
+export function dedupeKeys(c: Pick<MangaCard, "title" | "altTitle" | "thumbnail">): string[] {
+  const keys = new Set<string>();
+  for (const k of cardIdentityKeys(c)) keys.add(k);
+  // Alias (altTitle EN) ikut jadi kunci: judul utama sumber bisa beda ejaan
+  // walau aliasnya identik (sama dengan aturan alias mergeCards).
+  if (c.altTitle) {
+    for (const t of splitAltTitles(c.altTitle)) {
+      const k = dedupeKey(t);
+      if (k) keys.add(`t:${k}`);
+    }
+  }
+  // Kandidat sampul lain (varian portrait/landscape, host alternatif) ikut
+  // dihitung agar sumber yang hanya berbagi sampul tetap dikenali sama.
+  const th = c as Pick<MangaCard, "title" | "altTitle" | "thumbnail"> & {
+    thumbnailCandidates?: string[];
+  };
+  for (const url of th.thumbnailCandidates ?? []) {
+    if (!url || isPlaceholderCover(url)) continue;
+    const id = coverIdentity(url);
+    if (id) keys.add(`c:${id}`);
+  }
+  return [...keys];
+}
+
+/**
+ * Pre-filter sumber (tahap 1 deduplikasi KomikFrost): ambil kartu dari
+ * sumber berprioritas LEBIH RENDAH yang judulnya BELUM ditemukan di sumber
+ * berprioritas lebih tinggi. Konservatif â€” sebuah kartu dianggap "sudah
+ * dilihat" bila salah satu `dedupeKeys`-nya ada di `seen`. Tidak ada fuzzy;
+ * kartu yang judul+alias+sampulnya benar-benar berbeda tetap dipertahankan
+ * agar komik yang hanya ada di Komiku/Komikcast tidak hilang.
+ *
+ * Mengembalikan daftar baru; input tidak diubah. `seen` diperbarui dengan
+ * kunci kartu yang lolos agar tier berikutnya (mis. Komikcast) bisa
+ * menyaring terhadap Shinigami + Komiku sekaligus.
+ */
+export function filterUnseenCards(
+  cards: MangaCard[],
+  seen: Set<string>,
+): MangaCard[] {
+  // JANGAN membuang kartu yang sudah dilihat: kartu duplikat adalah sumber
+  // fallback. Bila dibuang di sini, `mergeCards` tidak pernah melihatnya,
+  // sehingga `sources`, `sourceSlug`, kandidat sampul, dan chapter terbaru
+  // dari sumber berprioritas lebih rendah hilang permanen. Deduplikasi yang
+  // mempertahankan fallback dilakukan `mergeCards` (satu kartu gabungan,
+  // semua sumber tercatat). Fungsi ini dipertahankan demi kompatibilitas
+  // pemanggil: ia hanya mencatat kunci ke `seen` dan mengembalikan semua
+  // kartu apa adanya.
+  for (const c of cards) for (const k of dedupeKeys(c)) seen.add(k);
+  return [...cards];
 }
 
 /** Sumber genre: detail membawa `genres` (urut), kartu hanya `genre`. */
@@ -433,6 +493,30 @@ export interface MergedMangaDetail extends Omit<MangaDetail, "chapters"> {
  * bukan fuzzy) — menangani upstream yang memotong judul utama
  * ("...Desu" → "...Des") tapi menyimpan judul EN lengkap yang identik.
  */
+/**
+ * Isi field kosong kartu pemenang dari kartu kalah dalam grup yang sama.
+ * Dipakai saat dua grup digabung tapi slot sumbernya sudah terisi: kartu
+ * kalah tidak boleh dibuang begitu saja, metadata pelengkapnya (kandidat
+ * sampul, chapter pertama/terbaru, waktu update, views, sinopsis) tetap
+ * dipertahankan bila pemenang tidak memilikinya.
+ */
+function absorbFallbackCard(winner: MangaCard, loser: MangaCard): MangaCard {
+  const out: MangaCard = { ...winner };
+  const cands = [...(winner.thumbnailCandidates ?? [])];
+  for (const v of [loser.thumbnail, ...(loser.thumbnailCandidates ?? [])]) {
+    if (v && !cands.includes(v)) cands.push(v);
+  }
+  if (cands.length) out.thumbnailCandidates = cands;
+  if (!out.firstChapter && loser.firstChapter) out.firstChapter = loser.firstChapter;
+  if (!out.latestChapter && loser.latestChapter) out.latestChapter = loser.latestChapter;
+  if (!out.updatedAt && loser.updatedAt) out.updatedAt = loser.updatedAt;
+  if (typeof out.updatedAtTs !== "number" && typeof loser.updatedAtTs === "number") out.updatedAtTs = loser.updatedAtTs;
+  if (!out.views && loser.views) out.views = loser.views;
+  if (!out.synopsis && loser.synopsis) out.synopsis = loser.synopsis;
+  if (!out.altTitle && loser.altTitle) out.altTitle = loser.altTitle;
+  return out;
+}
+
 export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): MergedMangaCard[] {
   const groups = new Map<
     string,
@@ -502,6 +586,7 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       if (!g) continue;
       for (const s of SOURCE_PRIORITY) {
         if (g.cards[s] && !tg.cards[s]) tg.cards[s] = g.cards[s]!;
+        else if (g.cards[s] && tg.cards[s]) tg.cards[s] = absorbFallbackCard(tg.cards[s]!, g.cards[s]!);
       }
       absorbed.add(k);
     }
@@ -528,8 +613,39 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         if (/\d$/.test(longK)) continue;
         const gl = groups.get(longK);
         if (!gl) continue;
+        // Pengaman judul berbeda: kesamaan prefix saja tidak cukup. Wajib
+        // ada bukti kedua bahwa ini judul yang sama: sampul identik ATAU
+        // altTitle yang sama persis. Tanpa ini, judul berbeda yang kebetulan
+        // berbagi awalan (mis. sekuel/spin-off) akan tergabung.
+        const coversOf = (g: typeof gl): Set<string> => {
+          const ids = new Set<string>();
+          for (const s of SOURCE_PRIORITY) {
+            const c = g.cards[s];
+            if (!c) continue;
+            for (const th of [c.thumbnail, ...(c.thumbnailCandidates ?? [])]) {
+              if (!th || isPlaceholderCover(th)) continue;
+              const id = coverIdentity(th);
+              if (id) ids.add(id);
+            }
+          }
+          return ids;
+        };
+        const cs = coversOf(gs);
+        const cl = coversOf(gl);
+        const sameCover = [...cs].some((id) => cl.has(id));
+        const altOf = (g: typeof gl): Set<string> => {
+          const out = new Set<string>();
+          for (const s of SOURCE_PRIORITY) {
+            const ak = g.cards[s] ? altKeyOf(g.cards[s]!) : "";
+            if (ak) out.add(ak);
+          }
+          return out;
+        };
+        const sameAlt = [...altOf(gs)].some((a) => altOf(gl).has(a));
+        if (!sameCover && !sameAlt) continue;
         for (const src of SOURCE_PRIORITY) {
           if (gl.cards[src] && !gs.cards[src]) gs.cards[src] = gl.cards[src]!;
+          else if (gl.cards[src] && gs.cards[src]) gs.cards[src] = absorbFallbackCard(gs.cards[src]!, gl.cards[src]!);
         }
         absorbed.add(longK);
       }
@@ -641,7 +757,9 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
           const o = g.cards[s];
           if (!o) continue;
           const cur = tg.cards[s];
-          if (!cur || weight(o) > weight(cur)) tg.cards[s] = o;
+          if (!cur) tg.cards[s] = o;
+          else if (weight(o) > weight(cur)) tg.cards[s] = absorbFallbackCard(o, cur);
+          else tg.cards[s] = absorbFallbackCard(cur, o);
         }
         absorbed.add(k);
       }

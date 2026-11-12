@@ -272,10 +272,10 @@ export default function HomePage() {
   const checkNewAll = useCallback(() => {
     void latest.checkNew();
   }, [latest.checkNew]);
-  // 30 dtk (bukan 5): probe `live` melewati SEMUA cache dan menembak tiga
-  // sumber sekaligus — tiap 5 dtk itu ~36 request upstream/menit per tab.
-  // Chapter baru tetap terdeteksi maksimal setengah menit setelah terbit.
-  useAutoRefresh(checkNewAll, 30_000);
+  // 60 dtk (ketentuan): probe `live` melewati SEMUA cache memori + cache
+  // sumber sekaligus — interval lebih pendek hanya membakar invocation + upstream.
+  // Chapter baru tetap terdeteksi maksimal 60 dtk setelah terbit.
+  useAutoRefresh(checkNewAll, 60_000);
 
   // Prefetch hemat: hanya daftar genre + hanya saat browser idle, agar
   // tidak berebut bandwidth/CPU dengan gambar + section beranda.

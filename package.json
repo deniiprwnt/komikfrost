@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node lib/api/http-cache.test.ts && node lib/api/aggregator.test.ts"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
