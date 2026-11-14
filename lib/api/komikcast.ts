@@ -50,7 +50,7 @@ export class KomikcastError extends Error {
   }
 }
 
-async function fetchJson<T>(url: string, revalidate = 30, fresh = false): Promise<T> {
+async function fetchJson<T>(url: string, revalidate = 120, fresh = false): Promise<T> {
   // URL ber-versi data: cache HTTP lama (JSON sebelum normalisasi) tidak
   // dipakai ulang setelah aturan normalisasi berubah.
   const target = withDataVersion(url);

@@ -194,8 +194,7 @@ function TerbaruContent() {
       // live=1: bypass cache memori server + cache HTTP upstream agar daftar
       // benar-benar mengikuti sumber data (Komiku/Komikcast/Shinigami).
       const qs = buildQs(1);
-      qs.set("live", "1");
-      const res = await apiGet<LatestPayload>(`/api/latest?${qs}`, { noStore: true });
+      const res = await apiGet<LatestPayload>(`/api/latest?${qs}`);
       // Selama await (scrape 2–6 dtk) user bisa sudah pindah halaman.
       // applyItems(..., 1) memanggil setPage(1) — jangan sampai itu
       // menendang user kembali ke halaman 1 dari halaman yang sedang
@@ -221,7 +220,7 @@ function TerbaruContent() {
   // pendek hanya membakar invocation + request upstream tanpa hasil.
   // Chapter baru dari ketiga sumber tetap terdeteksi <=60 dtk. Jangan
   // diturunkan: lantai 60 dtk juga ditegakkan di useAutoRefresh.
-  useAutoRefresh(silentCheck, 60_000);
+  useAutoRefresh(silentCheck, 120_000);
 
   const scrollToList = useCallback(() => {
     requestAnimationFrame(() => {

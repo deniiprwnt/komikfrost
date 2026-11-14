@@ -93,12 +93,12 @@ const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url),
 
 /* --------------------- Polling 60 dtk + cache 15-30 dtk --------------------- */
 {
-  assert.match(read("app/terbaru/page.tsx"), /useAutoRefresh\(silentCheck, 60_000\)/, "/terbaru poll 60 dtk");
-  assert.match(read("app/page.tsx"), /useAutoRefresh\(checkNewAll, 60_000\)/, "beranda poll 60 dtk");
+  assert.match(read("app/terbaru/page.tsx"), /useAutoRefresh\(silentCheck, 120_000\)/, "/terbaru poll 2 menit");
+  assert.match(read("app/page.tsx"), /useAutoRefresh\(checkNewAll, 120_000\)/, "beranda poll 2 menit");
 
   const manga = read("lib/api/manga.ts");
   // Cache 15-30 dtk tidak boleh menghalangi deteksi update: probe live bypass.
-  assert.match(manga, /const latestCache = createKeyedCache<PagedResult<MangaCard>>\(30_000, 50\)/);
+  assert.match(manga, /const latestCache = createKeyedCache<PagedResult<MangaCard>>\(120_000, 50\)/);
   const liveBlock = manga.slice(manga.indexOf("if (opts.live)"), manga.indexOf("return latestCache.load"));
   assert.ok(liveBlock.includes("liveInflight") && !liveBlock.includes("latestCache.load"), "probe live tidak memakai cache TTL");
   // Sumber tetap membuang cache HTTP upstream saat probe.

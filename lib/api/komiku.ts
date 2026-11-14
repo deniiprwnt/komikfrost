@@ -68,7 +68,7 @@ function takeUpstreamAge(url: string): number {
   return v;
 }
 
-async function fetchHtml(url: string, revalidate = 30, fresh = false): Promise<string> {
+async function fetchHtml(url: string, revalidate = 120, fresh = false): Promise<string> {
   // URL ber-versi data: HTML lama (sinopsis/sampul/genre mentah sebelum
   // normalisasi) di cache HTTP/CDN tidak dipakai ulang setelah versi naik.
   const target = withDataVersion(url);

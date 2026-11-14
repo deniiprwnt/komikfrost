@@ -154,8 +154,10 @@ function useHomeSection<K extends keyof HomePayload>(
     if (shuffleData) return;
     if (!dataRef.current || dataRef.current.length === 0) return;
     try {
-      const path = probePath ?? "/api/home";
-      const payload = await apiGet<HomePayload | { items?: MangaCard[] }>(path, { noStore: true });
+      // P1 hemat Vercel: probe pakai cache (tanpa `live` / noStore).
+      // Sebelumnya tiap tick menembak scrape baru â€” sekarang ikut TTL server.
+      const path = probePath ? withoutLive(probePath) : "/api/home";
+      const payload = await apiGet<HomePayload | { items?: MangaCard[] }>(path);
       const list = probePath
         ? ((payload as { items?: MangaCard[] }).items ?? null)
         : ((payload as HomePayload | null)?.[key] ?? null);
@@ -260,7 +262,7 @@ export default function HomePage() {
   // /api/home (tanpa scrape populer + rekomendasi).
   // live=1: probe auto-refresh 5 dtk melewati semua cache → komik baru dari
   // Komiku/Komikcast/Shinigami tampil begitu sumbernya terbit.
-  const latest = useHomeSection("latest", false, "/api/latest?page=1&orderby=modified&limit=16&live=1");
+  const latest = useHomeSection("latest", false, "/api/latest?page=1&orderby=modified&limit=16");
   const recommended = useRecommended();
 
   // Daftar update sendiri tiap interval + tiap PWA dibuka lagi — tanpa
@@ -275,7 +277,7 @@ export default function HomePage() {
   // 60 dtk (ketentuan): probe `live` melewati SEMUA cache memori + cache
   // sumber sekaligus — interval lebih pendek hanya membakar invocation + upstream.
   // Chapter baru tetap terdeteksi maksimal 60 dtk setelah terbit.
-  useAutoRefresh(checkNewAll, 60_000);
+  useAutoRefresh(checkNewAll, 120_000);
 
   // Prefetch hemat: hanya daftar genre + hanya saat browser idle, agar
   // tidak berebut bandwidth/CPU dengan gambar + section beranda.

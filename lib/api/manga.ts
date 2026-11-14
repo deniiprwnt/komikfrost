@@ -563,7 +563,7 @@ export interface LatestOpts {
 // total (lihat getLatestPaged), jadi auto-refresh 30 dtk klien tidak
 // terpengaruh. Kunjungan non-live (pagination halaman 2+, prefetch) jadi
 // instan dari cache server, bukan scrape 3 source berulang.
-const latestCache = createKeyedCache<PagedResult<MangaCard>>(30_000, 50);
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(120_000, 50);
 
 /** Dedupe probe live: beberapa tab / tick bersamaan = satu kali scrape. */
 const liveInflight = new Map<string, Promise<PagedResult<MangaCard>>>();
@@ -846,7 +846,7 @@ export async function getLatestUpdate(): Promise<MangaCard[]> {
 // TTL dinaikkan 30 dtk -> 60 dtk: klik chapter -> back -> klik chapter lain
 // sering terjadi dalam <1 menit; tanpa cache ini setiap back = scrape tiga
 // source ulang. 1 menit cukup untuk navigasi bolak-balik tanpa basi lama.
-const detailCache = createKeyedCache<MangaDetail>(60_000, 60);
+const detailCache = createKeyedCache<MangaDetail>(120_000, 60);
 
 export async function getMangaDetail(
   slug: string,

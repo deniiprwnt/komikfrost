@@ -5,7 +5,8 @@ import { getLatest, getPopular, getRecommended } from "@/lib/api/manga";
 import type { MangaCard } from "@/lib/api/types";
 import { guard, handle } from "../_lib";
 
-export const dynamic = "force-dynamic";
+// P2 batch 2: HAPUS force-dynamic (sama seperti /api/latest) â€” kalau tidak,
+// fetch upstream jadi force-no-store & Data Cache Vercel tidak jalan.
 // Rantai scrape multi-source bisa melewati batas default lama (10 dtk) saat
 // satu upstream lambat — 504 membuat beranda kosong.
 export const maxDuration = 30;
@@ -25,7 +26,7 @@ type HomeData = { latest: unknown[]; popular: unknown[]; recommended: unknown[] 
  * terdeteksi sampai cek berikutnya (efektif 120 dtk). TTL di bawah
  * interval memastikan setiap cek mendapat data hasil scrape baru.
  */
-const CACHE_MS = 30_000;
+const CACHE_MS = 60_000;
 const CACHE_SECONDS = CACHE_MS / 1000;
 let cache: { at: number; data: HomeData } | null = null;
 let inflight: Promise<HomeData> | null = null;

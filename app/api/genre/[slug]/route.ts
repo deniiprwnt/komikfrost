@@ -33,6 +33,6 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
       page,
       ...(await getMangaByGenre(genre, page)),
     }),
-    { revalidate: 30, scope: "private" },
+    { revalidate: 120, scope: "private" },
   );
 }

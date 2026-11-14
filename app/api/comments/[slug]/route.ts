@@ -32,5 +32,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   if (blocked) return blocked;
   // ?debug=1 → jejak percobaan tiap sumber (tanpa cache) untuk diagnosis.
   if (debug) return handle(() => getComments(decoded, chapter, true));
-  return handle(() => getComments(decoded, chapter), { revalidate: 60, scope: "private" });
+  return handle(() => getComments(decoded, chapter), { revalidate: 120, scope: "private" });
 }

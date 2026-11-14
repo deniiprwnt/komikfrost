@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   // Jangan bocorkan "X-Powered-By: Next.js" ke browser.
   poweredByHeader: false,
+  compress: true,
+  compiler: { removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false },
+  experimental: {
+    optimizePackageImports: ["cheerio"],
+    // P2: Router Cache klien â€” back/forward & navigasi ulang ke halaman
+    // dinamis yang sama tidak refetch selama 2 menit (sejajar polling).
+    staleTimes: { dynamic: 120, static: 300 },
+  },
   // `/500` tidak boleh jadi route app: Next memakai path itu untuk export
   // 500.html bawaannya, dan bentrokan membuat build gagal (ENOENT rename
   // .next/export/500.html). Rewrite mempertahankan URL /500 untuk pratinjau.

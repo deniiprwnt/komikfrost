@@ -115,7 +115,7 @@ interface ShiniChapterDetail {
 
 async function fetchShini<T>(
   path: string,
-  revalidate = 30,
+  revalidate = 120,
   fresh = false,
 ): Promise<{ data: T; meta?: ShiniMeta }> {
   const url = `${SHINI_API}${path}`;

@@ -74,7 +74,7 @@ function PopulerContent() {
     try {
       const res = await apiGet<{ period: string; items: MangaCard[] }>(
         `/api/popular?period=${period}`,
-        { noStore: true },
+        undefined,
       );
       if (!res.items || res.items.length === 0) return;
       const sig = (l: MangaCard[]) =>
@@ -89,7 +89,7 @@ function PopulerContent() {
     }
   }, [period]);
   // Peringkat populer tidak berubah cepat — polling jarang saja.
-  useAutoRefresh(silentCheck, 60_000);
+  useAutoRefresh(silentCheck, 120_000);
 
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">

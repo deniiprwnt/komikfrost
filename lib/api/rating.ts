@@ -41,6 +41,6 @@ export function splitRating(raw?: string | null): SplitRating {
     if (n === 0) return {};
   }
   // Teks lain (mis. "- ", "N/A") tidak dianggap skor maupun batas usia.
-  if (/^[-â€“â€”?]+$/.test(s) || /^n\/?a$/i.test(s)) return {};
+  if (/^[-\u2013\u2014?]+$/.test(s) || /^n\/?a$/i.test(s)) return {};
   return { score: s };
 }

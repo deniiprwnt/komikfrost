@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { getLatestPaged } from "@/lib/api/manga";
 import { guard, handle } from "../_lib";
 
-export const dynamic = "force-dynamic";
+// P2: HAPUS force-dynamic â€” di Next 15 itu = fetchCache force-no-store,
+// sehingga next:{ revalidate } di fetch upstream diabaikan & Data Cache
+// Vercel (shared antar-instance) tidak pernah jalan. Tanpa baris ini route
+// tetap dinamis (baca searchParams), tapi fetch upstream bisa di-cache.
+// Gate tetap via guard() + Cache-Control private di bawah.
 export const maxDuration = 30;
 
 const ORDERBYS = ["modified", "date", "popular", "rand"] as const;
@@ -66,6 +70,6 @@ export async function GET(req: NextRequest) {
     // bolak-balik tidak bakar scrape 3 source berulang, tapi daftar
     // terbaru tetap segar. Probe live TIDAK diberi Cache-Control sama
     // sekali agar respons selalu baru.
-    live ? undefined : { revalidate: 10, scope: "private" },
+    live ? undefined : { revalidate: 60, scope: "private" },
   );
 }

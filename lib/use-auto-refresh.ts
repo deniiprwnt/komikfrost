@@ -5,18 +5,18 @@ import { useEffect, useRef } from "react";
 /**
  * Refresh otomatis daftar saat ada komik baru — tanpa reload manual
  * (penting di PWA yang tidak punya tombol reload).
- * - Polling tiap `intervalMs` (default 4 dtk) hanya saat tab terlihat.
+ * - Polling tiap `intervalMs` (default 2 menit) hanya saat tab terlihat.
  * - Refresh langsung saat PWA kembali ke foreground (visibility/focus),
  *   saat online kembali, dan saat pageshow (back-forward cache).
  * - Callback wajib silent: sukses → update diam-diam, gagal → abaikan
  *   (tidak mengutak-atik error/loading yang sedang tampil).
  */
-export function useAutoRefresh(cb: () => void, intervalMs = 60_000) {
-  // Floor 60 dtk: probe `live=1` melewati SEMUA cache server + upstream dan
+export function useAutoRefresh(cb: () => void, intervalMs = 120_000) {
+  // Floor 120 dtk: probe `live=1` melewati SEMUA cache server + upstream dan
   // men-scrape 3 sumber. Polling 30 dtk/tab = 2x Function Invocation &
   // upstream yang tidak perlu untuk daftar yang berubah per menit/jam.
-  // 60 dtk tetap mendeteksi chapter baru tanpa terasa basi di PWA.
-  intervalMs = Math.max(intervalMs, 60_000);
+  // 120 dtk tetap mendeteksi chapter baru tanpa terasa basi di PWA.
+  intervalMs = Math.max(intervalMs, 120_000);
   const cbRef = useRef(cb);
   cbRef.current = cb;
   useEffect(() => {
