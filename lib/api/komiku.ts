@@ -776,10 +776,16 @@ export async function fetchChapter(
   const title = $("h1").first().text().trim();
   const images: string[] = [];
   $("#Baca_Komik img").each((_, img) => {
-    const src = absUrl($(img).attr("src"));
+    // Komiku memuat halaman secara lazy-load: URL asli ada di `data-src`
+    // (atribut `src` kosong/placeholder), jadi baca lewat pickImgSrc.
+    const src = pickImgSrc($(img));
     if (!src) return;
-    if (/komiku-promosi/i.test(src)) return; // banner promosi Komiku
-    images.push(src);
+    if (/komiku-promosi|promoindo/i.test(src)) return; // banner promosi Komiku
+    // Lewat proxy sendiri: host gambar Komiku sering diblokir dari jaringan
+    // Indonesia (sama seperti Shinigami), jadi URL mentah tampil sebagai slot kosong.
+    const proxied = proxiedImage(src);
+    if (images.includes(proxied)) return;
+    images.push(proxied);
   });
   // Fallback sesuai onerror bawaan Komiku: imageN.komiku.to → img.komiku.org
   // (disimpan sebagai data agar frontend bisa retry bila CDN utama gagal).
