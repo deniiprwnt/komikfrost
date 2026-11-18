@@ -30,3 +30,6 @@ Komik.rar
 
 # Artefak run e2e (trace, screenshot, report lokal)
 .e2e/
+
+# Skrip probe sementara (menembak localhost / upstream, dibuang setelah dipakai)
+scripts/_probe-*.mjs
