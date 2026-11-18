@@ -1,0 +1,12 @@
+/* Penyempurnaan kecil di atas globals.css — sengaja nyaris tak terlihat. */
+
+/* Sidebar: pemisah garis tipis saja. */
+.sb { border-right: 1px solid var(--color-line); }
+.dark .sb { border-right-color: var(--color-line-dark); }
+.sb-section-label { letter-spacing: 0.12em; font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.65; }
+
+/* Peringkat: angka kondensed agar sejajar dengan judul tankobon. */
+article.cv-row > span.font-display { font-stretch: 70%; font-weight: 900; }
+
+/* Kartu: hover hanya mengubah garis tepi (tanpa lompatan). */
+article.cv-auto:hover { border-color: var(--color-accent); }
