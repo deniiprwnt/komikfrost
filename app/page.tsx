@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi, readApiSnapshot } from "@/lib/client";
+import { apiGet, apiGetSWR, invalidateApi, peekApiCache, peekApiCacheStale, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { timeAgo, useHistory } from "@/lib/history";
 import type { ComicSourceId, MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -68,19 +68,23 @@ function useHomeSection<K extends keyof HomePayload>(
   // ber-cache agar tidak menembak ulang tiga sumber di setiap mount.
   const loadPath = probePath ? withoutLive(probePath) : "/api/home";
   const [data, setData] = useState<MangaCard[] | null>(() => {
-    // Cache prefetch dari menu/hover = konten langsung tampil. Rekomendasi
-    // dikecualikan: urutannya diacak saat load sehingga memakai cache akan
-    // membuat daftar melompat tepat setelah tampil.
-    if (shuffleData) return null;
-    // Section dengan endpoint sendiri (daftar terbaru) membaca cache
-    // endpoint itu, bukan /api/home — dulu isinya tertukar dengan payload
-    // /api/home lalu daftar berganti sendiri beberapa detik setelah tampil.
+    // Isi awal: cache sesi (termasuk yang basi) lalu snapshot disk. Di PWA
+    // yang dibuka ulang / dinavigasi kembali, daftar langsung tampil dan
+    // tidak pernah diganti skeleton. Rekomendasi tetap dikocok sekali di
+    // sini supaya urutannya sudah final saat layar pertama dilukis.
     if (probePath) {
-      const cachedProbe = peekApiCache<{ items?: MangaCard[] }>(loadPath);
+      // Section dengan endpoint sendiri (daftar terbaru) membaca cache
+      // endpoint itu, bukan /api/home — dulu isinya tertukar dengan payload
+      // /api/home lalu daftar berganti sendiri beberapa detik setelah tampil.
+      const cachedProbe =
+        peekApiCacheStale<{ items?: MangaCard[] }>(loadPath) ??
+        readApiSnapshot<{ items?: MangaCard[] }>(loadPath);
       return cachedProbe?.items ?? null;
     }
-    const cached = peekApiCache<HomePayload>("/api/home");
-    return cached ? cached[key] : null;
+    const cached =
+      peekApiCacheStale<HomePayload>("/api/home") ?? readApiSnapshot<HomePayload>("/api/home");
+    const list = cached ? cached[key] : null;
+    return list && shuffleData ? shuffle(list) : list;
   });
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -133,7 +137,9 @@ function useHomeSection<K extends keyof HomePayload>(
           },
           () => setRefreshing(false),
         );
-        setData(pick(res.data));
+        // Kocok hanya saat layar masih kosong: isi yang sudah tampil (seed
+        // cache/snapshot) tidak diacak ulang agar urutan tidak melompat.
+        setData(pick(res.data, !hasDataRef.current));
         // Kalau data basi, onFresh di atas yang mematikan spinner.
         if (!res.stale) setRefreshing(false);
       } catch (e) {

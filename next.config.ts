@@ -8,9 +8,11 @@ const nextConfig: NextConfig = {
   compiler: { removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false },
   experimental: {
     optimizePackageImports: ["cheerio"],
-    // P2: Router Cache klien â€” back/forward & navigasi ulang ke halaman
-    // dinamis yang sama tidak refetch selama 2 menit (sejajar polling).
-    staleTimes: { dynamic: 120, static: 300 },
+    // Router Cache klien — shell halaman ini semuanya komponen client yang
+    // mengambil data sendiri via apiGet, jadi payload RSC yang lama tidak
+    // pernah menampilkan data basi. Manfaatnya: back/forward tidak memicu
+    // request RSC + skeleton baru dalam jendela ini (rasa aplikasi native).
+    staleTimes: { dynamic: 300, static: 1800 },
   },
   // `/500` tidak boleh jadi route app: Next memakai path itu untuk export
   // 500.html bawaannya, dan bentrokan membuat build gagal (ENOENT rename

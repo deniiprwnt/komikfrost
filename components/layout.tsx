@@ -9,6 +9,7 @@ import { PromoYukiHead, PromoYukiPaw } from "./promo-yuki";
 import { NavLink } from "./nav-link";
 import { ClearButton } from "./clear-button";
 import { ClientDataVersion } from "./client-cache-version";
+import { isPopNav } from "@/lib/nav-scroll";
 
 const NAV = [
   { href: "/", label: "Beranda", icon: IconHome },
@@ -325,10 +326,18 @@ export function Header() {
   );
 }
 
-/** Wrapper for page content — trims bottom padding while reading, where the tab bar is hidden. */
+/**
+ * Wrapper for page content — trims bottom padding while reading, where the tab
+ * bar is hidden.
+ *
+ * Animasi masuk hanya untuk navigasi MAJU. Saat kembali dari halaman lain,
+ * layar harus langsung terasa "sudah di sana" — memutar ulang fade/slide
+ * membuat back terasa seperti memuat ulang halaman.
+ */
 export function Main({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const reading = pathname.startsWith("/baca/");
+  const popping = isPopNav();
   return (
     <main
       className={`mx-auto w-full max-w-app min-w-0 flex-1 px-3 pt-4 sm:px-4 sm:pt-6 sm:pb-6 lg:px-6 lg:pt-8 ${
@@ -337,7 +346,7 @@ export function Main({ children }: { children: React.ReactNode }) {
     >
       <ClientDataVersion />
       {!reading && <div aria-hidden className="scroll-progress" />}
-      <div key={pathname} className="page-in min-w-0">
+      <div key={pathname} className={popping ? "min-w-0" : "page-in min-w-0"}>
         {children}
       </div>
     </main>

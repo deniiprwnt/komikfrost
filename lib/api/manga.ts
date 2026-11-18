@@ -716,7 +716,9 @@ async function buildLatestPaged(
 const SHINI_TOP_BY_PERIOD: Record<RankPeriod, ShiniTopFilter> = {
   harian: "daily",
   mingguan: "weekly",
-  bulanan: "monthly",
+  // Ranking bulanan dihapus upstream (filter "monthly" → 400); all_time
+  // adalah padanan terdekat yang masih tersedia.
+  bulanan: "all_time",
   total: "all_time",
 };
 

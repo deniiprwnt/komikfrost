@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiGet, peekApiCache, prefetchApi } from "@/lib/client";
+import { apiGet, peekApiCache, peekApiCacheStale, prefetchApi, readApiSnapshot } from "@/lib/client";
+import { isPopNav } from "@/lib/nav-scroll";
 import { getHistoryEntry, saveHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
 import type { ChapterData, MangaDetail } from "@/lib/api/types";
@@ -171,7 +172,13 @@ export default function ReaderPage({
 }) {
   const { slug, chapter } = use(params);
   const router = useRouter();
-  const [data, setData] = useState<ChapterData | null>(null);
+  const chapterPath = `/api/chapter/${encodeURIComponent(slug)}/${encodeURIComponent(chapter)}`;
+  const chapterKey = `${slug}/${chapter}`;
+  // Isi awal dari cache / snapshot — membuka ulang chapter yang pernah dibaca
+  // (termasuk PWA yang dimuat ulang OS) langsung menampilkan gambarnya.
+  const [data, setData] = useState<ChapterData | null>(
+    () => peekApiCacheStale<ChapterData>(chapterPath) ?? readApiSnapshot<ChapterData>(chapterPath),
+  );
   const [error, setError] = useState<string | null>(null);
   const [failed, setFailed] = useState<Set<number>>(new Set());
   // Bar progres — ditulis langsung ke DOM lewat ref (bukan state) supaya
@@ -197,6 +204,9 @@ export default function ReaderPage({
   // Penanda persist-awal sudah jalan untuk chapter ini (efek jalan ulang
   // saat restore selesai / mode diganti — persist 0 hanya sekali).
   const initPersistRef = useRef("");
+  // Chapter yang datanya sedang tampil — guard agar `load()` tidak
+  // mengosongkan gambar saat chapter yang sama dimuat ulang (retry / kembali).
+  const loadedKeyRef = useRef(chapterKey);
   // Overlay navigasi chapter (Prev / Daftar isi / Next) — muncul saat gambar
   // di-tap (mobile) atau tombol daftar ditekan. Auto-sembunyi 6 detik.
   const [showTapNav, setShowTapNav] = useState(false);
@@ -314,17 +324,26 @@ export default function ReaderPage({
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
-    setData(null);
-    setFailed(new Set());
-    setPageIdx(0);
-    setProgress(0);
-    setShowTapNav(false);
-    setShowTop(false);
-    setRestorePct(null);
-    setChapters(null);
-    setFabSuppressed(false);
-    pageNumRef.current = 0;
-    savedProgressRef.current = 0;
+    // Chapter berbeda = layar berbeda: buang sisa chapter lama lalu isi dari
+    // cache seketika (tanpa skeleton) sebelum jaringan. Chapter yang SAMA
+    // (retry, atau kembali dari detail) tidak boleh mengosongkan gambar yang
+    // sudah tampil — itulah yang dulu terasa seperti render ulang.
+    if (loadedKeyRef.current !== chapterKey) {
+      loadedKeyRef.current = chapterKey;
+      setData(
+        peekApiCacheStale<ChapterData>(chapterPath) ?? readApiSnapshot<ChapterData>(chapterPath),
+      );
+      setFailed(new Set());
+      setPageIdx(0);
+      setProgress(0);
+      setShowTapNav(false);
+      setShowTop(false);
+      setRestorePct(null);
+      setChapters(null);
+      setFabSuppressed(false);
+      pageNumRef.current = 0;
+      savedProgressRef.current = 0;
+    }
     // Posisi tersimpan chapter ini (bila dibuka ulang) — dibaca SEBELUM
     // persist awal menimpanya; restore dilakukan sekali setelah gambar siap.
     const prev = getHistoryEntry(slug);
@@ -334,12 +353,7 @@ export default function ReaderPage({
     const savedPct =
       sameChapter && prev.progress > 0 && prev.progress < 1 ? prev.progress : null;
     try {
-      setData(
-        await apiGet<ChapterData>(
-          `/api/chapter/${encodeURIComponent(slug)}/${encodeURIComponent(chapter)}`,
-          { signal },
-        ),
-      );
+      setData(await apiGet<ChapterData>(chapterPath, { signal }));
       // Daftar chapter untuk dropdown: dari cache detail bila ada
       // (hasil hover-prefetch kartu / kunjungan halaman detail),
       // kalau tidak ada fetch ringan di background (lihat effect di bawah).
@@ -358,20 +372,22 @@ export default function ReaderPage({
           );
         }
       }
-      const key = `${slug}/${chapter}`;
-      if (restoredRef.current !== key && (savedPage > 0 || savedPct !== null)) {
-        restoredRef.current = key;
+      // Back/forward: NavMemory memulihkan posisi piksel yang persis; jangan
+      // ditimpa rasio progres (granularitas 10%) dari riwayat.
+      const exactRestore = isPopNav();
+      if (!exactRestore && restoredRef.current !== chapterKey && (savedPage > 0 || savedPct !== null)) {
+        restoredRef.current = chapterKey;
         setPageIdx(savedPage);
         pageNumRef.current = savedPage;
         setRestorePct(savedPct);
-      } else {
+      } else if (!exactRestore) {
         window.scrollTo({ top: 0 });
       }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Gagal memuat chapter.");
     }
-  }, [slug, chapter]);
+  }, [slug, chapter, chapterPath, chapterKey]);
 
   useEffect(() => {
     const ctrl = new AbortController();

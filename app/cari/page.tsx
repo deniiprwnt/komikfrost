@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, titleKey } from "@/lib/client";
+import { apiGet, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -32,10 +32,24 @@ function CariContent() {
   const q = (sp?.get("q") || "").trim();
   usePageTitle(q ? `Cari: ${q}` : "Pencarian");
   const [draft, setDraft] = useState(q);
+  // Hasil yang sudah pernah dimuat (memori sesi / snapshot disk) dipakai
+  // sebagai isi awal: kembali dari halaman lain tidak pernah menampilkan
+  // skeleton walau jaringan masih lambat.
+  const [bootSeed] = useState<SearchPayload | null>(() => {
+    if (!q) return null;
+    const p = `/api/search?q=${encodeURIComponent(q)}&page=${parsePage(sp?.get("page"))}`;
+    return peekApiCacheStale<SearchPayload>(p) ?? readApiSnapshot<SearchPayload>(p);
+  });
   const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
-  const [items, setItems] = useState<MangaCard[] | null>(null);
-  const [hasNext, setHasNext] = useState(false);
-  const [total, setTotal] = useState<number | null>(null);
+  const [items, setItems] = useState<MangaCard[] | null>(() =>
+    bootSeed?.items?.length ? bootSeed.items : null,
+  );
+  const [hasNext, setHasNext] = useState(() => Boolean(bootSeed?.hasNextPage));
+  const [total, setTotal] = useState<number | null>(() =>
+    bootSeed?.items?.length
+      ? Math.max(typeof bootSeed.total === "number" ? bootSeed.total : 0, bootSeed.items.length)
+      : null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bootedRef = useRef(false);
@@ -105,11 +119,22 @@ function CariContent() {
     }
     setLoading(true);
     setError(null);
-    setItems(null);
-    setTotal(null);
+    const path = `/api/search?q=${encodeURIComponent(kw)}&page=${p}`;
+    // Isi dari cache/snapshot lebih dulu — layar tidak pernah kosong saat
+    // muat ulang / kembali, dan daftar lama dipertahankan selama fetch.
+    const seeded = peekApiCacheStale<SearchPayload>(path) ?? readApiSnapshot<SearchPayload>(path);
+    if (seeded?.items?.length) {
+      const freshSeed = dedupePage(kw, p, seeded.items);
+      setItems(freshSeed);
+      setTotal(
+        Math.max(typeof seeded.total === "number" ? seeded.total : 0, freshSeed.length),
+      );
+      setPage(p);
+      setHasNext(Boolean(seeded.hasNextPage));
+    }
     try {
       const res = await apiGet<SearchPayload>(
-        `/api/search?q=${encodeURIComponent(kw)}&page=${p}`,
+        path,
         signal ? { signal } : undefined,
       );
       const fresh = dedupePage(kw, p, res.items);
@@ -260,9 +285,9 @@ function CariContent() {
         )}
       </div>
       {!q && <EmptyState message="Ketik judul komik pada kolom pencarian di atas." />}
-      {q && loading && <KomikListSkeleton count={8} />}
+      {q && loading && !items?.length && <KomikListSkeleton count={8} />}
       {error && <ErrorState message={error} onRetry={() => loadPage(q, page)} />}
-      {!loading && !error && items && q && items.length === 0 && (
+      {!error && items && q && items.length === 0 && (
         <div className="flex min-w-0 flex-col items-center gap-2 py-10 text-center">
           <p className="text-sm font-semibold text-fg dark:text-fg-dark">
             Tidak ada hasil untuk &quot;{q}&quot;.
@@ -274,7 +299,7 @@ function CariContent() {
           </ul>
         </div>
       )}
-      {!loading && !error && items && items.length > 0 && (
+      {!error && items && items.length > 0 && (
         <>
           <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">
             Ditemukan {total ?? items.length} judul

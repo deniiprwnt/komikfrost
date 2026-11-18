@@ -17,25 +17,24 @@ import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 /**
  * Lapisan HTTP + mapping JSON publik Shinigami (dipakai frontend mereka sendiri).
  *
- * Sumber (ditemukan legitimate dari JS publik 11.shinigami.asia):
- * - https://api.shngm.io/v1/manga/list      daftar + pencarian (?q=)
- * - https://api.shngm.io/v1/manga/top       ranking (?filter=daily|weekly|monthly|all_time)
- * - https://api.shngm.io/v1/manga/detail/<manga_id>
- * - https://api.shngm.io/v1/chapter/<manga_id>/list
- * - https://api.shngm.io/v1/chapter/detail/<chapter_id>
- * - https://api.shngm.io/v1/genre/list      daftar genre
- * - https://api.shngm.io/v1/format/list     daftar format (manga/manhwa/manhua)
- * - https://api.shngm.io/v1/type/list       daftar tipe (project/mirror)
+ * Sumber (ditemukan legitimate dari JS publik s1.shinigami.mx):
+ * - https://api.shinigami.io/v1/manga/list      daftar + pencarian (?q=)
+ * - https://api.shinigami.io/v1/manga/top       ranking (?filter=daily|weekly|monthly|all_time)
+ * - https://api.shinigami.io/v1/manga/detail/<manga_id>
+ * - https://api.shinigami.io/v1/chapter/<manga_id>/list
+ * - https://api.shinigami.io/v1/chapter/detail/<chapter_id>
+ * - https://api.shinigami.io/v1/taxonomy/list?type=genre|format|author|...
  *
- * Envelope: { retcode: 0, message, meta: {page,page_size,total_page,total_record}, data }
+ * Envelope: { retcode: 0, message, meta: {has_next,limit,offset,next_cursor}, data }
+ * Paging: manga/list pakai offset+limit; chapter list & manga/top pakai cursor.
  * Status manga: 1 = Ongoing, 2 = Completed, else Hiatus (lihat JS publik).
- * Gambar chapter: base_url + path + filename[] (assets.shngm.id, publik tanpa auth).
+ * Gambar chapter: base_url + path + filename[] (cdn.shinigami.gg, publik tanpa auth).
  *
  * Semua fetch server-side (dari route /api/*), tanpa cookie/auth/challenge.
  * Error dibungkus KomikuError agar route /api/* menanganinya seragam.
  */
 
-const SHINI_API = "https://api.shngm.io/v1";
+const SHINI_API = "https://api.shinigami.io/v1";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -45,10 +44,11 @@ const UA =
 /* ------------------------------------------------------------------ */
 
 interface ShiniMeta {
-  page?: number;
-  page_size?: number;
-  total_page?: number;
-  total_record?: number;
+  has_next?: boolean;
+  limit?: number;
+  offset?: number;
+  /** Kursor halaman berikutnya (chapter list & manga/top). */
+  next_cursor?: string;
 }
 
 interface ShiniEnvelope<T> {
@@ -164,8 +164,11 @@ async function fetchShini<T>(
   } catch {
     throw new KomikuError("Respons Shinigami tidak dikenali. Coba lagi.", url, res.status);
   }
-  if (json.retcode !== 0 || json.data === undefined || json.data === null) {
-    throw new KomikuError(json.message || "Shinigami tidak mengembalikan data.", url, 502);
+  if (json.retcode !== 0) {
+    throw new KomikuError(json.message || "Shinigami menolak permintaan ini.", url, 502);
+  }
+  if (json.data === undefined || json.data === null) {
+    throw new KomikuError("Shinigami tidak mengembalikan data.", url, 502);
   }
   return { data: json.data as T, meta: json.meta };
 }
@@ -290,7 +293,7 @@ function normalizeImgUrl(raw?: string | null): string {
   if (!s) return "";
   if (s.startsWith("//")) return "https:" + s;
   if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith("/")) return "https://assets.shngm.id" + s;
+  if (s.startsWith("/")) return "https://cdn.shinigami.gg" + s;
   return s;
 }
 
@@ -362,15 +365,16 @@ export async function fetchShiniLatest(
   opts: { format?: ShiniFormat; genre?: string; pageSize?: number; fresh?: boolean } = {},
 ): Promise<PagedResult<MangaCard>> {
   const p = Math.max(1, page);
+  const pageSize = opts.pageSize ?? 24;
   const q = new URLSearchParams({
-    page: String(p),
-    page_size: String(opts.pageSize ?? 24),
+    limit: String(pageSize),
+    offset: String((p - 1) * pageSize),
     is_update: "true",
     sort: "latest",
     sort_order: "desc",
   });
   if (opts.format) q.set("format", opts.format);
-  if (opts.genre) q.set("genre_include", opts.genre);
+  if (opts.genre) q.set("genre", opts.genre);
   // Revalidate 10 dtk (bukan default 30) — auto-refresh klien 5 dtk, cache
   // lebih lama dari itu membuat komik baru selalu ketinggalan. `fresh`
   // (probe live) bypass cache ini sepenuhnya.
@@ -380,11 +384,11 @@ export async function fetchShiniLatest(
     opts.fresh === true,
   );
   const items = Array.isArray(data) ? data.map(toCard) : [];
-  const total = meta?.total_page ?? p;
-  return { items, hasNextPage: p < total };
+  return { items, hasNextPage: meta?.has_next === true };
 }
 
-export type ShiniTopFilter = "daily" | "weekly" | "monthly" | "all_time";
+/** Filter ranking yang masih diterima upstream (`monthly` sudah dihapus). */
+export type ShiniTopFilter = "daily" | "weekly" | "all_time";
 
 export async function fetchShiniTop(
   filter: ShiniTopFilter = "daily",
@@ -393,17 +397,36 @@ export async function fetchShiniTop(
 ): Promise<MangaCard[]> {
   const q = new URLSearchParams({
     filter,
-    page: String(Math.max(1, page)),
-    page_size: String(pageSize),
+    limit: String(pageSize),
   });
-  const { data } = await fetchShini<ShiniManga[]>(`/manga/top?${q}`);
-  return Array.isArray(data) ? data.map(toCard) : [];
+  if (page > 1) q.set("offset", String((page - 1) * pageSize));
+  // Ranking kosong dikirim sebagai `data: null` (retcode tetap 0) → jangan
+  // dianggap kegagalan; cukup lanjut ke fallback.
+  let items: MangaCard[] = [];
+  try {
+    const { data } = await fetchShini<ShiniManga[]>(`/manga/top?${q}`);
+    items = Array.isArray(data) ? data.map(toCard) : [];
+  } catch {
+    items = [];
+  }
+  if (items.length > 0 || filter === "all_time") return items;
+  // Upstream kadang mengosongkan ranking harian/mingguan sementara (rank
+  // all_time tetap terisi). Jangan biarkan seksi populer kehilangan kartu
+  // Shinigami hanya karena itu.
+  // shortcut: fallback ke all_time; hapus bila ranking periodik sudah stabil.
+  try {
+    const alt = new URLSearchParams({ filter: "all_time", limit: String(pageSize) });
+    const { data } = await fetchShini<ShiniManga[]>(`/manga/top?${alt}`);
+    return Array.isArray(data) ? data.map(toCard) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchShiniRecommended(pageSize = 24): Promise<MangaCard[]> {
   const q = new URLSearchParams({
-    page: "1",
-    page_size: String(pageSize),
+    limit: String(pageSize),
+    offset: "0",
     is_recommended: "true",
     sort: "latest",
     sort_order: "desc",
@@ -421,11 +444,14 @@ export async function searchShiniRemote(
   const kw = keyword.trim();
   if (kw.length < 2) return { items: [], hasNextPage: false };
   const p = Math.max(1, page);
-  const q = new URLSearchParams({ page: String(p), page_size: String(pageSize), q: kw });
+  const q = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((p - 1) * pageSize),
+    q: kw,
+  });
   const { data, meta } = await fetchShini<ShiniManga[]>(`/manga/list?${q}`);
   const items = Array.isArray(data) ? data.map(toCard) : [];
-  const total = meta?.total_page ?? p;
-  return { items, hasNextPage: p < total };
+  return { items, hasNextPage: meta?.has_next === true };
 }
 
 /* ------------------------------------------------------------------ */
@@ -433,7 +459,7 @@ export async function searchShiniRemote(
 /* ------------------------------------------------------------------ */
 
 export async function fetchShiniGenres(): Promise<GenreRef[]> {
-  const { data } = await fetchShini<ShiniTaxon[]>(`/genre/list`);
+  const { data } = await fetchShini<ShiniTaxon[]>(`/taxonomy/list?type=genre&limit=100`);
   if (!Array.isArray(data)) return [];
   return data
     .filter((g) => g.slug && g.name)
@@ -441,7 +467,7 @@ export async function fetchShiniGenres(): Promise<GenreRef[]> {
 }
 
 export async function fetchShiniFormats(): Promise<GenreRef[]> {
-  const { data } = await fetchShini<ShiniTaxon[]>(`/format/list?page=1`);
+  const { data } = await fetchShini<ShiniTaxon[]>(`/taxonomy/list?type=format`);
   if (!Array.isArray(data)) return [];
   return data
     .filter((g) => g.slug && g.name)
@@ -490,7 +516,7 @@ export async function resolveShiniDetailForSlug(slug: string, altTitle?: string)
     // Kandidat target: judul + altTitle pemanggil (exact, tanpa fuzzy).
     const want = aliasKeys(target, altTitle);
     for (const query of queries) {
-      const params = new URLSearchParams({ page: "1", page_size: "10", q: query });
+      const params = new URLSearchParams({ limit: "10", q: query });
       const { data } = await fetchShini<ShiniManga[]>(`/manga/list?${params}`);
       if (!Array.isArray(data)) continue;
       // Judul utama ATAU judul alternatif yang cocok exact (setelah
@@ -576,7 +602,7 @@ export async function findShiniIdByTitles(
   let lastErr: unknown;
   for (const query of queries.slice(0, 4)) {
     try {
-      const params = new URLSearchParams({ page: "1", page_size: "10", q: query });
+      const params = new URLSearchParams({ limit: "10", q: query });
       const { data } = await fetchShini<ShiniManga[]>(`/manga/list?${params}`);
       ok++;
       if (!Array.isArray(data)) continue;
@@ -607,22 +633,21 @@ function toChapterItem(mangaId: string, r: ShiniChapterRow): ChapterItem {
   };
 }
 
-/** Seluruh chapter satu manga (terbaru dulu), loop halaman bila >1000. */
+/** Seluruh chapter satu manga (terbaru dulu), loop halaman via cursor bila >1000. */
 export async function fetchShiniChaptersAll(mangaId: string): Promise<ShiniChapterRow[]> {
   const out: ShiniChapterRow[] = [];
-  let page = 1;
-  for (;;) {
+  let cursor: string | undefined;
+  for (let i = 0; i < 5; i++) {
     const q = new URLSearchParams({
-      page: String(page),
-      page_size: "1000",
+      limit: "1000",
       sort_by: "chapter_number",
       sort_order: "desc",
     });
+    if (cursor) q.set("cursor", cursor);
     const { data, meta } = await fetchShini<ShiniChapterRow[]>(`/chapter/${mangaId}/list?${q}`);
     if (Array.isArray(data)) out.push(...data);
-    const total = meta?.total_page ?? 1;
-    if (page >= total || page >= 5) break;
-    page += 1;
+    if (meta?.has_next !== true || !meta.next_cursor) break;
+    cursor = meta.next_cursor;
   }
   return out;
 }
@@ -726,7 +751,7 @@ export async function fetchShiniChapterById(
     `/chapter/detail/${chapterId}`,
     3600,
   );
-  const base = (d.base_url || "https://assets.shngm.id").replace(/\/+$/, "");
+  const base = (d.base_url || "https://cdn.shinigami.gg").replace(/\/+$/, "");
   const path = d.chapter?.path ?? "";
   const files = Array.isArray(d.chapter?.data) ? d.chapter.data : [];
   // Gambar reader Shinigami satu host dengan cover → proxy juga.

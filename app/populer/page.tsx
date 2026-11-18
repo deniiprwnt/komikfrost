@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiGet, peekApiCache, prefetchApi } from "@/lib/client";
+import { apiGet, peekApiCacheStale, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
@@ -25,26 +25,30 @@ function PopulerContent() {
   usePageTitle(
     `Peringkat ${PERIODS.find((p) => p.v === period)?.label ?? "Harian"}`,
   );
-  // Cache dari prefetch menu (hover/idle) dipakai sebagai state awal agar
-  // halaman langsung terisi, bukan menampilkan skeleton seperti reload.
+  // Cache dari prefetch menu / kunjungan sebelumnya dipakai sebagai state
+  // awal agar halaman langsung terisi — termasuk kembali dari halaman komik
+  // (cache memori basi maupun snapshot disk setelah PWA dimuat ulang).
   const [items, setItems] = useState<MangaCard[] | null>(() => {
-    const cached = peekApiCache<{ period: string; items: MangaCard[] }>(
-      `/api/popular?period=${period}`,
-    );
+    const path = `/api/popular?period=${period}`;
+    const cached =
+      peekApiCacheStale<{ period: string; items: MangaCard[] }>(path) ??
+      readApiSnapshot<{ period: string; items: MangaCard[] }>(path);
     return cached?.items ?? null;
   });
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
-    // Ganti periode tanpa cache: kosongkan agar skeleton tampil. Bila cache
-    // prefetch sudah ada, biarkan daftar tampil sampai data baru tiba.
-    if (!peekApiCache<{ period: string; items: MangaCard[] }>(`/api/popular?period=${period}`)) {
-      setItems(null);
-    }
+    const path = `/api/popular?period=${period}`;
+    const shown =
+      peekApiCacheStale<{ period: string; items: MangaCard[] }>(path) ??
+      readApiSnapshot<{ period: string; items: MangaCard[] }>(path);
+    // Hanya kosongkan bila tidak ada isi yang layak tampil; kalau ada,
+    // daftar lama tetap terlihat sampai data baru tiba (tanpa skeleton).
+    if (!shown?.items?.length) setItems(null);
     try {
       const res = await apiGet<{ period: string; items: MangaCard[] }>(
-        `/api/popular?period=${period}`,
+        path,
         signal ? { signal } : undefined,
       );
       setItems(res.items);

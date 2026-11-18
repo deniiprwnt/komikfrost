@@ -99,7 +99,7 @@ export function coverIdentity(raw?: string | null): string {
     }
     // Keluarga host yang menyajikan file yang sama.
     if (/^(thumbnail|img|image\d*)\.komiku\.(to|org|com)$/.test(host)) host = "komiku-img";
-    else if (/(^|\.)shngm\.(id|io|co)$/.test(host)) host = "shngm-img";
+    else if (/(^|\.)(shngm\.(id|io|co)|shinigami\.gg)$/.test(host)) host = "shngm-img";
     try {
       path = decodeURIComponent(path);
     } catch {

@@ -16,6 +16,7 @@
  */
 export const IMG_HOSTS = new Set([
   "assets.shngm.id",
+  "cdn.shinigami.gg",
   "image2.komiku.to",
   "image3.komiku.to",
   "image4.komiku.to",
@@ -45,6 +46,7 @@ export const IMG_HOST_SUFFIXES = [
   "shngm.id",
   "shngm.io",
   "shngm.co",
+  "shinigami.gg",
   "komiku.to",
   "komiku.org",
   "komiku.com",

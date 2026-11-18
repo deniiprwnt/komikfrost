@@ -24,6 +24,25 @@ const cache = new Map<string, { at: number; data: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
 /**
+ * true setelah React selesai hidrasi dokumen pertama.
+ *
+ * Membaca localStorage saat render awal membuat markup klien berbeda dari
+ * HTML server (server selalu merender versi kosong) — React membatalkan
+ * hidrasi (error #418) dan halaman kehilangan interaktivitas. Navigasi di
+ * dalam aplikasi (kembali/maju) tetap seketika karena hidrasi sudah lewat.
+ */
+let hydrated = false;
+
+/** Dipanggil sekali dari layout setelah mount (lihat components/nav-memory). */
+export function markClientHydrated(): void {
+  hydrated = true;
+}
+
+export function isClientHydrated(): boolean {
+  return hydrated;
+}
+
+/**
  * Snapshot daftar ke localStorage — supaya REFRESH halaman (yang menghapus
  * cache memori) tetap langsung terisi, bukan skeleton 2-6 detik menunggu
  * scrape tiga sumber. Data tetap divalidasi ulang di background; label
@@ -38,12 +57,22 @@ function snapshotAllowed(path: string): boolean {
     path.startsWith("/api/latest") ||
     path === "/api/home" ||
     path.startsWith("/api/popular") ||
-    path.startsWith("/api/genre/")
+    path.startsWith("/api/genre/") ||
+    // Pencarian: kembali dari detail komik / halaman lain tidak boleh
+    // mengosongkan hasil lalu menampilkan skeleton.
+    path.startsWith("/api/search") ||
+    // Detail + chapter: PWA bisa dibuang OS dan dimuat ulang kapan saja.
+    // Snapshot kecil (JSON, bukan gambar) membuat layar terakhir langsung
+    // terisi saat dibuka lagi, tanpa skeleton menunggu 3 sumber scrape.
+    path.startsWith("/api/manga/") ||
+    path.startsWith("/api/chapter/")
   );
 }
 
 export function readApiSnapshot<T>(path: string): T | null {
   if (typeof window === "undefined" || !snapshotAllowed(path)) return null;
+  // Hidrasi belum selesai → jangan baca snapshot (lihat `hydrated` di atas).
+  if (!hydrated) return null;
   try {
     const raw = window.localStorage.getItem(SNAP_PREFIX + path);
     if (!raw) return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { apiGet } from "@/lib/client";
+import { apiGet, peekApiCacheStale, readApiSnapshot } from "@/lib/client";
 import { isBookmarked, setLatestSeen, toggleBookmark } from "@/lib/bookmarks";
 import { consumeCoverMorph, flyCover, prefersReducedMotion } from "@/lib/morph";
 import { usePageTitle } from "@/lib/page-title";
@@ -51,7 +51,12 @@ function useSimilar(detail: MangaDetail | null) {
 
 export default function MangaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [detail, setDetail] = useState<MangaDetail | null>(null);
+  const detailPath = `/api/manga/${encodeURIComponent(slug)}`;
+  // Isi awal dari cache (kunjungan/hover sebelumnya) — kembali dari reader
+  // langsung menampilkan halaman yang sama, bukan skeleton.
+  const [detail, setDetail] = useState<MangaDetail | null>(
+    () => peekApiCacheStale<MangaDetail>(detailPath) ?? readApiSnapshot<MangaDetail>(detailPath),
+  );
   const [error, setError] = useState<string | null>(null);
   const similar = useSimilar(detail);
   const [filter, setFilter] = useState("");
@@ -76,10 +81,9 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
-    setDetail(null);
     try {
       const d = await apiGet<MangaDetail>(
-        `/api/manga/${encodeURIComponent(slug)}`,
+        detailPath,
         signal ? { signal } : undefined,
       );
       setDetail(d);
@@ -93,13 +97,16 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Gagal memuat data.");
     }
-  }, [slug]);
+  }, [detailPath]);
 
+  // Jangan pernah mengosongkan data yang sudah tampil. Saat slug berganti,
+  // isi layar diganti cache komik baru (atau skeleton bila belum ada).
   useEffect(() => {
+    setDetail(peekApiCacheStale<MangaDetail>(detailPath) ?? readApiSnapshot<MangaDetail>(detailPath));
     const ctrl = new AbortController();
     void load(ctrl.signal);
     return () => ctrl.abort();
-  }, [load]);
+  }, [load, detailPath]);
 
   // Simpan morph sedini mungkin (sebelum render skeleton pertama) agar
   // tidak hilang karena StrictMode double-render / efek lain. Lazy init

@@ -3,6 +3,7 @@ import { Archivo, Figtree } from "next/font/google";
 import { ThemeProvider } from "@/components/theme";
 import { BootSplash } from "@/components/boot-splash";
 import { RouteMemory } from "@/components/route-memory";
+import { NavMemory } from "@/components/nav-memory";
 import { Pwa } from "@/components/pwa";
 import { NoZoom } from "@/components/no-zoom";
 import { BackToTop, Footer, Header, Main, MobileTabBar, Sidebar } from "@/components/layout";
@@ -125,6 +126,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <BootSplash />
           <RouteMemory />
+          {/* Sebelum Main: efeknya harus jalan lebih dulu dari halaman
+              supaya penanda back/forward sudah terbaca saat halaman dipasang. */}
+          <NavMemory />
           <Pwa />
           <NoZoom />
           <Sidebar />

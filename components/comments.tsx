@@ -8,6 +8,7 @@ import { formatAgo } from "@/lib/relative-time";
 import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceComments } from "@/lib/api/types";
 import { SourceBadge } from "@/components/cards";
 import { PromoYukiHead } from "@/components/promo-yuki";
+import { useBackToClose } from "@/lib/use-back-close";
 
 const LABEL: Record<ComicSourceId, string> = {
   shinigami: "Shinigami",
@@ -477,6 +478,9 @@ function CommentsModal({
     setClosing(true);
     window.setTimeout(onClose, 240);
   }, [onClose]);
+
+  // Back perangkat menutup sheet ini dulu, bukan meninggalkan halaman.
+  useBackToClose(true, close);
 
   useEffect(() => {
     setMounted(true);

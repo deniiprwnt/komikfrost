@@ -21,18 +21,20 @@ import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceC
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
 const KOMIKU_BASE = "https://komiku.org";
-const SHINI_WALINE = "https://commento.shngm.io/comment";
+const SHINI_COMMENTS = "https://api.shinigami.io/comment/api/v2/comments";
+const SHINI_REFERER = "https://s1.shinigami.mx/";
 
-/** Kandidat path Waline Shinigami. Situs aslinya memakai pathname (diawali "/"), jadi itu dicoba lebih dulu. */
-const shiniPaths = (q: { mangaId: string; chapterId?: string }): string[] =>
-  q.chapterId
-    ? [`/chapter/${q.chapterId}`, `chapter/${q.chapterId}`]
-    : [`/series/${q.mangaId}`, `series/${q.mangaId}`, `/manga/${q.mangaId}`, `manga/${q.mangaId}`];
+/**
+ * Kunci halaman komentar Shinigami (bentuk dari JS publik mereka):
+ * `manga:<uuid>` untuk seri, `manga:<uuid>:chapter:<uuid>` untuk chapter.
+ */
+const shiniPageKey = (q: { mangaId: string; chapterId?: string }): string =>
+  q.chapterId ? `manga:${q.mangaId}:chapter:${q.chapterId}` : `manga:${q.mangaId}`;
 
-const SHINI_PAGE_SIZE = 30;
-const SHINI_MAX_PAGES = 80; // s.d. 2400 komentar top-level
-const shiniUrl = (path: string, page: number): string =>
-  `${SHINI_WALINE}?path=${encodeURIComponent(path)}&page=${page}&pageSize=${SHINI_PAGE_SIZE}&lang=en-US&sortBy=insertedAt_desc`;
+const SHINI_PAGE_SIZE = 100;
+const SHINI_MAX_PAGES = 4; // s.d. 400 komentar (root + balasan)
+const shiniUrl = (key: string, page: number): string =>
+  `${SHINI_COMMENTS}?page_key=${encodeURIComponent(key)}&offset=${(page - 1) * SHINI_PAGE_SIZE}&limit=${SHINI_PAGE_SIZE}`;
 
 interface KcIds {
   seriesId?: string;
@@ -298,7 +300,7 @@ function mapComment(raw: unknown, source: ComicSourceId, idx: number, level = 0)
     (user && pick(user, ["avatar", "avatar_url", "profile_image_url", "profile_picture", "photo", "picture", "image"])) ??
       pick(raw, ["avatar", "avatar_url", "user_avatar", "profile_image_url", "photo", "member_profile_image"]),
   );
-  const likesRaw = pick(raw, ["like", "like_count", "likes", "upvote", "upvotes", "vote_count", "total_like"]);
+  const likesRaw = pick(raw, ["like", "like_count", "likes", "upvote", "upvotes", "vote_up", "vote_count", "total_like"]);
   const likes = typeof likesRaw === "number" ? likesRaw : Number(likesRaw);
   const out: CommentItem = {
     id: String(pick(raw, ["id", "objectId", "comment_id", "_id", "uuid", "hash_id"]) ?? `${source}-${level}-${idx}`),
@@ -356,89 +358,89 @@ async function firstJsonList(
 /* Adapter per sumber                                                  */
 /* ------------------------------------------------------------------ */
 
-interface WalinePage {
+interface ShiniPage {
   items: CommentItem[];
-  totalPages: number;
   count: number;
 }
 
-function parseWalinePage(body: string): WalinePage | null {
+/**
+ * Balasan datang sebagai baris datar dengan `rid` = id komentar induk.
+ * Susun ulang jadi root + `replies` supaya UI menampilkan thread seperti
+ * sumber lain.
+ */
+function parseShiniPage(body: string): ShiniPage | null {
   const json = JSON.parse(body) as unknown;
-  const items = normalizeJsonComments(json, "shinigami", Infinity);
-  if (!items) return null;
-  const d = isRec(json) && isRec(json.data) ? json.data : null;
-  const tp = d ? Number(d.totalPages) : NaN;
-  const cnt = d ? Number(d.count) : NaN;
-  return {
-    items,
-    totalPages: Number.isFinite(tp) && tp > 0 ? tp : 1,
-    count: Number.isFinite(cnt) ? cnt : items.length,
+  if (!isRec(json)) return null;
+  const list = Array.isArray(json.comments) ? json.comments : findList(json);
+  if (!list) return null;
+  const rows = list.filter((r) => isRec(r) && r.is_deleted !== true && r.visible !== false);
+  const byId = new Map<string, CommentItem>();
+  const parent = new Map<string, string>();
+  const roots: CommentItem[] = [];
+  for (const [i, r] of rows.entries()) {
+    const item = mapComment(r, "shinigami", i, 0);
+    if (!item) continue;
+    byId.set(item.id, item);
+    const rid = isRec(r) && typeof r.rid === "number" ? r.rid : 0;
+    if (rid > 0) parent.set(item.id, String(rid));
+    else roots.push(item);
+  }
+  const rootOf = (id: string): string | undefined => {
+    let cur = parent.get(id);
+    for (let d = 0; cur !== undefined && parent.has(cur) && d < 8; d++) cur = parent.get(cur);
+    return cur;
   };
+  for (const id of parent.keys()) {
+    const item = byId.get(id);
+    if (!item) continue;
+    const root = byId.get(rootOf(id) ?? "");
+    // Induk tidak ada di halaman ini → tampilkan sebagai komentar sendiri
+    // daripada membuang isinya.
+    if (root && root !== item) (root.replies ??= []).push(item);
+    else roots.push(item);
+  }
+  const cnt = Number(json.count);
+  const rc = Number(json.roots_count);
+  const count = Number.isFinite(cnt) ? cnt : Number.isFinite(rc) ? rc : roots.length;
+  return { items: roots, count };
 }
 
 async function shinigamiComments(q: { mangaId: string; chapterId?: string }, trace?: Trace): Promise<SourceComments> {
-  const referer = "https://11.shinigami.asia/";
-  // 1) Cari path yang benar-benar berisi komentar (jangan berhenti di jawaban kosong).
-  let hit: { path: string; first: WalinePage } | null = null;
-  let reachable = false;
-  for (const path of shiniPaths(q)) {
-    try {
-      const pg = parseWalinePage(await fetchText(shiniUrl(path, 1), "application/json", referer, trace));
-      if (!pg) continue;
-      reachable = true;
-      trace?.push(`  -> path "${path}": ${pg.count} komentar, ${pg.totalPages} halaman`);
-      if (pg.count > 0 || pg.items.length > 0) {
-        hit = { path, first: pg };
-        break;
-      }
-    } catch {
-      // kandidat berikut
-    }
-  }
-  if (!hit) return finish("shinigami", reachable ? [] : null);
-  const found = hit;
-
-  // 2) Ambil halaman 2..N. TIDAK bergantung pada totalPages (bisa hilang/beda format):
-  //    lanjut sampai halaman kosong / tanpa komentar baru. Per 3 halaman paralel, dengan retry.
-  const all: CommentItem[] = [...found.first.items];
-  const seen = new Set(all.map((c) => c.id));
-  const hinted = found.first.totalPages > 1 ? found.first.totalPages : Math.ceil(found.first.count / SHINI_PAGE_SIZE);
-  const started = Date.now();
-  let failedPages = 0;
-  let done = found.first.items.length === 0;
-  const loadPage = async (pg: number): Promise<WalinePage | null> => {
+  const key = shiniPageKey(q);
+  const loadPage = async (page: number): Promise<ShiniPage | null> => {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        return parseWalinePage(await fetchText(shiniUrl(found.path, pg), "application/json", referer, trace));
+        return parseShiniPage(await fetchText(shiniUrl(key, page), "application/json", SHINI_REFERER, trace));
       } catch {
-        await new Promise((r) => setTimeout(r, 300));
+        // percobaan kedua
       }
     }
     return null;
   };
-  for (let from = 2; !done && from <= SHINI_MAX_PAGES && Date.now() - started < 20_000; from += 3) {
-    const pages = [from, from + 1, from + 2].filter((n) => n <= SHINI_MAX_PAGES);
-    const res = await Promise.all(pages.map(loadPage));
-    for (const r of res) {
-      if (!r) {
-        failedPages++;
-        continue;
-      }
-      let fresh = 0;
-      for (const c of r.items) {
-        if (seen.has(c.id)) continue;
-        seen.add(c.id);
-        all.push(c);
-        fresh++;
-      }
-      if (fresh === 0) done = true;
+  const first = await loadPage(1);
+  if (!first) return finish("shinigami", null);
+  trace?.push(`  -> page_key "${key}": ${first.count} komentar`);
+  const all: CommentItem[] = [...first.items];
+  const seen = new Set(all.map((c) => c.id));
+  let failed = 0;
+  for (let page = 2; page <= SHINI_MAX_PAGES && seen.size < first.count; page++) {
+    const pg = await loadPage(page);
+    if (!pg) {
+      failed++;
+      continue;
     }
-    if (res.every((r) => !r)) break; // server menolak terus — jangan buang waktu
+    let fresh = 0;
+    for (const c of pg.items) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      all.push(c);
+      fresh++;
+    }
+    if (fresh === 0) break;
   }
-  trace?.push(`  -> total ${all.length} komentar top-level (perkiraan ${found.first.count}, halaman gagal ${failedPages}, hint ${hinted} hlm)`);
   const out = finish("shinigami", all);
-  if (failedPages > 0 || (found.first.count > all.length && all.length >= SHINI_MAX_PAGES * SHINI_PAGE_SIZE)) {
-    out.message = `Sebagian komentar belum termuat (${all.length} dari ±${found.first.count}).`;
+  if (failed > 0 || (first.count > seen.size && all.length >= SHINI_MAX_PAGES * SHINI_PAGE_SIZE)) {
+    out.message = `Sebagian komentar belum termuat (${seen.size} dari ±${first.count}).`;
   }
   return out;
 }

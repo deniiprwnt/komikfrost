@@ -2,7 +2,7 @@
 
 import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, titleKey } from "@/lib/client";
+import { apiGet, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { canonicalGenre } from "@/lib/api/genre-canonical";
 import type { MangaCard } from "@/lib/api/types";
@@ -78,10 +78,19 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // yang sama. Keluar lalu masuk lagi tanpa ?page= otomatis mulai dari
   // halaman 1.
   const [page, setPage] = useState<number>(() => parsePage(sp?.get("page")));
-  const [items, setItems] = useState<MangaCard[]>([]);
-  const [hasNext, setHasNext] = useState(false);
+  // Isi awal dari cache/snapshot halaman 1 — kembali dari detail komik
+  // langsung menampilkan daftar yang sama, bukan skeleton.
+  const [boot] = useState<LatestPayload | null>(() => {
+    if (parsePage(sp?.get("page")) !== 1) return null;
+    const qs = new URLSearchParams({ genre: slug, page: "1", orderby });
+    if (tipe) qs.set("tipe", tipe);
+    const path = `/api/latest?${qs}`;
+    return peekApiCacheStale<LatestPayload>(path) ?? readApiSnapshot<LatestPayload>(path);
+  });
+  const [items, setItems] = useState<MangaCard[]>(() => boot?.items ?? []);
+  const [hasNext, setHasNext] = useState(() => boot?.hasNextPage ?? false);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => (boot?.items.length ?? 0) === 0);
   const [error, setError] = useState<string | null>(null);
 
   const bootedRef = useRef(false);
@@ -149,13 +158,22 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // Muat satu halaman penuh (mengganti daftar, bukan menumpuk).
   const loadPage = useCallback(
     async (p: number, signal?: AbortSignal) => {
-      setLoading(true);
       setError(null);
+      const path = `/api/latest?${buildQs(p)}`;
+      // Isi yang sudah dikenal (cache basi / snapshot disk) tampil duluan.
+      // Hanya layar yang benar-benar kosong yang memakai skeleton.
+      const shown =
+        peekApiCacheStale<LatestPayload>(path) ?? readApiSnapshot<LatestPayload>(path);
+      if (shown?.items?.length) {
+        setItems(dedupePage(p, shown.items));
+        setHasNext(shown.hasNextPage);
+        setPage(p);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       try {
-        const res = await apiGet<LatestPayload>(
-          `/api/latest?${buildQs(p)}`,
-          signal ? { signal } : undefined,
-        );
+        const res = await apiGet<LatestPayload>(path, signal ? { signal } : undefined);
         setItems(dedupePage(p, res.items));
         setHasNext(res.hasNextPage);
         setPage(p);
