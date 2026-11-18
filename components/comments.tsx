@@ -16,7 +16,6 @@ const LABEL: Record<ComicSourceId, string> = {
   komikcast: "Komikcast",
 };
 
-type Tab = "all" | ComicSourceId;
 type Sort = "new" | "top";
 const PAGE = 10;
 /** Teks lebih panjang dari ini dilipat dengan tombol "Selengkapnya". */
@@ -457,12 +456,10 @@ const MODAL_CHUNK = 20;
 
 function CommentsModal({
   sources,
-  initialTab,
   initialSort,
   onClose,
 }: {
   sources: SourceComments[];
-  initialTab: Tab;
   initialSort: Sort;
   onClose: () => void;
 }) {
@@ -470,7 +467,6 @@ function CommentsModal({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [tab, setTab] = useState<Tab>(initialTab);
   const [sort, setSort] = useState<Sort>(initialSort);
   const [shown, setShown] = useState(MODAL_CHUNK);
 
@@ -564,28 +560,13 @@ function CommentsModal({
   };
 
   const lists = useMemo(() => buildLists(sources, sort), [sources, sort]);
-  const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
-  const current = tab === "all" ? null : sources.find((s) => s.source === tab);
-  const total = sources.reduce((n, s) => n + countAll(s.items), 0);
-  const tabs: Tab[] = ["all", ...sources.map((s) => s.source)];
+  const list = lists.all;
   const hasMore = list.length > shown;
   const remaining = hasMore ? countAll(list.slice(shown)) : 0;
 
-  const pick = (t: Tab) => {
-    setTab(t);
-    setShown(MODAL_CHUNK);
-    scrollRef.current?.scrollTo({ top: 0 });
-  };
-
   if (!mounted) return null;
 
-  const emptyText =
-    tab === "all"
-      ? "Belum ada komentar."
-      : (current?.message ??
-        (current?.status === "unavailable"
-          ? `Komentar ${LABEL[tab]} belum bisa dimuat.`
-          : `Belum ada komentar di ${LABEL[tab]}.`));
+  const emptyText = "Belum ada komentar.";
 
   return createPortal(
     <div
@@ -604,7 +585,7 @@ function CommentsModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={tab === "all" ? "Semua komentar" : `Komentar ${LABEL[tab]}`}
+        aria-label="Semua komentar"
         tabIndex={-1}
         className="cm-panel relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-paper-2 shadow-2xl outline-none sm:h-[min(44rem,84vh)] sm:max-w-3xl sm:rounded-3xl dark:border-line-dark dark:bg-ink-2"
       >
@@ -626,7 +607,7 @@ function CommentsModal({
             <IconChat className="h-5 w-5" />
           </span>
           <h3 className="display-cond min-w-0 flex-1 truncate text-lg leading-tight text-fg sm:text-xl dark:text-fg-dark">
-            {tab === "all" ? "Semua komentar" : `Komentar ${LABEL[tab]}`}
+            Semua komentar
           </h3>
           <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-bold tabular-nums text-accent dark:bg-accent-soft-dark">
             {list.length}
@@ -646,51 +627,6 @@ function CommentsModal({
 
         {/* Tombol sumber + urutan */}
         <div className="flex flex-col gap-2.5 border-b border-line px-4 pb-3 pt-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-line-dark">
-          <div
-            className="rail-scroll -mx-4 flex min-w-0 gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-            role="tablist"
-            aria-label="Sumber komentar"
-          >
-            {tabs.map((t) => {
-              const n = t === "all" ? total : countAll(lists.by.get(t) ?? []);
-              const active = tab === t;
-              const failed = t !== "all" && sources.find((s) => s.source === t)?.status === "unavailable";
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => pick(t)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold outline-none transition-all focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.96] ${
-                    active
-                      ? "border-accent bg-accent text-white shadow-sm"
-                      : "border-line bg-paper text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink dark:text-muted-dark"
-                  }`}
-                >
-                  {t !== "all" && (
-                    <span
-                      aria-hidden
-                      className={`h-2 w-2 shrink-0 rounded-full ring-2 ${SOURCE_DOT[t]} ${
-                        active ? "ring-white/40" : "ring-transparent"
-                      } ${failed ? "opacity-40" : ""}`}
-                    />
-                  )}
-                  {t === "all" ? "Semua" : LABEL[t]}
-                  <span
-                    className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[10px] font-bold tabular-nums ${
-                      active
-                        ? "bg-white/25 text-white"
-                        : "bg-paper-3 text-muted dark:bg-ink-3 dark:text-muted-dark"
-                    }`}
-                  >
-                    {failed ? "!" : n}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           <div
             className="flex shrink-0 self-start rounded-full border border-line bg-paper p-0.5 text-[11px] font-semibold sm:self-auto dark:border-line-dark dark:bg-ink"
             role="group"
@@ -726,7 +662,7 @@ function CommentsModal({
           {list.length === 0 ? (
             <Notice text={emptyText} />
           ) : (
-            <div key={`${tab}:${sort}`} className="space-y-4">
+            <div key={sort} className="space-y-4">
               {list.slice(0, shown).map((c, i) => (
                 <div
                   key={`${c.source}:${c.id}`}
@@ -791,7 +727,6 @@ export function Comments({
   const [visible, setVisible] = useState(false);
   const [data, setData] = useState<CommentsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("all");
   const [sort, setSort] = useState<Sort>("new");
   const [shown, setShown] = useState(PAGE);
   const [modalOpen, setModalOpen] = useState(false);
@@ -804,7 +739,6 @@ export function Comments({
   useEffect(() => {
     setData(null);
     setError(null);
-    setTab("all");
     setSort("new");
     setShown(PAGE);
     setModalOpen(false);
@@ -858,16 +792,9 @@ export function Comments({
     return () => ctrl.abort();
   }, [visible, load]);
 
-  const bySource = useMemo(() => {
-    const m = new Map<ComicSourceId, SourceComments>();
-    data?.sources.forEach((s) => m.set(s.source, s));
-    return m;
-  }, [data]);
-
   const lists = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
   const total = (data?.sources ?? []).reduce((n, s) => n + countAll(s.items), 0);
-  const list = tab === "all" ? lists.all : (lists.by.get(tab) ?? []);
-  const current = tab === "all" ? null : bySource.get(tab);
+  const list = lists.all;
   const failedSources = (data?.sources ?? []).filter((s) => s.status === "unavailable");
   const loading = visible && !data && !error;
   const retry = () => void load(undefined, true);
@@ -917,48 +844,6 @@ export function Comments({
         )}
       </div>
 
-      {/* Tab sumber */}
-      {data && (
-        <div
-          className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1"
-          role="tablist"
-          aria-label="Sumber komentar"
-        >
-          {(["all", ...data.sources.map((s) => s.source)] as Tab[]).map((t) => {
-            const count = t === "all" ? total : countAll(bySource.get(t)?.items ?? []);
-            const active = tab === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => {
-                  setTab(t);
-                  setShown(PAGE);
-                }}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  active
-                    ? "border-accent bg-accent text-white"
-                    : "border-line bg-paper text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink dark:text-muted-dark"
-                }`}
-              >
-                {t === "all" ? "Semua" : LABEL[t]}
-                <span
-                  className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[10px] font-bold tabular-nums ${
-                    active
-                      ? "bg-white/25 text-white"
-                      : "bg-paper-3 text-muted dark:bg-ink-3 dark:text-muted-dark"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {!visible && <div className="h-24" aria-hidden />}
       {loading && <CommentsSkeleton />}
       {error && <Notice text={error} onRetry={retry} />}
@@ -984,7 +869,6 @@ export function Comments({
           {modalOpen && (
             <CommentsModal
               sources={data.sources}
-              initialTab={tab}
               initialSort={sort}
               onClose={() => setModalOpen(false)}
             />
@@ -995,21 +879,16 @@ export function Comments({
       {data && list.length === 0 && (
         <Notice
           text={
-            tab === "all"
-              ? failedSources.length === data.sources.length
-                ? "Komentar belum bisa dimuat dari ketiga sumber."
-                : "Belum ada komentar."
-              : (current?.message ??
-                (current?.status === "unavailable"
-                  ? `Komentar ${LABEL[tab]} belum bisa dimuat.`
-                  : `Belum ada komentar di ${LABEL[tab]}.`))
+            failedSources.length === data.sources.length
+              ? "Komentar belum bisa dimuat dari ketiga sumber."
+              : "Belum ada komentar."
           }
           {...(failedSources.length > 0 ? { onRetry: retry } : {})}
         />
       )}
 
-      {/* Tab "Semua": beri tahu sumber yang gagal tanpa menutupi sumber lain. */}
-      {data && tab === "all" && list.length > 0 && failedSources.length > 0 && (
+      {/* Beri tahu sumber yang gagal tanpa menutupi sumber lain. */}
+      {data && list.length > 0 && failedSources.length > 0 && (
         <p className="mt-4 rounded-lg bg-paper px-3 py-2 text-[11px] text-muted dark:bg-ink dark:text-muted-dark">
           Tidak dimuat: {failedSources.map((s) => LABEL[s.source]).join(", ")}.{" "}
           <button type="button" onClick={retry} className="font-semibold text-accent hover:underline">
