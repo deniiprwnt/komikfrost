@@ -120,6 +120,7 @@ interface WpManga {
   slug: string;
   title: { rendered: string };
   modified_gmt?: string;
+  class_list?: string[];
   "manga-type"?: number[];
   "manga-status"?: number[];
   genre?: number[];
@@ -202,8 +203,16 @@ function coverCandidatesFrom(m: WpManga): string[] {
 
 function toCard(m: WpManga): MangaCard {
   const terms = termsByTaxonomy(m);
-  const typeTerm = terms.get("manga-type")?.[0];
-  const type = normalizeType(typeTerm?.name) ?? undefined;
+  // Taxonomy tipe di WP Kiryuu bernama `type` (bukan `manga-type`, itu
+  // field ID term di root objek); `manga-type` tetap dibaca sebagai cadangan.
+  // Sebagian entri memakai term non-format ("Mangatoon"), jadi cadangan
+  // terakhir membaca kelas `type-*` di `class_list` yang masih menyimpan
+  // format aslinya (mis. `type-manga`).
+  const typeName = terms.get("type")?.[0]?.name ?? terms.get("manga-type")?.[0]?.name;
+  const classType = (m.class_list ?? [])
+    .map((c) => c.replace(/^type-/, ""))
+    .find((v) => normalizeType(v));
+  const type = normalizeType(typeName) ?? normalizeType(classType) ?? undefined;
   const genreTerms = terms.get("genre") ?? [];
   const genre = genreTerms.length
     ? canonicalGenre(genreTerms[0].name)?.name ?? genreTerms[0].name
