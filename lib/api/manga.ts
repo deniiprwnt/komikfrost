@@ -622,7 +622,7 @@ async function buildLatestPaged(
   // mana pun tetap terdeteksi. Partial failure satu tier tidak menahan
   // tier lain (fetchAllSettled + .catch -> data kosong).
   // Tier 1: Shinigami (prioritas tertinggi).
-  const shiniRes = await fetchAllSettled(
+  const shiniP = fetchAllSettled(
     {
       shinigami: async () => {
         const base = {
@@ -637,12 +637,8 @@ async function buildLatestPaged(
     },
     "latest-paged:shinigami",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
-  const shiniPaged = shiniRes.data.shinigami;
-  const shiniCards = shiniPaged?.items ?? [];
-  const seen = new Set<string>();
-  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
   // Tier 2: Komiku â€” duplikat Shinigami tetap diteruskan ke mergeCards.
-  const komikuRes = await fetchAllSettled(
+  const komikuP = fetchAllSettled(
     {
       komiku: async () => {
         const base = {
@@ -660,11 +656,9 @@ async function buildLatestPaged(
     },
     "latest-paged:komiku",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
-  const komikuPaged = komikuRes.data.komiku;
-  const komikuCards = filterUnseenCards(komikuPaged?.items ?? [], seen);
   // Tier 3: Komikcast â€” duplikat tier di atasnya tetap diteruskan ke mergeCards.
   // Komikcast tanpa paging/filter upstream -- hanya halaman 1 tanpa filter.
-  const kcRes = await fetchAllSettled(
+  const kcP = fetchAllSettled(
     {
       komikcast: () =>
         p > 1 || opts.tipe || opts.genre || opts.genre2 || opts.status
@@ -673,6 +667,15 @@ async function buildLatestPaged(
     },
     "latest-paged:komikcast",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));
+  // Ketiga sumber independen (filterUnseenCards tidak membuang kartu), jadi
+  // di-scrape PARALEL: waktu tunggu = sumber terlambat, bukan jumlah ketiganya.
+  const [shiniRes, komikuRes, kcRes] = await Promise.all([shiniP, komikuP, kcP]);
+  const shiniPaged = shiniRes.data.shinigami;
+  const shiniCards = shiniPaged?.items ?? [];
+  const seen = new Set<string>();
+  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
+  const komikuPaged = komikuRes.data.komiku;
+  const komikuCards = filterUnseenCards(komikuPaged?.items ?? [], seen);
   const kcPaged = kcRes.data.komikcast;
   const kcCards = filterUnseenCards(kcPaged?.items ?? [], seen);
   const merged = mergeCards({
