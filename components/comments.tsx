@@ -727,6 +727,7 @@ export function Comments({
   const [sort, setSort] = useState<Sort>("new");
   const [shown, setShown] = useState(PAGE);
   const [modalOpen, setModalOpen] = useState(false);
+  const [srcFilter, setSrcFilter] = useState<ComicSourceId | "all">("all");
 
   const path = `/api/comments/${encodeURIComponent(slug)}${
     chapter ? `?chapter=${encodeURIComponent(chapter)}` : ""
@@ -739,6 +740,7 @@ export function Comments({
     setSort("new");
     setShown(PAGE);
     setModalOpen(false);
+    setSrcFilter("all");
     setVisible(false);
   }, [path]);
 
@@ -791,6 +793,13 @@ export function Comments({
 
   const total = (data?.sources ?? []).reduce((n, s) => n + countAll(s.items), 0);
   const list = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
+  const sourceGroups = (data?.sources ?? []).filter((s) => s.items.length > 0);
+  const visibleList = useMemo(
+    () => (srcFilter === "all" ? list : list.filter((c) => c.source === srcFilter)),
+    [list, srcFilter],
+  );
+  const activeTotal =
+    srcFilter === "all" ? total : countAll(sourceGroups.find((s) => s.source === srcFilter)?.items ?? []);
   const failedSources = (data?.sources ?? []).filter((s) => s.status === "unavailable");
   const loading = visible && !data && !error;
   const retry = () => void load(undefined, true);
@@ -808,7 +817,7 @@ export function Comments({
           <span className="truncate">Komentar</span>
           {data && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-bold tabular-nums text-accent dark:bg-accent-soft-dark">
-              {total}
+              {activeTotal}
             </span>
           )}
         </h2>
@@ -840,25 +849,58 @@ export function Comments({
         )}
       </div>
 
+      {data && sourceGroups.length > 1 && (
+        <div
+          className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Filter sumber komentar"
+        >
+          {[
+            { id: "all" as const, label: "Semua", count: total },
+            ...sourceGroups.map((s) => ({ id: s.source, label: LABEL[s.source], count: countAll(s.items) })),
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={srcFilter === f.id}
+              onClick={() => {
+                setSrcFilter(f.id);
+                setShown(PAGE);
+              }}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+                srcFilter === f.id
+                  ? "border-accent bg-accent text-white"
+                  : "border-line bg-paper text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:bg-ink dark:text-muted-dark"
+              }`}
+            >
+              {f.label} <span className="tabular-nums opacity-80">{f.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {!visible && <div className="h-24" aria-hidden />}
       {loading && <CommentsSkeleton />}
       {error && <Notice text={error} onRetry={retry} />}
 
-      {data && list.length > 0 && (
+      {data && visibleList.length > 0 && (
         <>
           <div className="space-y-4">
-            {list.slice(0, shown).map((c) => (
+            {visibleList.slice(0, shown).map((c) => (
               <CommentRow key={`${c.source}:${c.id}`} c={c} />
             ))}
           </div>
-          {list.length > shown && (
+          {visibleList.length > shown && (
             <div className="mt-4 flex justify-center">
               <button
                 type="button"
-                onClick={() => setModalOpen(true)}
+                onClick={() => {
+                  if (srcFilter === "all") setModalOpen(true);
+                  else setShown((n) => n + MODAL_CHUNK);
+                }}
                 className="rounded-full border border-line bg-paper px-5 py-2 text-xs font-semibold text-accent hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink"
               >
-                Tampilkan lebih banyak ({list.length - shown})
+                Tampilkan lebih banyak ({visibleList.length - shown})
               </button>
             </div>
           )}
