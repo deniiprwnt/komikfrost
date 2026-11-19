@@ -299,6 +299,31 @@ function sortByChapterDesc(mangaSlug: string, list: KiryuuChapterLite[]): Kiryuu
   });
 }
 
+/**
+ * Judul >100 chapter: v2 tidak mengirim ujung tertua, dan paginasinya diabaikan.
+ * Chapter pertama dicari lewat slug WP (`<slug>-chapter-1`, `-01`, `-0`, `-00`).
+ */
+async function fetchKiryuuFirstBySlug(mangaSlug: string): Promise<ChapterRef | null> {
+  const slugs = ["1", "01", "0", "00"].map((n) => `${mangaSlug}-chapter-${n}`);
+  try {
+    const arr = await fetchWp<KiryuuChapterLite[]>(
+      `${KIRYUU_WP}/chapter?slug=${slugs.join(",")}&_fields=id,slug`,
+      3600,
+    );
+    if (!Array.isArray(arr) || !arr.length) return null;
+    const best = [...arr].sort((a, b) => {
+      const na = chapterValue(mangaSlug, a);
+      const nb = chapterValue(mangaSlug, b);
+      if (Number.isNaN(na) || Number.isNaN(nb)) return 0;
+      // Chapter 1 lebih disukai daripada prolog (0).
+      return (na === 0 ? 1e9 : na) - (nb === 0 ? 1e9 : nb);
+    })[0];
+    return chapterRefFrom(mangaSlug, best);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchKiryuuChapterRefs(
   wpId: number,
   mangaSlug: string,
@@ -324,7 +349,9 @@ async function fetchKiryuuChapterRefs(
     const latest = chapterRefFrom(mangaSlug, list[0]);
     // `pages > 1` = riwayat >100 chapter; ujung tertua tidak ikut dikirim.
     const complete = Array.isArray(res) || (res.pages ?? 1) <= 1;
-    const first = complete ? chapterRefFrom(mangaSlug, list[list.length - 1]) : null;
+    const first = complete
+      ? chapterRefFrom(mangaSlug, list[list.length - 1])
+      : await fetchKiryuuFirstBySlug(mangaSlug);
     return { ...(first ? { first } : {}), ...(latest ? { latest } : {}) };
   } catch {
     // Chapter hanya pelengkap kartu; kegagalan upstream tidak boleh
@@ -386,7 +413,7 @@ export async function fetchKiryuuLatest(
     const arr = await fetchWp<WpManga[]>(url, 60, opts.fresh === true);
     const cards = Array.isArray(arr) ? arr : [];
     // Kartu "terbaru" hanya perlu label chapter terbaru → v1 (kecil).
-    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards));
+    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards), true);
     return { items, hasNextPage: items.length >= pageSize };
   } catch (e) {
     if ((e as KomikuError).status === 400) return { items: [], hasNextPage: false };
