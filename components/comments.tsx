@@ -409,7 +409,7 @@ function Diagnosis({ path }: { path: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Daftar komentar: gabungan/per-sumber + urutan (dipakai bagian & modal) */
+/* Daftar komentar gabungan, urut prioritas sumber (bagian & modal)      */
 /* ------------------------------------------------------------------ */
 
 /** Titik warna sumber — sama dengan warna SourceBadge. */
@@ -424,28 +424,26 @@ const SORTS: [Sort, string][] = [
   ["top", "Terpopuler"],
 ];
 
+/** Urutan prioritas sumber pada daftar komentar gabungan. */
+const COMMENT_SOURCE_ORDER: ComicSourceId[] = ["shinigami", "komiku", "komikcast"];
+
 /**
- * "Semua" diurutkan bergilir antar sumber lebih dulu (komentar ke-1 tiap
- * sumber, lalu ke-2, ...) supaya komentar tanpa waktu pun tercampur, lalu
- * diurutkan menurut waktu / jumlah suka dengan urutan bergilir sebagai penentu seri.
+ * Komentar gabungan diurutkan per prioritas sumber lebih dulu
+ * (Kiryuu → Komiku → Komikcast), lalu "Terbaru"/"Terpopuler" berlaku di dalam
+ * tiap sumber. Jadi komentar Kiryuu selalu di atas Komiku, dan seterusnya.
  */
-function buildLists(sources: SourceComments[], sort: Sort) {
-  const lists = sources.map((s) => s.items);
-  const inter: CommentItem[] = [];
-  const max = Math.max(0, ...lists.map((l) => l.length));
-  for (let i = 0; i < max; i++) for (const l of lists) if (l[i]) inter.push(l[i]!);
-  const rank = new Map<CommentItem, number>();
-  inter.forEach((c, i) => rank.set(c, i));
+function buildLists(sources: SourceComments[], sort: Sort): CommentItem[] {
   const sorter = (items: CommentItem[]) =>
     [...items].sort((a, b) => {
       const byTime = (b.createdAtTs ?? 0) - (a.createdAtTs ?? 0);
       const byLike = (b.likes ?? 0) - (a.likes ?? 0);
-      const tie = (rank.get(a) ?? 0) - (rank.get(b) ?? 0);
-      return sort === "top" ? byLike || byTime || tie : byTime || tie;
+      return sort === "top" ? byLike || byTime : byTime;
     });
   const by = new Map<ComicSourceId, CommentItem[]>();
   sources.forEach((s) => by.set(s.source, sorter(s.items)));
-  return { all: sorter(inter), by };
+  const all: CommentItem[] = [];
+  for (const id of COMMENT_SOURCE_ORDER) all.push(...(by.get(id) ?? []));
+  return all;
 }
 
 /* ------------------------------------------------------------------ */
@@ -559,8 +557,7 @@ function CommentsModal({
     }
   };
 
-  const lists = useMemo(() => buildLists(sources, sort), [sources, sort]);
-  const list = lists.all;
+  const list = useMemo(() => buildLists(sources, sort), [sources, sort]);
   const hasMore = list.length > shown;
   const remaining = hasMore ? countAll(list.slice(shown)) : 0;
 
@@ -792,9 +789,8 @@ export function Comments({
     return () => ctrl.abort();
   }, [visible, load]);
 
-  const lists = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
   const total = (data?.sources ?? []).reduce((n, s) => n + countAll(s.items), 0);
-  const list = lists.all;
+  const list = useMemo(() => buildLists(data?.sources ?? [], sort), [data, sort]);
   const failedSources = (data?.sources ?? []).filter((s) => s.status === "unavailable");
   const loading = visible && !data && !error;
   const retry = () => void load(undefined, true);
