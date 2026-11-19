@@ -12,6 +12,7 @@ import * as cheerio from "cheerio";
 import type {
   ChapterData,
   ChapterItem,
+  ChapterRef,
   GenreRef,
   KomikType,
   MangaCard,
@@ -247,6 +248,134 @@ function wpListUrl(page: number, pageSize: number, extra: string): string {
   return `${KIRYUU_WP}/manga?${extra}&orderby=modified&order=desc&per_page=${pageSize}&page=${p}&${WP_EMBED}`;
 }
 
+/* ------------------------------------------------------------------ */
+/* Chapter ringkas untuk kartu daftar                                  */
+/* ------------------------------------------------------------------ */
+/* WP REST `manga` tidak membawa info chapter, jadi kartu daftar (pencarian,
+   genre, "terbaru") dulu tampil tanpa tombol Awal/Terbaru. Endpoint tema
+   `/kiru/v1|v2/chapter?parent_id=<wpId>` mengirim chapter terbaru:
+   v1 = 10 terakhir (kecil, cukup untuk label "Chapter X" di kartu update),
+   v2 = 100 terakhir + `pages` (ujung tertua = chapter pertama bila <= 100). */
+
+interface KiryuuChapterLite {
+  id: number;
+  slug: string;
+  number?: string;
+}
+
+/** URL chapter internal butuh token `<nomor>.<postid>` (lihat `fetchKiryuuChapter`). */
+function chapterRefFrom(mangaSlug: string, ch: KiryuuChapterLite): ChapterRef | null {
+  if (!ch?.id || !ch.slug) return null;
+  // Nomor dari sufiks slug paling akurat; sebagian chapter memakai slug manga
+  // berbeda (mis. `gachi-akuta-chapter-173`) sehingga `number` jadi cadangan.
+  const prefix = `${mangaSlug}-chapter-`;
+  const raw = ch.slug.startsWith(prefix) ? ch.slug.slice(prefix.length) : (ch.number ?? "");
+  const num = raw.replace(/-/g, ".");
+  if (!/^\d+(?:\.\d+)*$/.test(num)) return null;
+  return {
+    label: `Chapter ${num}`,
+    url: `/manga/${mangaSlug}/chapter-${num}.${ch.id}/`,
+  };
+}
+
+/** Nilai numerik chapter: nomor eksplisit, cadangan dari sufiks slug. */
+function chapterValue(mangaSlug: string, ch: KiryuuChapterLite): number {
+  const prefix = `${mangaSlug}-chapter-`;
+  const raw = ch.slug.startsWith(prefix) ? ch.slug.slice(prefix.length) : (ch.number ?? "");
+  const n = parseFloat((ch.number || raw).replace(/,/g, ".").replace(/-/g, "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+/**
+ * Urutan `data` dari endpoint tema tidak konsisten (sebagian naik, sebagian
+ * turun), jadi urutkan sendiri: terbaru = nomor terbesar.
+ */
+function sortByChapterDesc(mangaSlug: string, list: KiryuuChapterLite[]): KiryuuChapterLite[] {
+  return [...list].sort((a, b) => {
+    const na = chapterValue(mangaSlug, a);
+    const nb = chapterValue(mangaSlug, b);
+    if (Number.isNaN(na) || Number.isNaN(nb)) return 0;
+    return nb - na;
+  });
+}
+
+async function fetchKiryuuChapterRefs(
+  wpId: number,
+  mangaSlug: string,
+  withFirst: boolean,
+): Promise<{ first?: ChapterRef; latest?: ChapterRef }> {
+  try {
+    if (!withFirst) {
+      const arr = await fetchWp<KiryuuChapterLite[]>(
+        `${KIRYUU_BASE}/wp-json/kiru/v1/chapter?parent_id=${wpId}&_fields=id,slug,number`,
+        600,
+      );
+      const list = Array.isArray(arr) ? sortByChapterDesc(mangaSlug, arr) : [];
+      const latest = list[0] ? chapterRefFrom(mangaSlug, list[0]) : null;
+      return latest ? { latest } : {};
+    }
+    const res = await fetchWp<{ data?: KiryuuChapterLite[]; pages?: number } | KiryuuChapterLite[]>(
+      `${KIRYUU_BASE}/wp-json/kiru/v2/chapter?parent_id=${wpId}`,
+      600,
+    );
+    const raw = Array.isArray(res) ? res : res?.data ?? [];
+    if (!raw.length) return {};
+    const list = sortByChapterDesc(mangaSlug, raw);
+    const latest = chapterRefFrom(mangaSlug, list[0]);
+    // `pages > 1` = riwayat >100 chapter; ujung tertua tidak ikut dikirim.
+    const complete = Array.isArray(res) || (res.pages ?? 1) <= 1;
+    const first = complete ? chapterRefFrom(mangaSlug, list[list.length - 1]) : null;
+    return { ...(first ? { first } : {}), ...(latest ? { latest } : {}) };
+  } catch {
+    // Chapter hanya pelengkap kartu; kegagalan upstream tidak boleh
+    // menggagalkan daftar utama.
+    return {};
+  }
+}
+
+const CHAPTER_CONCURRENCY = 5;
+/** Batas waktu total: daftar tetap tampil walau upstream chapter lambat. */
+const CHAPTER_BUDGET_MS = 3_500;
+
+async function attachKiryuuChapters(
+  items: MangaCard[],
+  idBySlug: Map<string, number>,
+  withFirst = false,
+): Promise<MangaCard[]> {
+  const todo = items.filter(
+    (it) =>
+      idBySlug.has(it.slug) &&
+      (withFirst ? !it.firstChapter || !it.latestChapter : !it.latestChapter),
+  );
+  if (!todo.length) return items;
+  const found = new Map<string, { first?: ChapterRef; latest?: ChapterRef }>();
+  const deadline = Date.now() + CHAPTER_BUDGET_MS;
+  for (let i = 0; i < todo.length; i += CHAPTER_CONCURRENCY) {
+    if (Date.now() >= deadline) break;
+    const batch = todo.slice(i, i + CHAPTER_CONCURRENCY);
+    const got = await Promise.all(
+      batch.map((it) => fetchKiryuuChapterRefs(idBySlug.get(it.slug) as number, it.slug, withFirst)),
+    );
+    batch.forEach((it, idx) => {
+      if (got[idx].first || got[idx].latest) found.set(it.slug, got[idx]);
+    });
+  }
+  if (!found.size) return items;
+  return items.map((it) => {
+    const refs = found.get(it.slug);
+    if (!refs) return it;
+    return {
+      ...it,
+      ...(refs.first ? { firstChapter: refs.first } : {}),
+      ...(refs.latest ? { latestChapter: refs.latest } : {}),
+    };
+  });
+}
+
+function wpIdMap(arr: WpManga[]): Map<string, number> {
+  return new Map(arr.filter((m) => m?.slug && m?.id).map((m) => [m.slug, m.id]));
+}
+
 export async function fetchKiryuuLatest(
   page = 1,
   opts: { pageSize?: number; fresh?: boolean } = {},
@@ -255,7 +384,9 @@ export async function fetchKiryuuLatest(
   const url = wpListUrl(page, pageSize, "status=publish");
   try {
     const arr = await fetchWp<WpManga[]>(url, 60, opts.fresh === true);
-    const items = Array.isArray(arr) ? arr.map(toCard) : [];
+    const cards = Array.isArray(arr) ? arr : [];
+    // Kartu "terbaru" hanya perlu label chapter terbaru → v1 (kecil).
+    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards));
     return { items, hasNextPage: items.length >= pageSize };
   } catch (e) {
     if ((e as KomikuError).status === 400) return { items: [], hasNextPage: false };
@@ -274,7 +405,9 @@ export async function searchKiryuuRemote(
   const url = `${KIRYUU_WP}/manga?search=${encodeURIComponent(kw)}&per_page=${pageSize}&page=${p}&${WP_EMBED}`;
   try {
     const arr = await fetchWp<WpManga[]>(url, 60);
-    const items = Array.isArray(arr) ? arr.map(toCard) : [];
+    const cards = Array.isArray(arr) ? arr : [];
+    // Kartu hasil pencarian menampilkan Awal + Terbaru → perlu v2.
+    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards), true);
     return { items, hasNextPage: items.length >= pageSize };
   } catch (e) {
     if ((e as KomikuError).status === 400) return { items: [], hasNextPage: false };
@@ -332,7 +465,8 @@ export async function fetchKiryuuByGenre(
   const url = `${KIRYUU_WP}/manga?genre=${encodeURIComponent(genreSlug)}&orderby=modified&order=desc&per_page=${pageSize}&page=${p}&${WP_EMBED}`;
   try {
     const arr = await fetchWp<WpManga[]>(url, 120);
-    const items = Array.isArray(arr) ? arr.map(toCard) : [];
+    const cards = Array.isArray(arr) ? arr : [];
+    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards), true);
     return { items, hasNextPage: items.length >= pageSize };
   } catch (e) {
     if ((e as KomikuError).status === 400) return { items: [], hasNextPage: false };
