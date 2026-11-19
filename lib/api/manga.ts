@@ -452,7 +452,7 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   // Tier 1: Shinigami (prioritas tertinggi). fetchAllSettled tetap dipakai
   // untuk partial-failure yang seragam -- bila Shinigami gagal, tier 2/3 tetap
   // jalan tanpa filter (seen kosong = semua lolos).
-  const shiniRes = await fetchAllSettled(
+  const shiniP = fetchAllSettled(
     {
       shinigami: async () => {
         const { items } = await fetchShiniLatest(page);
@@ -461,13 +461,10 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
     },
     "latest:shinigami",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
-  const shiniCards = shiniRes.data.shinigami ?? [];
   // seen = kunci semua judul yang sudah ditemukan tier sebelumnya.
-  const seen = new Set<string>();
-  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
   // Tier 2: Komiku â€” duplikat Shinigami tetap diteruskan ke mergeCards
   // (filterUnseenCards hanya mencatat kunci ke `seen`).
-  const komikuRes = await fetchAllSettled(
+  const komikuP = fetchAllSettled(
     {
       komiku: async () => {
         // Coba 2x -- kegagalan fragment API sering cuma sementara (beban
@@ -494,16 +491,21 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
     },
     "latest:komiku",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
-  const komikuCards = filterUnseenCards(komikuRes.data.komiku ?? [], seen);
   // Tier 3: Komikcast â€” duplikat tier di atasnya tetap diteruskan ke mergeCards.
   // /api/v1/home -> latest_comic (tanpa paging upstream; hanya halaman 1
   // agar tidak duplikat antar halaman UI).
-  const kcRes = await fetchAllSettled(
+  const kcP = fetchAllSettled(
     {
       komikcast: async () => (page > 1 ? [] : fetchKomikcastLatest()),
     },
     "latest:komikcast",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, MangaCard[]>>, errors: {} }));
+  // Ketiga sumber independen: di-scrape PARALEL (waktu = sumber terlambat).
+  const [shiniRes, komikuRes, kcRes] = await Promise.all([shiniP, komikuP, kcP]);
+  const shiniCards = shiniRes.data.shinigami ?? [];
+  const seen = new Set<string>();
+  for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
+  const komikuCards = filterUnseenCards(komikuRes.data.komiku ?? [], seen);
   const kcCards = filterUnseenCards(kcRes.data.komikcast ?? [], seen);
   const merged = mergeCards({
     komiku: komikuCards,
