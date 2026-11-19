@@ -33,3 +33,4 @@ Komik.rar
 
 # Skrip probe sementara (menembak localhost / upstream, dibuang setelah dipakai)
 scripts/_probe-*.mjs
+scripts/_smoke-*.mjs

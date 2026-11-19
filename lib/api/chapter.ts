@@ -5,6 +5,10 @@
  */
 import { fetchChapter, KomikuError } from "./komiku";
 import { fetchKomikcastChapter } from "./komikcast";
+// Slot "shinigami" di kode sekarang mengarah ke Kiryuu â€” semua fungsi
+// `fetchShini*` di lib/api/shinigami.ts adalah shim tipis ke lib/api/kiryuu.ts.
+// Nama source di SOURCE_PRIORITY & field sourceSlug tetap "shinigami" agar
+// tidak perlu refactor besar di seluruh pemanggil.
 import {
   fetchShiniChapter,
   fetchShiniChapterById,

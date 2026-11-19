@@ -4,7 +4,7 @@
  */
 import { searchMangaRemote } from "./komiku";
 import { searchKomikcastRemote } from "./komikcast";
-import { searchShiniRemote } from "./shinigami";
+import { searchKiryuuRemote } from "./kiryuu";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { completeCardsBounded } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
@@ -81,7 +81,7 @@ export async function searchManga(
   const { data } = await fetchAllSettled(
     {
       komiku: () => searchMangaRemote(kw, p),
-      shinigami: () => searchShiniRemote(kw, p, SHINI_PAGE_SIZE),
+      shinigami: () => searchKiryuuRemote(kw, p, SHINI_PAGE_SIZE),
       ...(p === 1 ? { komikcast: () => searchKomikcastRemote(kw, p) } : {}),
     },
     "search",

@@ -11,7 +11,7 @@ import { PromoYukiHead } from "@/components/promo-yuki";
 import { useBackToClose } from "@/lib/use-back-close";
 
 const LABEL: Record<ComicSourceId, string> = {
-  shinigami: "Shinigami",
+  shinigami: "Kiryuu",
   komiku: "Komiku",
   komikcast: "Komikcast",
 };

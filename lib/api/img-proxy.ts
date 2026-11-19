@@ -29,6 +29,8 @@ export const IMG_HOSTS = new Set([
   "thumbnail.komiku.org",
   "cdn.komikcast.top",
   "komikcast.top",
+  "cdn.kiryuu.io",
+  "v7.kiryuu.to",
 ]);
 
 /**
@@ -56,6 +58,9 @@ export const IMG_HOST_SUFFIXES = [
   "komikcast.io",
   "komikcast.me",
   "komikcast.com",
+  "kiryuu.io",
+  "kiryuu.to",
+  "kiryuu.id",
 ];
 
 /** Apakah host ini host gambar upstream yang boleh diproksikan? */

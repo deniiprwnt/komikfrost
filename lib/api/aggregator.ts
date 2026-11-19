@@ -29,7 +29,7 @@ export const SOURCE_PRIORITY: ComicSourceId[] = ["shinigami", "komiku", "komikca
 
 export const SOURCE_LABEL: Record<ComicSourceId, string> = {
   komiku: "Komiku",
-  shinigami: "Shinigami",
+  shinigami: "Kiryuu",
   komikcast: "Komikcast",
 };
 
@@ -100,6 +100,7 @@ export function coverIdentity(raw?: string | null): string {
     // Keluarga host yang menyajikan file yang sama.
     if (/^(thumbnail|img|image\d*)\.komiku\.(to|org|com)$/.test(host)) host = "komiku-img";
     else if (/(^|\.)(shngm\.(id|io|co)|shinigami\.gg)$/.test(host)) host = "shngm-img";
+    else if (/(^|\.)kiryuu\.(io|to|id)$/.test(host)) host = "kiryuu-img";
     try {
       path = decodeURIComponent(path);
     } catch {
@@ -933,9 +934,14 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
  * URL Komiku (native path) dibiarkan apa adanya.
  */
 export function rewriteShiniUrl<T extends ChapterRef>(ref: T, displaySlug: string): T {
+  // UUID lama (Shinigami). Tidak dipakai lagi, dibiarkan untuk kompatibilitas.
   const m = ref.url.match(/^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-chapter-(.+?)\/?$/i);
-  if (!m) return ref;
-  return { ...ref, url: `/${displaySlug}-chapter-${m[1]}/` };
+  if (m) return { ...ref, url: `/${displaySlug}-chapter-${m[1]}/` };
+  // Kiryuu: /manga/<slugAsli>/chapter-<num>(.<postid>)?/ â†’ slug tampilan.
+  // Lazy match agar nomor desimal ("1.5") tidak menelan postid.
+  const k = ref.url.match(/^\/manga\/[^/]+\/chapter-([\d.]+?)(?:\.(\d+))?\/?$/);
+  if (k) return { ...ref, url: `/manga/${displaySlug}/chapter-${k[1]}${k[2] ? `.${k[2]}` : ""}/` };
+  return ref;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1269,9 +1275,14 @@ export function mergeChapters(
  * valid. URL non-UUID (sudah displaySlug) dibiarkan.
  */
 function shiniChapterUrl(displaySlug: string, url: string): string {
+  // UUID lama (Shinigami).
   const m = url.match(/^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-chapter-(.+?)\/?$/i);
-  if (!m) return url;
-  return `/${displaySlug}-chapter-${m[1]}/`;
+  if (m) return `/${displaySlug}-chapter-${m[1]}/`;
+  // Kiryuu: /manga/<slugAsli>/chapter-<num>(.<postid>)?/ â†’ slug tampilan.
+  // Lazy match agar nomor desimal ("1.5") tidak menelan postid.
+  const k = url.match(/^\/manga\/[^/]+\/chapter-([\d.]+?)(?:\.(\d+))?\/?$/);
+  if (k) return `/manga/${displaySlug}/chapter-${k[1]}${k[2] ? `.${k[2]}` : ""}/`;
+  return url;
 }
 
 /* ------------------------------------------------------------------ */

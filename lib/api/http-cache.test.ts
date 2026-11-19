@@ -104,7 +104,7 @@ const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url),
   // Sumber tetap membuang cache HTTP upstream saat probe.
   assert.match(read("lib/api/komiku.ts"), /if \(fresh\) init\.cache = "no-store"/);
   assert.match(read("lib/api/komikcast.ts"), /if \(fresh\) init\.cache = "no-store"/);
-  assert.match(read("lib/api/shinigami.ts"), /else init\.next = \{ revalidate \}/, "shinigami: revalidate hanya untuk non-fresh");
+  assert.match(read("lib/api/kiryuu.ts"), /else init\.next = \{ revalidate \}/, "kiryuu: revalidate hanya untuk non-fresh");
 }
 
 /* ------------- Komikcast: komentar jujur, bukan data palsu ------------- */

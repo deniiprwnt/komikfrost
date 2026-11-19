@@ -21,6 +21,10 @@ function coverMorphProps(slug: string) {
 export function chapterPathToRoute(komikuPath: string): string {
   // Sudah berupa route internal (mis. hasil navigasi sebelumnya).
   if (komikuPath.startsWith("/baca/")) return komikuPath;
+  // Kiryuu: /manga/<slug>/chapter-<num>(.<postid>)?/
+  // Lazy match agar nomor desimal ("1.5") tidak "menelan" postid ("1.5.147631").
+  const kr = komikuPath.match(/^\/manga\/([^/]+)\/chapter-([\d.]+?)(?:\.\d+)?\/?$/);
+  if (kr) return `/baca/${kr[1]}/${kr[2]}`;
   const m = komikuPath.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)-chapter-(.+?)\/?$/i);
   if (!m) return "/";
   // Slug chapter Komikcast membawa sufiks "-bahasa-indonesia"; token route
@@ -73,12 +77,12 @@ const SOURCE_STYLE: Record<string, string> = {
 };
 
 const SOURCE_SHORT: Record<string, string> = {
-  shinigami: "Shinigami",
+  shinigami: "Kiryuu",
   komiku: "Komiku",
   komikcast: "Komikcast",
 };
 
-/** Label asal data kartu (Shinigami / Komiku / keduanya). Diam bila tak ada info. */
+/** Label asal data kartu (Kiryuu / Komiku / Komikcast). Diam bila tak ada info. */
 export function SourceBadge({
   sources,
   className = "",

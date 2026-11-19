@@ -116,7 +116,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="dns-prefetch" href="https://image6.komiku.to" />
         <link rel="dns-prefetch" href="https://image7.komiku.to" />
         <link rel="dns-prefetch" href="https://image8.komiku.to" />
-        <link rel="dns-prefetch" href="https://assets.shngm.id" />
+        <link rel="dns-prefetch" href="https://v7.kiryuu.to" />
+        <link rel="dns-prefetch" href="https://cdn.kiryuu.io" />
         <link rel="dns-prefetch" href="https://cdn.komikcast.top" />
         {/* Standar modern untuk mode standalone (Chrome/Edge/Android).
             Metadata appleWebApp hanya menghasilkan varian apple-*. */}

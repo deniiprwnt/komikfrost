@@ -12,7 +12,7 @@
  * ("fantasi" jadi "fantasy" untuk Shinigami) sebelum diminta ke upstream.
  */
 import { fetchGenres, fetchMangaByGenre } from "./komiku";
-import { fetchShiniGenres, fetchShiniLatest } from "./shinigami";
+import { fetchKiryuuGenres, fetchKiryuuByGenre, fetchKiryuuLatest } from "./kiryuu";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { canonicalGenre, normalizeGenreList, upstreamGenreSlugs } from "./genre-canonical";
 import { completeCardsBounded } from "./manga";
@@ -23,7 +23,7 @@ export async function getGenres(): Promise<GenreRef[]> {
   const { data } = await fetchAllSettled(
     {
       komiku: () => fetchGenres(),
-      shinigami: () => fetchShiniGenres(),
+      shinigami: () => fetchKiryuuGenres(),
     },
     "genres",
   );
@@ -70,7 +70,7 @@ export async function getMangaByGenre(
           hasNextPage: false,
         },
       shinigami: async () =>
-        (await tryEachSlug(slugs, (s) => fetchShiniLatest(page, { genre: s, pageSize: 15 }))) ?? {
+        (await tryEachSlug(slugs, (s) => fetchKiryuuByGenre(s, page, 15))) ?? {
           items: [] as MangaCard[],
           hasNextPage: false,
         },

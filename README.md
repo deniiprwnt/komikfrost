@@ -148,7 +148,7 @@ lib/
   browser idle, sehingga pindah menu terasa instan.
 - **Server cache** — `revalidate` per fetch untuk mengurangi beban sumber data.
 - **Gambar** — lazy loading + `decoding="async"`; cover semua sumber dan
-  gambar Reader Shinigami melalui proxy internal `/api/img` (host gambar
+  gambar Reader Kiryuu melalui proxy internal `/api/img` (host gambar
   sering diblokir ISP Indonesia). Cache proxy 7 hari (URL gambar memakai
   nama file unik) dengan header `private`.
 - **Pagination** — 15 komik per halaman di Terbaru, Genre, dan Pencarian.

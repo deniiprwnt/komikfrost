@@ -1,5 +1,8 @@
 /**
- * lib/api/comments.ts — komentar dari 3 sumber (Shinigami, Komiku, Komikcast).
+ * lib/api/comments.ts — komentar dari 3 slot sumber (Kiryuu, Komiku, Komikcast).
+ *
+ * Slot "shinigami" = Kiryuu (lib/api/kiryuu.ts) dan tidak punya API komentar
+ * publik, jadi selalu berstatus unavailable.
  *
  * Prinsip:
  * - Satu sumber gagal/lambat TIDAK boleh merusak sumber lain.
@@ -8,7 +11,6 @@
  */
 import * as cheerio from "cheerio";
 import { getMangaDetail, komikuSlugForTitles, shiniIdForTitles } from "./manga";
-import { fetchShiniChaptersAll, parseNumToken } from "./shinigami";
 import { normalizeChapterKey, SOURCE_PRIORITY, type MergedMangaDetail } from "./aggregator";
 import { createKeyedCache, withDataVersion } from "./cache";
 import { proxiedImage } from "./img-proxy";
@@ -21,21 +23,6 @@ import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceC
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
 const KOMIKU_BASE = "https://komiku.org";
-const SHINI_COMMENTS = "https://api.shinigami.io/comment/api/v2/comments";
-const SHINI_REFERER = "https://s1.shinigami.mx/";
-
-/**
- * Kunci halaman komentar Shinigami (bentuk dari JS publik mereka):
- * `manga:<uuid>` untuk seri, `manga:<uuid>:chapter:<uuid>` untuk chapter.
- */
-const shiniPageKey = (q: { mangaId: string; chapterId?: string }): string =>
-  q.chapterId ? `manga:${q.mangaId}:chapter:${q.chapterId}` : `manga:${q.mangaId}`;
-
-const SHINI_PAGE_SIZE = 100;
-const SHINI_MAX_PAGES = 4; // s.d. 400 komentar (root + balasan)
-const shiniUrl = (key: string, page: number): string =>
-  `${SHINI_COMMENTS}?page_key=${encodeURIComponent(key)}&offset=${(page - 1) * SHINI_PAGE_SIZE}&limit=${SHINI_PAGE_SIZE}`;
-
 interface KcIds {
   seriesId?: string;
   chapterId?: string;
@@ -355,100 +342,8 @@ async function firstJsonList(
 }
 
 /* ------------------------------------------------------------------ */
-/* Adapter per sumber                                                  */
-/* ------------------------------------------------------------------ */
-
-interface ShiniPage {
-  items: CommentItem[];
-  count: number;
-}
-
-/**
- * Balasan datang sebagai baris datar dengan `rid` = id komentar induk.
- * Susun ulang jadi root + `replies` supaya UI menampilkan thread seperti
- * sumber lain.
- */
-function parseShiniPage(body: string): ShiniPage | null {
-  const json = JSON.parse(body) as unknown;
-  if (!isRec(json)) return null;
-  const list = Array.isArray(json.comments) ? json.comments : findList(json);
-  if (!list) return null;
-  const rows = list.filter((r) => isRec(r) && r.is_deleted !== true && r.visible !== false);
-  const byId = new Map<string, CommentItem>();
-  const parent = new Map<string, string>();
-  const roots: CommentItem[] = [];
-  for (const [i, r] of rows.entries()) {
-    const item = mapComment(r, "shinigami", i, 0);
-    if (!item) continue;
-    byId.set(item.id, item);
-    const rid = isRec(r) && typeof r.rid === "number" ? r.rid : 0;
-    if (rid > 0) parent.set(item.id, String(rid));
-    else roots.push(item);
-  }
-  const rootOf = (id: string): string | undefined => {
-    let cur = parent.get(id);
-    for (let d = 0; cur !== undefined && parent.has(cur) && d < 8; d++) cur = parent.get(cur);
-    return cur;
-  };
-  for (const id of parent.keys()) {
-    const item = byId.get(id);
-    if (!item) continue;
-    const root = byId.get(rootOf(id) ?? "");
-    // Induk tidak ada di halaman ini → tampilkan sebagai komentar sendiri
-    // daripada membuang isinya.
-    if (root && root !== item) (root.replies ??= []).push(item);
-    else roots.push(item);
-  }
-  const cnt = Number(json.count);
-  const rc = Number(json.roots_count);
-  const count = Number.isFinite(cnt) ? cnt : Number.isFinite(rc) ? rc : roots.length;
-  return { items: roots, count };
-}
-
-async function shinigamiComments(q: { mangaId: string; chapterId?: string }, trace?: Trace): Promise<SourceComments> {
-  const key = shiniPageKey(q);
-  const loadPage = async (page: number): Promise<ShiniPage | null> => {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        return parseShiniPage(await fetchText(shiniUrl(key, page), "application/json", SHINI_REFERER, trace));
-      } catch {
-        // percobaan kedua
-      }
-    }
-    return null;
-  };
-  const first = await loadPage(1);
-  if (!first) return finish("shinigami", null);
-  trace?.push(`  -> page_key "${key}": ${first.count} komentar`);
-  const all: CommentItem[] = [...first.items];
-  const seen = new Set(all.map((c) => c.id));
-  let failed = 0;
-  for (let page = 2; page <= SHINI_MAX_PAGES && seen.size < first.count; page++) {
-    const pg = await loadPage(page);
-    if (!pg) {
-      failed++;
-      continue;
-    }
-    let fresh = 0;
-    for (const c of pg.items) {
-      if (seen.has(c.id)) continue;
-      seen.add(c.id);
-      all.push(c);
-      fresh++;
-    }
-    if (fresh === 0) break;
-  }
-  const out = finish("shinigami", all);
-  if (failed > 0 || (first.count > seen.size && all.length >= SHINI_MAX_PAGES * SHINI_PAGE_SIZE)) {
-    out.message = `Sebagian komentar belum termuat (${seen.size} dari ±${first.count}).`;
-  }
-  return out;
-}
-
-/* ------------------------------------------------------------------ */
 /* Penemuan otomatis                                                   */
 /* ------------------------------------------------------------------ */
-
 const COMMENT_HINT = /comment|komentar|disqus|waline|commento|cusdis|giscus|utterances/i;
 const STATIC_ASSET = /\.(?:css|js|mjs|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm)(?:[?#]|$)/i;
 
@@ -755,24 +650,10 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
   const tr = (src: ComicSourceId): Trace => (debug ? traces[src] : undefined);
 
   const jobs: Record<ComicSourceId, () => Promise<SourceComments>> = {
-    shinigami: async () => {
-      const mangaId = slugs.shinigami
-        ? slugs.shinigami
-        : (await shiniIdForTitles([merged.title ?? "", merged.altTitle ?? ""])) ?? "";
-      if (!mangaId) return finish("shinigami", null);
-      if (!chapter) return shinigamiComments({ mangaId }, tr("shinigami"));
-      let chapterId = ref("shinigami")?.chapterId;
-      if (!chapterId) {
-        const num = parseNumToken(bare);
-        if (Number.isFinite(num)) {
-          const rows = await fetchShiniChaptersAll(mangaId);
-          chapterId = rows.find((r) => r.chapter_number === num)?.chapter_id;
-        }
-      }
-      return chapterId
-        ? shinigamiComments({ mangaId, chapterId }, tr("shinigami"))
-        : none("shinigami", "Chapter ini tidak ada di Shinigami.");
-    },
+    // Kiryuu (slot "shinigami") tidak menyediakan API komentar publik —
+    // kembalikan status unavailable supaya UI hanya menampilkan Komiku +
+    // Komikcast tanpa memuat request yang pasti gagal.
+    shinigami: async () => none("shinigami", "Kiryuu tidak menyediakan komentar."),
     komiku: async () => {
       const mangaSlug = slugs.komiku;
       if (!mangaSlug) return finish("komiku", null);
