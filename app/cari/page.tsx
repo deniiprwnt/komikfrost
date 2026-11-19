@@ -225,7 +225,8 @@ function CariContent() {
       scrollToList();
       const qs = new URLSearchParams({ q });
       if (target > 1) qs.set("page", String(target));
-      router.replace(`/cari?${qs}`, { scroll: false });
+      // replaceState (bukan router.replace): tidak memicu navigasi RSC / remount.
+      window.history.replaceState(window.history.state, "", `/cari?${qs}`);
       void loadPage(q, target);
     },
     [page, loading, loadPage, scrollToList, q, router],

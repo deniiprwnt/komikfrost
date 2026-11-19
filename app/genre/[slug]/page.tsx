@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { apiGet, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { canonicalGenre } from "@/lib/api/genre-canonical";
@@ -43,7 +43,6 @@ function parsePage(raw: string | null | undefined): number {
 }
 
 function GenreDetailContent({ slug }: { slug: string }) {
-  const router = useRouter();
   const sp = useSearchParams();
   // Nilai awal HANYA dari URL: sessionStorage tidak bisa dibaca di server,
   // jadi membacanya di useState membuat markup server & klien berbeda
@@ -254,9 +253,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
     if (orderby !== "modified") qs.set("orderby", orderby);
     if (tipe) qs.set("tipe", tipe);
     if (page > 1) qs.set("page", String(page));
-    router.replace(qs.size > 0 ? `/genre/${slug}?${qs}` : `/genre/${slug}`, {
-      scroll: false,
-    });
+    window.history.replaceState(window.history.state, "", qs.size > 0 ? `/genre/${slug}?${qs}` : `/genre/${slug}`);
     try {
       sessionStorage.setItem(`bk-genre-${slug}-orderby`, orderby);
       sessionStorage.setItem(`bk-genre-${slug}-tipe`, tipe);

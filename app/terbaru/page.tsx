@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { apiGet, apiGetSWR, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/client";
 import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
@@ -80,7 +80,7 @@ function latestApiPath(sp: URLSearchParams | null, page: number): string {
 }
 
 function TerbaruContent() {
-  const router = useRouter();
+
   const sp = useSearchParams();
   usePageTitle("Komik Terbaru");
 
@@ -370,7 +370,9 @@ function TerbaruContent() {
     if (genre2) qs.set("genre2", genre2);
     if (page > 1) qs.set("page", String(page));
     const target = qs.size > 0 ? `/terbaru?${qs}` : "/terbaru";
-    router.replace(target, { scroll: false });
+    // replaceState (bukan router.replace): tidak memicu navigasi RSC, jadi
+    // halaman tidak di-remount dan nomor halaman tidak kembali ke 1.
+    window.history.replaceState(window.history.state, "", target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, page]);
 
