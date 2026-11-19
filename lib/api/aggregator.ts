@@ -882,9 +882,15 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         const n = chapterNum(g.cards[s]?.latestChapter?.label);
         return Number.isFinite(n) && n >= topNum;
       };
+      // Sumber boleh hanya membawa timestamp absolut (Kiryuu) tanpa label
+      // teks — labelnya dihitung ulang di klien dari `updatedAtTs`.
+      const hasTime = (s: ComicSourceId): boolean => {
+        const c = g.cards[s];
+        return Boolean(c && (c.updatedAt || typeof c.updatedAtTs === "number"));
+      };
       const pick =
-        SOURCE_PRIORITY.find((s) => g.cards[s]?.updatedAt && hasTop(s)) ??
-        SOURCE_PRIORITY.find((s) => g.cards[s]?.updatedAt);
+        SOURCE_PRIORITY.find((s) => hasTime(s) && hasTop(s)) ??
+        SOURCE_PRIORITY.find(hasTime);
       if (pick) {
         mergedUpdatedAt = g.cards[pick]!.updatedAt;
         mergedUpdatedAtTs = g.cards[pick]!.updatedAtTs;

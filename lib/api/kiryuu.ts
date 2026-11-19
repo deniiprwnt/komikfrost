@@ -210,7 +210,9 @@ function toCard(m: WpManga): MangaCard {
     : undefined;
   const title = decodeEntities(m.title?.rendered ?? "").trim();
   const synopsisText = cleanSynopsis(decodeEntities(m.excerpt?.rendered ?? ""));
-  const ts = m.modified_gmt ? Date.parse(m.modified_gmt) : NaN;
+  // `modified_gmt` adalah UTC tanpa sufiks zona; tanpa "Z" JS membacanya
+  // sebagai waktu lokal sehingga label "x menit lalu" meleset sebesar zona.
+  const ts = m.modified_gmt ? Date.parse(`${m.modified_gmt}Z`) : NaN;
   const cover = coverFrom(m);
   const cands = coverCandidatesFrom(m);
   return {
