@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiGet, apiGetSWR, invalidateApi, peekApiCache, peekApiCacheStale, prefetchApi, readApiSnapshot } from "@/lib/client";
+import { apiGet, apiGetSWR, invalidateApi, peekApiCache, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { timeAgo, useHistory } from "@/lib/history";
 import type { ComicSourceId, MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -67,25 +67,11 @@ function useHomeSection<K extends keyof HomePayload>(
   // `live=1` hanya dipakai probe auto-refresh; pemuatan awal memakai versi
   // ber-cache agar tidak menembak ulang tiga sumber di setiap mount.
   const loadPath = probePath ? withoutLive(probePath) : "/api/home";
-  const [data, setData] = useState<MangaCard[] | null>(() => {
-    // Isi awal: cache sesi (termasuk yang basi) lalu snapshot disk. Di PWA
-    // yang dibuka ulang / dinavigasi kembali, daftar langsung tampil dan
-    // tidak pernah diganti skeleton. Rekomendasi tetap dikocok sekali di
-    // sini supaya urutannya sudah final saat layar pertama dilukis.
-    if (probePath) {
-      // Section dengan endpoint sendiri (daftar terbaru) membaca cache
-      // endpoint itu, bukan /api/home — dulu isinya tertukar dengan payload
-      // /api/home lalu daftar berganti sendiri beberapa detik setelah tampil.
-      const cachedProbe =
-        peekApiCacheStale<{ items?: MangaCard[] }>(loadPath) ??
-        readApiSnapshot<{ items?: MangaCard[] }>(loadPath);
-      return cachedProbe?.items ?? null;
-    }
-    const cached =
-      peekApiCacheStale<HomePayload>("/api/home") ?? readApiSnapshot<HomePayload>("/api/home");
-    const list = cached ? cached[key] : null;
-    return list && shuffleData ? shuffle(list) : list;
-  });
+  // Mulai kosong (skeleton) agar HTML server dan render hidrasi klien sama.
+  // Snapshot/cache sesi dibaca di effect setelah hidrasi (lihat `load`):
+  // membacanya di initializer membuat klien langsung punya daftar sementara
+  // server masih mengirim skeleton → hydration mismatch.
+  const [data, setData] = useState<MangaCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   // Cermin `data !== null` tanpa ikut ke deps `load` — membaca `data`
@@ -116,15 +102,18 @@ function useHomeSection<K extends keyof HomePayload>(
         // sendiri saat user sedang membaca. Kocok hanya saat muat foreground.
         return list && shuffleData && allowShuffle ? shuffle(list) : list;
       };
-      // Refresh halaman menghapus cache memori: tampilkan snapshot disk
-      // dulu supaya beranda tidak kosong menunggu scrape.
-      if (!hasDataRef.current && !shuffleData) {
+      // Tampilkan snapshot disk lebih dulu supaya beranda tidak kosong
+      // menunggu scrape. Aman dijalankan di sini (effect, setelah hidrasi),
+      // bukan di initializer useState — server tidak punya localStorage.
+      // Rekomendasi dikocok saat seed, sama seperti muat foreground.
+      if (!hasDataRef.current) {
         const snap = readApiSnapshot<HomePayload | { items?: MangaCard[] }>(loadPath);
         const list = listFrom(snap);
         if (list && list.length > 0) {
+          const seeded = shuffleData ? shuffle(list) : list;
           hasDataRef.current = true;
-          dataRef.current = list;
-          setData(list);
+          dataRef.current = seeded;
+          setData(seeded);
         }
       }
       try {
