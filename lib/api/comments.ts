@@ -1,8 +1,9 @@
 /**
  * lib/api/comments.ts — komentar dari 3 slot sumber (Kiryuu, Komiku, Komikcast).
  *
- * Slot "shinigami" = Kiryuu (lib/api/kiryuu.ts) dan tidak punya API komentar
- * publik, jadi selalu berstatus unavailable.
+ * Slot "shinigami" = Kiryuu (lib/api/kiryuu.ts). Komentarnya diambil dari REST
+ * WordPress publik Kiryuu (/wp-json/wp/v2/comments?post=<id>) — satu thread per
+ * judul (post manga) dan satu thread per chapter (post chapter).
  *
  * Prinsip:
  * - Satu sumber gagal/lambat TIDAK boleh merusak sumber lain.
@@ -23,6 +24,8 @@ import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceC
 const KC_BASE = "https://komikcast.top";
 const KC_API = "https://komikcast.top/api/v1";
 const KOMIKU_BASE = "https://komiku.org";
+const KIRYUU_BASE = "https://v7.kiryuu.to";
+const KIRYUU_WP = `${KIRYUU_BASE}/wp-json/wp/v2`;
 interface KcIds {
   seriesId?: string;
   chapterId?: string;
@@ -622,6 +625,97 @@ async function resolveAllSlugs(merged: MergedMangaDetail): Promise<Partial<Recor
   return slugs;
 }
 
+/* ------------------------------------------------------------------ */
+/* Kiryuu: REST WordPress publik                                        */
+/* ------------------------------------------------------------------ */
+
+interface KiryuuWpComment {
+  id?: number;
+  parent?: number;
+  author_name?: string;
+  date_gmt?: string;
+  content?: { rendered?: string };
+  author_avatar_urls?: Record<string, string>;
+}
+
+/** `.../chapter-12.833513/` → post id chapter (angka setelah titik TERAKHIR). */
+function postIdFromChapterPath(path: string | undefined): string | null {
+  const p = (path ?? "").replace(/\/+$/, "");
+  const dot = p.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const id = p.slice(dot + 1);
+  return /^\d+$/.test(id) ? id : null;
+}
+
+async function kiryuuWpId(kind: "manga" | "chapter", slug: string, trace?: Trace): Promise<string | null> {
+  const url = `${KIRYUU_WP}/${kind}?slug=${encodeURIComponent(slug)}&_fields=id&per_page=1`;
+  try {
+    const raw = JSON.parse(await fetchText(url, "application/json", `${KIRYUU_BASE}/`, trace)) as unknown;
+    const first = Array.isArray(raw) ? raw[0] : null;
+    return isRec(first) && first.id !== undefined && first.id !== null ? String(first.id) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ambil komentar satu thread Kiryuu. WP membatasi `per_page` di 100, jadi
+ * halaman ke-2 hanya diambil bila halaman pertama penuh. Balasan datang di
+ * daftar yang sama (`parent` = id komentar induk).
+ */
+async function kiryuuCommentItems(postId: string, referer: string, trace?: Trace): Promise<CommentItem[]> {
+  const raw: unknown[] = [];
+  for (let page = 1; page <= 2; page++) {
+    const url =
+      `${KIRYUU_WP}/comments?post=${encodeURIComponent(postId)}&per_page=100&orderby=date&order=desc` +
+      `&_fields=id,parent,author_name,date_gmt,content,author_avatar_urls&page=${page}`;
+    const body = JSON.parse(await fetchText(url, "application/json", referer, trace)) as unknown;
+    if (!Array.isArray(body) || body.length === 0) break;
+    raw.push(...body);
+    if (body.length < 100) break;
+  }
+
+  // Bentuk field WP → bentuk yang dipahami mapComment().
+  const mapped = raw
+    .map((c, i) => {
+      if (!isRec(c)) return null;
+      const kc = c as KiryuuWpComment;
+      const avatars = kc.author_avatar_urls ?? {};
+      const item = mapComment(
+        {
+          id: kc.id,
+          author_name: kc.author_name,
+          avatar: avatars["96"] ?? avatars["48"] ?? avatars["24"],
+          content: kc.content?.rendered,
+          date: kc.date_gmt ? `${kc.date_gmt}Z` : undefined,
+        },
+        "shinigami",
+        i,
+      );
+      return item ? { item, parent: kc.parent ? String(kc.parent) : "" } : null;
+    })
+    .filter((x): x is { item: CommentItem; parent: string } => x !== null);
+
+  // Ratakan ke satu tingkat balasan (UI hanya menampilkan kedalaman itu).
+  const entryById = new Map(mapped.map((m) => [m.item.id, m]));
+  const roots: CommentItem[] = [];
+  for (const m of mapped) {
+    let target = m.parent ? entryById.get(m.parent) : undefined;
+    for (let guard = 0; target?.parent && guard < 10; guard++) {
+      const up = entryById.get(target.parent);
+      if (!up) break;
+      target = up;
+    }
+    if (!target) roots.push(m.item);
+    else (target.item.replies ??= []).push(m.item);
+  }
+
+  for (const r of roots) if (r.replies && r.replies.length > 50) r.replies = r.replies.slice(0, 50);
+  const items = roots.slice(0, MAX_ITEMS);
+  trace?.push(`  -> post ${postId}: ${raw.length} komentar, ${items.length} thread`);
+  return items;
+}
+
 async function loadComments(slug: string, chapter: string, debug = false): Promise<CommentsPayload> {
   // Fail-safe: jika detail komik gagal diambil, jangan lempar error — kembalikan payload valid.
   let merged: MergedMangaDetail;
@@ -650,10 +744,30 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
   const tr = (src: ComicSourceId): Trace => (debug ? traces[src] : undefined);
 
   const jobs: Record<ComicSourceId, () => Promise<SourceComments>> = {
-    // Kiryuu (slot "shinigami") tidak menyediakan API komentar publik —
-    // kembalikan status unavailable supaya UI hanya menampilkan Komiku +
-    // Komikcast tanpa memuat request yang pasti gagal.
-    shinigami: async () => none("shinigami", "Kiryuu tidak menyediakan komentar."),
+    // Kiryuu: komentar dari REST WordPress publik. Satu thread per judul
+    // (detail komik) dan satu thread per chapter.
+    shinigami: async () => {
+      const mangaSlug = slugs.shinigami;
+      if (!mangaSlug) return finish("shinigami", null);
+
+      const trace = tr("shinigami");
+      const absRef = (p: string) => (/^https?:\/\//i.test(p) ? p : `${KIRYUU_BASE}${p.startsWith("/") ? "" : "/"}${p}`);
+      const chapterUrl = ref("shinigami")?.url ?? "";
+      const referer = chapter ? absRef(chapterUrl || `/manga/${mangaSlug}/`) : `${KIRYUU_BASE}/manga/${mangaSlug}/`;
+
+      // Chapter: post id chapter biasanya sudah ikut di chapterId
+      // ("/manga/<slug>/chapter-<num>.<postid>/"), jadi tanpa request tambahan.
+      let postId = chapter ? postIdFromChapterPath(ref("shinigami")?.chapterId) : null;
+      if (!postId) {
+        const wpSlug = chapter ? `${mangaSlug}-chapter-${bare.replace(/\./g, "-")}` : mangaSlug;
+        postId = await kiryuuWpId(chapter ? "chapter" : "manga", wpSlug, trace);
+      }
+      if (!postId) {
+        trace?.push("  -> id post Kiryuu tidak ditemukan");
+        return finish("shinigami", null);
+      }
+      return finish("shinigami", await kiryuuCommentItems(postId, referer, trace));
+    },
     komiku: async () => {
       const mangaSlug = slugs.komiku;
       if (!mangaSlug) return finish("komiku", null);
