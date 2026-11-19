@@ -659,11 +659,44 @@ async function kiryuuWpId(kind: "manga" | "chapter", slug: string, trace?: Trace
 }
 
 /**
+ * Jumlah suka tiap komentar. REST WP tidak membawa like, jadi dibaca dari
+ * fragmen HTML komentar (tombol `like_comment`). Gagal → map kosong; komentar
+ * tetap tampil, hanya urutan "Terpopuler" yang jatuh ke waktu.
+ */
+async function kiryuuLikeCounts(
+  postId: string,
+  kind: "manga" | "chapter",
+  referer: string,
+  trace?: Trace,
+): Promise<Map<string, number>> {
+  const url = `${KIRYUU_BASE}/wp-admin/admin-ajax.php?${kind}_id=${encodeURIComponent(postId)}&order=best&utm_cid=0&action=get_comments`;
+  const html = await fetchText(url, "text/html", referer, trace, { "HX-Request": "true" });
+  const $ = cheerio.load(html);
+  const out = new Map<string, number>();
+  $('div[id^="comment-"]').each((_, el) => {
+    const id = ($(el).attr("id") ?? "").slice("comment-".length);
+    if (!/^\d+$/.test(id)) return;
+    const btn = $(el).find('button[hx-post*="like_comment"]').first();
+    if (!btn.length) return;
+    const n = Number(btn.find("span").last().text().trim());
+    if (Number.isFinite(n) && n > 0) out.set(id, n);
+  });
+  trace?.push(`  -> like: ${out.size} komentar`);
+  return out;
+}
+
+/**
  * Ambil komentar satu thread Kiryuu. WP membatasi `per_page` di 100, jadi
  * halaman ke-2 hanya diambil bila halaman pertama penuh. Balasan datang di
  * daftar yang sama (`parent` = id komentar induk).
  */
-async function kiryuuCommentItems(postId: string, referer: string, trace?: Trace): Promise<CommentItem[]> {
+async function kiryuuCommentItems(
+  postId: string,
+  kind: "manga" | "chapter",
+  referer: string,
+  trace?: Trace,
+): Promise<CommentItem[]> {
+  const likesPromise = kiryuuLikeCounts(postId, kind, referer, trace).catch(() => new Map<string, number>());
   const raw: unknown[] = [];
   for (let page = 1; page <= 2; page++) {
     const url =
@@ -674,6 +707,7 @@ async function kiryuuCommentItems(postId: string, referer: string, trace?: Trace
     raw.push(...body);
     if (body.length < 100) break;
   }
+  const likes = await likesPromise;
 
   // Bentuk field WP → bentuk yang dipahami mapComment().
   const mapped = raw
@@ -692,6 +726,10 @@ async function kiryuuCommentItems(postId: string, referer: string, trace?: Trace
         "shinigami",
         i,
       );
+      if (item) {
+        const likeN = likes.get(item.id);
+        if (likeN) item.likes = likeN;
+      }
       return item ? { item, parent: kc.parent ? String(kc.parent) : "" } : null;
     })
     .filter((x): x is { item: CommentItem; parent: string } => x !== null);
@@ -766,7 +804,7 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
         trace?.push("  -> id post Kiryuu tidak ditemukan");
         return finish("shinigami", null);
       }
-      return finish("shinigami", await kiryuuCommentItems(postId, referer, trace));
+      return finish("shinigami", await kiryuuCommentItems(postId, chapter ? "chapter" : "manga", referer, trace));
     },
     komiku: async () => {
       const mangaSlug = slugs.komiku;
