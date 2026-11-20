@@ -371,6 +371,34 @@ export function ReaderPageImage({
   imgClassName?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const onFailRef = useRef(onFail);
+  onFailRef.current = onFail;
+
+  // Watchdog: gambar dekat layar yang macet > 20 dtk dicoba ulang sekali,
+  // lalu dilaporkan gagal (muncul tombol "Coba lagi") â€” bukan loading selamanya.
+  useEffect(() => {
+    if (loaded) return;
+    let waited = 0;
+    let retried = false;
+    const id = window.setInterval(() => {
+      const el = wrapRef.current?.querySelector("img");
+      if (!el || el.complete) return;
+      const r = el.getBoundingClientRect();
+      // Gambar lazy yang jauh dari layar belum mulai dimuat: jangan dihitung.
+      if (r.top > window.innerHeight * 2 || r.bottom < -window.innerHeight) return;
+      waited += 5;
+      if (waited < 20) return;
+      waited = 0;
+      if (!retried) {
+        retried = true;
+        el.src = `${src}${src.includes("?") ? "&" : "?"}r=${Date.now()}`;
+      } else {
+        onFailRef.current();
+      }
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [loaded, src]);
 
   const fail = useCallback(
     (el: HTMLImageElement) => {
@@ -403,6 +431,7 @@ export function ReaderPageImage({
 
   return (
     <div
+      ref={wrapRef}
       data-pg={index}
       className={`reader-frame relative ${loaded ? "" : mode === "scroll" ? "reader-frame--loading" : "reader-frame--loading-page"}`}
     >

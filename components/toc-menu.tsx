@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { readKey, useReadChapters } from "@/lib/history";
 
 export type TocChapter = {
   title: string;
@@ -82,6 +83,7 @@ export function TocMenu({
   placement?: "top" | "bottom";
 }) {
   const { chapters, current, slug, onOpenChange } = toc;
+  const readSet = useReadChapters(slug);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   // false = terbaru dulu (urutan server), true = terlama dulu.
@@ -292,6 +294,7 @@ export function TocMenu({
                 >
                   {items.map((c, i) => {
                     const active = c.tok === current;
+                    const isRead = !active && readSet.has(readKey(c.tok));
                     return (
                       <li key={`${c.tok}-${i}`}>
                         <Link
@@ -301,13 +304,22 @@ export function TocMenu({
                           className={`flex min-h-11 touch-manipulation items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm transition-colors ${
                             active
                               ? "border-accent/50 bg-accent-soft font-semibold text-accent-strong dark:bg-accent/15 dark:text-accent-strong"
+                              : isRead
+                              ? "border-transparent text-muted hover:bg-paper-3 dark:text-muted-dark dark:hover:bg-ink-3"
                               : "border-transparent text-fg hover:bg-paper-3 dark:text-fg-dark dark:hover:bg-ink-3"
                           }`}
                         >
-                          <span className="min-w-0 truncate">{c.title}</span>
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            {isRead && (
+                              <svg viewBox="0 0 24 24" fill="none" role="img" aria-label="Sudah dibaca" className="h-4 w-4 shrink-0 text-accent">
+                                <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                            <span className="min-w-0 truncate">{c.title}</span>
+                          </span>
                           {active ? (
                             <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                              Dibaca
+                              Sekarang
                             </span>
                           ) : (
                             c.date && (

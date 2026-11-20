@@ -5,7 +5,7 @@ import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "
 import { useRouter } from "next/navigation";
 import { apiGet, peekApiCache, peekApiCacheStale, prefetchApi, readApiSnapshot } from "@/lib/client";
 import { isPopNav } from "@/lib/nav-scroll";
-import { getHistoryEntry, saveHistory } from "@/lib/history";
+import { getHistoryEntry, markChapterRead, saveHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
 import type { ChapterData, MangaDetail } from "@/lib/api/types";
 import { Comments } from "@/components/comments";
@@ -200,6 +200,9 @@ export default function ReaderPage({
   // Restore posisi sekali per chapter (mode scroll: rasio scroll, mode page:
   // indeks halaman). Diambil dari riwayat sebelum overwrite persist awal.
   const restoredRef = useRef("");
+  // Halaman (indeks gambar) tujuan pemulihan posisi + gambar yang sudah dipanaskan.
+  const restorePageRef = useRef(0);
+  const warmedRef = useRef<Set<number>>(new Set());
   const [restorePct, setRestorePct] = useState<number | null>(null);
   // Penanda persist-awal sudah jalan untuk chapter ini (efek jalan ulang
   // saat restore selesai / mode diganti — persist 0 hanya sekali).
@@ -340,6 +343,8 @@ export default function ReaderPage({
       setShowTop(false);
       setRestorePct(null);
       setChapters(null);
+      restorePageRef.current = 0;
+      warmedRef.current.clear();
       setFabSuppressed(false);
       pageNumRef.current = 0;
       savedProgressRef.current = 0;
@@ -378,6 +383,7 @@ export default function ReaderPage({
       if (!exactRestore && restoredRef.current !== chapterKey && (savedPage > 0 || savedPct !== null)) {
         restoredRef.current = chapterKey;
         setPageIdx(savedPage);
+        restorePageRef.current = savedPage;
         pageNumRef.current = savedPage;
         setRestorePct(savedPct);
       } else if (!exactRestore) {
@@ -479,6 +485,8 @@ export default function ReaderPage({
       data.title.replace(/\s*chapter\s*.+$/i, "").trim() || cachedDetail?.title || data.title;
     const cover = cachedDetail?.cover ?? "";
     const persist = (pct: number, page: number) => {
+      // Tandai chapter sudah dibaca setelah ~80% (dipakai daftar isi & detail).
+      if (pct >= 0.79) markChapterRead(data.mangaSlug, chapter);
       saveHistory({
         slug: data.mangaSlug,
         title: baseTitle,
@@ -530,7 +538,17 @@ export default function ReaderPage({
             const el = pagesRef.current;
             if (el) {
               const total = el.offsetHeight - window.innerHeight;
-              if (total > 0) window.scrollTo({ top: Math.round(total * target) });
+              // Utamakan nomor halaman (akurat); rasio persen hanya cadangan karena
+              // tinggi placeholder tidak sama dengan tinggi gambar asli.
+              const pgNode =
+                restorePageRef.current > 0
+                  ? el.querySelector<HTMLElement>(`[data-pg="${restorePageRef.current}"]`)
+                  : null;
+              if (pgNode) {
+                window.scrollTo({ top: Math.max(0, Math.round(pgNode.getBoundingClientRect().top + window.scrollY - 8)) });
+              } else if (total > 0) {
+                window.scrollTo({ top: Math.round(total * target) });
+              }
             }
             setRestorePct(null);
           });
@@ -574,6 +592,24 @@ export default function ReaderPage({
     // Halaman teratas yang terlihat dihitung observer (satu kali pasang,
     // nol getBoundingClientRect per frame). Dipakai "lanjutkan di halaman
     // yang sama" saat chapter dibuka ulang.
+    // Panaskan 4 gambar berikutnya agar sudah ada di cache browser saat tiba.
+    const warm = (from: number) => {
+      try {
+        const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+        if (conn?.saveData) return;
+      } catch {
+        // abaikan â€” lanjut memanaskan
+      }
+      for (let k = 1; k <= 4; k++) {
+        const idx = from + k;
+        const src = data.images[idx];
+        if (!src || warmedRef.current.has(idx)) continue;
+        warmedRef.current.add(idx);
+        const img = new Image();
+        img.decoding = "async";
+        img.src = src;
+      }
+    };
     const visible = new Set<number>();
     const io = new IntersectionObserver(
       (entries) => {
@@ -583,7 +619,10 @@ export default function ReaderPage({
           if (e.isIntersecting) visible.add(idx);
           else visible.delete(idx);
         }
-        if (visible.size > 0) pageNumRef.current = Math.min(...visible);
+        if (visible.size > 0) {
+          pageNumRef.current = Math.min(...visible);
+          warm(pageNumRef.current);
+        }
       },
       { threshold: 0 },
     );
@@ -833,7 +872,7 @@ export default function ReaderPage({
                   src={src}
                   alt={`${data.title} halaman ${i + 1}`}
                   index={i}
-                  priority={i < 2}
+                  priority={i < 3 || Math.abs(i - restorePageRef.current) <= 2}
                   onFail={() => setFailed((s) => new Set(s).add(i))}
                   onClick={tapNav}
                   imgClassName="block w-full cursor-pointer select-none"

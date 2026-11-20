@@ -96,6 +96,72 @@ export function clearHistory(): HistoryEntry[] {
   return [];
 }
 
+/* ---- Penanda chapter yang sudah dibaca (per komik, per perangkat) ---- */
+
+const READ_KEY = "bk-read-v1";
+const READ_MAX_SLUGS = 200;
+
+/** Samakan bentuk token chapter: "18", "18-bahasa-indonesia", "<slug>-chapter-18" â†’ "18"; "11.2" â†’ "11-2". */
+export function readKey(tok: string): string {
+  const bare = tok.replace(/-bahasa-indonesia$/i, "").replace(/^(?:.*-)?chapter-/i, "");
+  return (bare || tok).replace(/(\d)\.(\d)/g, "$1-$2").toLowerCase();
+}
+
+function readReadMap(): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw) as unknown;
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+    return obj as Record<string, string[]>;
+  } catch {
+    return {};
+  }
+}
+
+/** Tandai satu chapter sudah dibaca. */
+export function markChapterRead(slug: string, tok: string): void {
+  const key = readKey(tok);
+  if (!slug || !key) return;
+  const map = readReadMap();
+  const list = Array.isArray(map[slug]) ? map[slug] : [];
+  if (list.includes(key)) return;
+  // Komik yang baru dibaca dipindah ke akhir; yang tertua dibuang bila melebihi batas.
+  delete map[slug];
+  map[slug] = [...list, key];
+  const slugs = Object.keys(map);
+  for (const s of slugs.slice(0, Math.max(0, slugs.length - READ_MAX_SLUGS))) delete map[s];
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(map));
+  } catch {
+    // Storage penuh/diblokir â€” tanda baca sekadar tidak tersimpan.
+  }
+  window.dispatchEvent(new CustomEvent("bk-read-changed"));
+}
+
+/** Hook reaktif: kumpulan kunci chapter (lihat readKey) yang sudah dibaca untuk satu komik. */
+export function useReadChapters(slug: string): Set<string> {
+  const [set, setSet] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const refresh = () => {
+      const list = readReadMap()[slug];
+      setSet(new Set(Array.isArray(list) ? list : []));
+    };
+    refresh();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === READ_KEY) refresh();
+    };
+    window.addEventListener("bk-read-changed", refresh);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("bk-read-changed", refresh);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [slug]);
+  return set;
+}
+
 /** Ambil satu entri berdasarkan slug (untuk tombol "Lanjutkan"). */
 export function getHistoryEntry(slug: string): HistoryEntry | null {
   return readAll().find((e) => e.slug === slug) ?? null;

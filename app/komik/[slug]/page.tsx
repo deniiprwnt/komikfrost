@@ -5,6 +5,7 @@ import { apiGet, peekApiCacheStale, readApiSnapshot } from "@/lib/client";
 import { isBookmarked, setLatestSeen, toggleBookmark } from "@/lib/bookmarks";
 import { consumeCoverMorph, flyCover, prefersReducedMotion } from "@/lib/morph";
 import { usePageTitle } from "@/lib/page-title";
+import { readKey, useReadChapters } from "@/lib/history";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge, UpdateRow } from "@/components/cards";
 import { ErrorState, EmptyState } from "@/components/states";
@@ -63,6 +64,8 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
   // Urutan daftar chapter: terbaru dulu (bawaan Komiku) atau terlama dulu.
   const [asc, setAsc] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Chapter yang sudah dibaca (per perangkat) â€” diberi centang & warna redup.
+  const readSet = useReadChapters(slug);
 
   // Judul tab mengikuti judul komik (+ genre bila ada). Data sudah ada,
   // jadi nol request tambahan.
@@ -341,14 +344,25 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
         {ordered.length > 0 && (
         <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] lg:min-h-48 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
           {ordered.map((c) => {
+            const route = chapterPathToRoute(c.url);
+            const isRead = readSet.has(readKey(route.split("/").pop() ?? ""));
             return (
               <Link
                 key={c.url}
-                href={chapterPathToRoute(c.url)}
+                href={route}
                 className="flex min-w-0 items-center justify-between gap-2 bg-paper px-3 py-3 text-sm min-[420px]:px-4 hover:bg-paper-3 dark:bg-ink dark:hover:bg-ink-3"
               >
-                <span className="min-w-0 flex-1 truncate font-semibold text-accent">
-                  {c.title}
+                <span
+                  className={`flex min-w-0 flex-1 items-center gap-1.5 font-semibold ${
+                    isRead ? "text-muted dark:text-muted-dark" : "text-accent"
+                  }`}
+                >
+                  {isRead && (
+                    <svg viewBox="0 0 24 24" fill="none" role="img" aria-label="Sudah dibaca" className="h-4 w-4 shrink-0 text-accent">
+                      <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  <span className="min-w-0 truncate">{c.title}</span>
                 </span>
                 {c.date && <span className="shrink-0 text-[11px] tabular-nums text-muted sm:text-xs dark:text-muted-dark">{c.date}</span>}
               </Link>
