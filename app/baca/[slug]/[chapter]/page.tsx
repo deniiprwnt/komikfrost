@@ -368,9 +368,9 @@ export default function ReaderPage({
       if (cached) {
         setChapters(cached.chapters);
         const idx = cached.chapters.findIndex((c) =>
-          c.url.includes(`-chapter-${chapter}/`),
+          chapterPathToRoute(c.url).split("/").pop()?.replace(/\./g, "-") === chapter.replace(/\./g, "-"),
         );
-        const tok = cached.chapters[idx - 1]?.url.match(/-chapter-(.+?)\/?$/)?.[1];
+        const tok = idx > 0 ? chapterPathToRoute(cached.chapters[idx - 1].url).split("/").pop() : undefined;
         if (tok) {
           prefetchApi(
             `/api/chapter/${encodeURIComponent(slug)}/${encodeURIComponent(tok)}`,
@@ -486,7 +486,8 @@ export default function ReaderPage({
     const cover = cachedDetail?.cover ?? "";
     const persist = (pct: number, page: number) => {
       // Tandai chapter sudah dibaca setelah ~80% (dipakai daftar isi & detail).
-      if (pct >= 0.79) markChapterRead(data.mangaSlug, chapter);
+      markChapterRead(slug, chapter);
+      if (data.mangaSlug && data.mangaSlug !== slug) markChapterRead(data.mangaSlug, chapter);
       saveHistory({
         slug: data.mangaSlug,
         title: baseTitle,
@@ -514,6 +515,9 @@ export default function ReaderPage({
     const initKey = `${data.mangaSlug}/${chapter}`;
     if (initPersistRef.current !== initKey) {
       initPersistRef.current = initKey;
+      // Chapter yang pernah dibuka langsung ditandai (daftar isi & detail).
+      markChapterRead(slug, chapter);
+      if (data.mangaSlug && data.mangaSlug !== slug) markChapterRead(data.mangaSlug, chapter);
       const startPage = pageNumRef.current;
       if (startPage === 0 && restorePct === null) {
         savedProgressRef.current = 0;
@@ -676,7 +680,7 @@ export default function ReaderPage({
   const tocControl: TocControl = {
     chapters,
     current: chapter,
-    slug: data.mangaSlug,
+    slug,
     onOpenChange: onMenuOpenChange,
   };
 
@@ -820,7 +824,7 @@ export default function ReaderPage({
             searchFrom={8}
             className="flex-1"
             options={chapters.flatMap((c) => {
-              const tok = c.url.match(/-chapter-(.+?)\/?$/)?.[1] ?? "";
+              const tok = chapterPathToRoute(c.url).split("/").pop() ?? "";
               return tok ? [{ value: tok, label: c.title, hint: c.date || undefined }] : [];
             })}
           />

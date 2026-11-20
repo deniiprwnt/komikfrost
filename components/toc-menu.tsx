@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { readKey, useReadChapters } from "@/lib/history";
+import { chapterPathToRoute } from "@/components/cards";
 
 export type TocChapter = {
   title: string;
@@ -24,8 +25,15 @@ export type TocControl = {
 
 /** Token route dari URL chapter; sufiks "-bahasa-indonesia" dibuang (sama seperti chapterPathToRoute). */
 function chapterToken(url: string): string {
-  const tok = url.match(/-chapter-(.+?)\/?$/)?.[1] ?? "";
-  return tok.replace(/-bahasa-indonesia$/i, "");
+  // Pakai chapterPathToRoute agar format Kiryuu (/manga/<slug>/chapter-N/)
+  // ikut terbaca, bukan hanya format "-chapter-".
+  const route = chapterPathToRoute(url);
+  return route.startsWith("/baca/") ? (route.split("/").pop() ?? "") : "";
+}
+
+/** "44.1" dan "44-1" = chapter yang sama. */
+function sameToken(a: string, b: string): boolean {
+  return a.replace(/\./g, "-") === b.replace(/\./g, "-");
 }
 
 function IconList({ className }: { className?: string }) {
@@ -146,7 +154,7 @@ export function TocMenu({
   }, [chapters, asc, query]);
 
   const total = chapters?.length ?? 0;
-  const hasCurrent = (chapters ?? []).some((c) => chapterToken(c.url) === current);
+  const hasCurrent = (chapters ?? []).some((c) => sameToken(chapterToken(c.url), current));
 
   /** Gulir daftar sehingga chapter aktif berada di tengah (hanya scroller daftar, bukan halaman). */
   const scrollToCurrent = (smooth: boolean) => {
@@ -293,7 +301,7 @@ export function TocMenu({
                   className="relative -mr-1 flex max-h-[min(55vh,22rem)] min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain pr-1"
                 >
                   {items.map((c, i) => {
-                    const active = c.tok === current;
+                    const active = sameToken(c.tok, current);
                     const isRead = !active && readSet.has(readKey(c.tok));
                     return (
                       <li key={`${c.tok}-${i}`}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apiGet, peekApiCacheStale, readApiSnapshot } from "@/lib/client";
 import { isBookmarked, setLatestSeen, toggleBookmark } from "@/lib/bookmarks";
 import { consumeCoverMorph, flyCover, prefersReducedMotion } from "@/lib/morph";
@@ -55,9 +55,9 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
   const detailPath = `/api/manga/${encodeURIComponent(slug)}`;
   // Isi awal dari cache (kunjungan/hover sebelumnya) — kembali dari reader
   // langsung menampilkan halaman yang sama, bukan skeleton.
-  const [detail, setDetail] = useState<MangaDetail | null>(
-    () => peekApiCacheStale<MangaDetail>(detailPath) ?? readApiSnapshot<MangaDetail>(detailPath),
-  );
+  // Render pertama HARUS sama dengan server (skeleton) agar hydration cocok;
+  // cache dipasang di useLayoutEffect di bawah (sebelum paint, tanpa kedip).
+  const [detail, setDetail] = useState<MangaDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const similar = useSimilar(detail);
   const [filter, setFilter] = useState("");
@@ -104,8 +104,10 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
 
   // Jangan pernah mengosongkan data yang sudah tampil. Saat slug berganti,
   // isi layar diganti cache komik baru (atau skeleton bila belum ada).
-  useEffect(() => {
+  useLayoutEffect(() => {
     setDetail(peekApiCacheStale<MangaDetail>(detailPath) ?? readApiSnapshot<MangaDetail>(detailPath));
+  }, [detailPath]);
+  useEffect(() => {
     const ctrl = new AbortController();
     void load(ctrl.signal);
     return () => ctrl.abort();
