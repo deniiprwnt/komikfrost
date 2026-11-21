@@ -249,17 +249,16 @@ function TerbaruContent() {
         applyItems(fromDisk.items, fromDisk.hasNextPage, p);
       }
       try {
-        // Halaman 1 harus selalu fresh (live=1) agar data terbaru (misal
-        // dari Shinigami) langsung muncul saat di-refresh, tanpa menunggu
-        // auto-refresh 30 detik. Ini melewati semua cache server & CDN.
-        const qs = buildQs(p);
-        const isLive = p === 1;
-        if (isLive) qs.set("live", "1");
-        const fetchPath = `/api/latest?${qs}`;
+        // Pemuatan biasa memakai cache server 60 dtk + SWR: halaman 1 tidak
+        // lagi memaksa scrape 3 sumber di setiap kunjungan (dulu `live=1`
+        // membuat /terbaru selalu menunggu 3–4 dtk walau cache baru saja
+        // diisi). Tombol muat ulang / perubahan filter (fresh) tetap meminta
+        // data baru tanpa cache.
+        const fetchPath = `/api/latest?${buildQs(p)}`;
 
-        if (fresh || isLive) {
+        if (fresh) {
           const res = await apiGet<LatestPayload>(fetchPath, {
-            noStore: isLive,
+            noStore: true,
             ...(signal ? { signal } : {}),
           });
           applyItems(res.items, res.hasNextPage, p);

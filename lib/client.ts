@@ -57,6 +57,7 @@ function snapshotAllowed(path: string): boolean {
     path.startsWith("/api/latest") ||
     path === "/api/home" ||
     path.startsWith("/api/popular") ||
+    path === "/api/recommended" ||
     path.startsWith("/api/genre/") ||
     // Pencarian: kembali dari detail komik / halaman lain tidak boleh
     // mengosongkan hasil lalu menampilkan skeleton.

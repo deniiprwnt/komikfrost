@@ -56,7 +56,7 @@ import {
   type MergedMangaCard,
   type MergedMangaDetail,
 } from "./aggregator";
-import { createKeyedCache } from "./cache";
+import { createKeyedCache, createTtlCache } from "./cache";
 import { isMeaningfulSynopsis, pickBestSynopsis, splitAltTitles, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { ComicSourceId, GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
@@ -780,8 +780,19 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+/**
+ * Rekomendasi beranda: hasil merge+enrich di-cache 60 dtk per instance.
+ * Tanpa ini setiap kunjungan beranda menembak 3 sumber lagi (~3,5 dtk)
+ * hanya untuk daftar acak yang urutannya toh dikocok ulang di browser.
+ */
+const recommendedCache = createTtlCache<MangaCard[]>(60_000);
+
 /** Komik rekomendasi — acak gabungan ?orderby=rand (Komiku) + rekomendasi Shinigami. */
 export async function getRecommended(): Promise<MangaCard[]> {
+  return recommendedCache.load(buildRecommended);
+}
+
+async function buildRecommended(): Promise<MangaCard[]> {
   const komikuJob = async () => {
     // Coba 2x seperti getLatest — kegagalan fragment API sering sementara.
     for (let attempt = 0; attempt < 2; attempt++) {

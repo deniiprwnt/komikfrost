@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   // Jangan bocorkan "X-Powered-By: Next.js" ke browser.
   poweredByHeader: false,
   compress: true,
+  // Proyek ini tidak memakai ESLint (tidak ada config/dependency). Tanpa flag
+  // ini `next build` gagal dengan "ESLint must be installed in order to run
+  // during builds" — build produksi jadi mustahil tanpa `--no-lint`.
+  eslint: { ignoreDuringBuilds: true },
   compiler: { removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false },
   experimental: {
     optimizePackageImports: ["cheerio"],

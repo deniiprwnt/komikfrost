@@ -169,6 +169,7 @@ lib/
 - Seluruh hak konten milik sumber masing-masing; proyek ini hanya menampilkan
   data secara langsung, tanpa menyimpan atau me-rehost konten.
 - Dibuat untuk penggunaan pribadi.
-- Jika `next build` berhenti karena rule ESLint `@next/next/no-img-element`
-  tidak ditemukan (konfigurasi ESLint lama), jalankan `npx next build --no-lint`.
+- Build produksi memakai `npx next build` biasa. Proyek ini tidak memakai
+  ESLint, dan `next.config.ts` sudah menonaktifkan lint saat build
+  (`eslint.ignoreDuringBuilds`), jadi tidak perlu flag `--no-lint`.
   Type-check tetap berjalan.

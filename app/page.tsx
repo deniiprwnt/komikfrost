@@ -181,7 +181,9 @@ function useHomeSection<K extends keyof HomePayload>(
  * setiap dibuka, walau data server sempat kena cache.
  */
 function useRecommended() {
-  return useHomeSection("recommended", true);
+  // Endpoint sendiri: dulu ikut /api/home (scrape 3 section sekaligus) sehingga
+  // rail rekomendasi baru terisi setelah section terlambat selesai.
+  return useHomeSection("recommended", true, "/api/recommended");
 }
 
 /** Label waktu riwayat yang menua sendiri — komponen terpisah agar detak
@@ -251,8 +253,9 @@ function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; s
 
 export default function HomePage() {
   const { entries: history } = useHistory();
-  // 1 request gabungan untuk 3 section (hemat handshake, ramah rate limit).
-  const popular = useHomeSection("popular");
+  // Tiap section punya endpoint sendiri: peringkat tidak lagi menunggu scrape
+  // rekomendasi + terbaru seperti saat masih memakai /api/home gabungan.
+  const popular = useHomeSection("popular", false, "/api/popular?period=harian");
   // Daftar terbaru punya endpoint sendiri yang jauh lebih ringan dari
   // /api/home (tanpa scrape populer + rekomendasi).
   // live=1: probe auto-refresh 5 dtk melewati semua cache → komik baru dari
@@ -307,6 +310,11 @@ export default function HomePage() {
 
   const anyRefreshing = popular.refreshing || latest.refreshing || recommended.refreshing;
 
+  // Peringkat sudah dipisah per endpoint; saring rekomendasi yang judulnya
+  // sudah tampil di "Update terbaru" (dulu dilakukan server di /api/home).
+  const latestSlugs = new Set((latest.data ?? []).map((c) => c.slug));
+  const recommendedList = (recommended.data ?? []).filter((c) => !latestSlugs.has(c.slug));
+
   return (
     <div className="flex min-w-0 flex-col gap-10 sm:gap-14 lg:gap-16">
       {/* Peringkat harian: daftar 1–10, dua kolom di layar lebar (urut ke bawah per kolom) */}
@@ -319,10 +327,8 @@ export default function HomePage() {
           <div className="flex shrink-0 items-center gap-1">
             <button
               onClick={() => {
-                // Popular & rekomendasi dari /api/home; daftar terbaru punya
-                // endpoint sendiri sehingga cache-nya terpisah.
-                invalidateApi("/api/home");
-                invalidateApi("/api/latest");
+                // `load(true)` menghapus cache memori untuk path masing-masing
+                // section lalu mengambil data baru — tidak perlu invalidate manual.
                 popular.load(true);
                 latest.load(true);
                 recommended.load(true);
@@ -450,12 +456,12 @@ export default function HomePage() {
         <div className="min-w-0">
           {!recommended.data && !recommended.error && <RailSkeleton />}
           {recommended.error && <ErrorState message={recommended.error} onRetry={() => recommended.load(true)} />}
-          {recommended.data && recommended.data.length === 0 && !recommended.error && (
+          {recommended.data && recommendedList.length === 0 && !recommended.error && (
             <EmptyState message="Belum ada rekomendasi dari sumber data." />
           )}
-          {recommended.data && recommended.data.length > 0 && (
+          {recommendedList.length > 0 && (
             <div className="rail-scroll rail-snap -mx-3 -mt-2 flex gap-3 overflow-x-auto px-3 pb-2 pt-2 sm:mx-0 sm:px-0">
-              {recommended.data.slice(0, 12).map((item) => (
+              {recommendedList.slice(0, 12).map((item) => (
                 <div key={item.slug + (item.latestChapter?.url || "")} className="flex w-[132px] shrink-0 sm:w-[156px] lg:w-[168px]">
                   <MangaGridCard item={item} />
                 </div>

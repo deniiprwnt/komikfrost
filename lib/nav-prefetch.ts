@@ -8,10 +8,15 @@ import { prefetchApi } from "./client";
  * besar yang terasa seperti reload.
  */
 const NAV_API: Record<string, string[]> = {
-  // Beranda memakai DUA endpoint (section "popular"/"recommended" lewat
-  // /api/home, section "Terbaru" lewat /api/latest?limit=16). Tanpa limit=16
-  // prefetch menu tidak pernah menghangatkan section Terbaru beranda.
-  "/": ["/api/home", "/api/latest?page=1&orderby=modified&limit=16"],
+  // Beranda memakai tiga endpoint terpisah (peringkat, terbaru, rekomendasi)
+  // supaya tiap section bisa tampil sendiri-sendiri tanpa menunggu yang
+  // terlambat. Prefetch memakai path yang sama persis dengan yang dipanggil
+  // beranda agar cache-nya terpakai.
+  "/": [
+    "/api/popular?period=harian",
+    "/api/latest?page=1&orderby=modified&limit=16",
+    "/api/recommended",
+  ],
   "/terbaru": ["/api/latest?page=1&orderby=modified"],
   "/populer": ["/api/popular?period=harian"],
   "/genre": ["/api/genres"],
