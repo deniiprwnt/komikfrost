@@ -76,7 +76,18 @@ export function createTtlCache<T>(ttlMs: number) {
 }
 
 /** Cache ber-key (mis. per slug / per chapter) dengan batas entri. */
-export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
+export function createKeyedCache<T>(
+  ttlMs: number,
+  maxEntries = 100,
+  /**
+   * Jendela tambahan setelah TTL di mana entri basi masih boleh dikembalikan
+   * sambil disegarkan di background (default: sama dengan TTL). Untuk daftar
+   * "terbaru" jendela ini dipersempit: respons 2–4 menit lama membuat halaman
+   * terbaru tampak tidak pernah berubah.
+   */
+  opts?: { staleMs?: number },
+) {
+  const staleMs = opts?.staleMs ?? ttlMs;
   const entries = new Map<string, Entry<T>>();
   const inflight = new Map<string, Promise<T>>();
   // Refresh background SWR dilacak terpisah dari inflight: promise-nya
@@ -96,11 +107,11 @@ export function createKeyedCache<T>(ttlMs: number, maxEntries = 100) {
       const hit = entries.get(k);
       const now = Date.now();
       if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs) return hit.data;
-      // Stale-while-revalidate (server): entri basi < 2x TTL langsung
-      // dikembalikan agar request tidak memblokir scrape 3 sumber, sambil
-      // 1 refresh background memperbarui cache. Di luar jendela basi ini
+      // Stale-while-revalidate (server): entri basi < TTL + jendela stale
+      // langsung dikembalikan agar request tidak memblokir scrape 3 sumber,
+      // sambil 1 refresh background memperbarui cache. Di luar jendela itu
       // request menunggu refresh seperti sebelumnya (data tidak basi lama).
-      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs * 2 && !refreshing.has(k)) {
+      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs + staleMs && !refreshing.has(k)) {
         const bg = fn()
           .then((data) => {
             if (!keep || keep(data)) {

@@ -565,7 +565,11 @@ export interface LatestOpts {
 // total (lihat getLatestPaged), jadi auto-refresh 30 dtk klien tidak
 // terpengaruh. Kunjungan non-live (pagination halaman 2+, prefetch) jadi
 // instan dari cache server, bukan scrape 3 source berulang.
-const latestCache = createKeyedCache<PagedResult<MangaCard>>(120_000, 50);
+//
+// Daftar "terbaru" = halaman yang paling terasa kalau basi, jadi TTL 60 dtk
+// (sama dengan cache HTTP upstream Kiryuu) + jendela stale hanya 30 dtk:
+// respons paling tua ~90 dtk, bukan 4 menit seperti sebelumnya.
+const latestCache = createKeyedCache<PagedResult<MangaCard>>(20_000, 50, { staleMs: 0 });
 
 /** Dedupe probe live: beberapa tab / tick bersamaan = satu kali scrape. */
 const liveInflight = new Map<string, Promise<PagedResult<MangaCard>>>();
@@ -629,7 +633,10 @@ async function buildLatestPaged(
       shinigami: async () => {
         const base = {
           pageSize: limit,
-          ...(opts.live ? { fresh: true } : {}),
+          // Selalu fresh: cache data Next (next.revalidate) menyajikan HTML/JSON
+          // basi lebih dulu lalu menggantinya setelah scrape ulang â€” itulah
+          // "komik lama tampil dulu". Penghematan ditangani latestCache (TTL pendek).
+          fresh: true,
           ...(opts.tipe ? { format: opts.tipe } : {}),
         };
         if (genreVars.length === 0) return fetchShiniLatest(p, base);
@@ -646,7 +653,10 @@ async function buildLatestPaged(
         const base = {
           page: p,
           orderby,
-          ...(opts.live ? { fresh: true } : {}),
+          // Selalu fresh: cache data Next (next.revalidate) menyajikan HTML/JSON
+          // basi lebih dulu lalu menggantinya setelah scrape ulang â€” itulah
+          // "komik lama tampil dulu". Penghematan ditangani latestCache (TTL pendek).
+          fresh: true,
           ...(opts.tipe ? { tipe: opts.tipe } : {}),
           ...(opts.genre2 ? { genre2: genre2Vars[0] ?? opts.genre2 } : {}),
           ...(opts.status ? { status: opts.status } : {}),
@@ -665,7 +675,7 @@ async function buildLatestPaged(
       komikcast: () =>
         p > 1 || opts.tipe || opts.genre || opts.genre2 || opts.status
           ? Promise.resolve({ items: [] as MangaCard[], hasNextPage: false })
-          : fetchKomikcastLatest({ fresh: opts.live === true }).then((items) => ({ items, hasNextPage: false })),
+          : fetchKomikcastLatest({ fresh: true }).then((items) => ({ items, hasNextPage: false })),
     },
     "latest-paged:komikcast",
   ).catch(() => ({ data: {} as Partial<Record<ComicSourceId, PagedResult<MangaCard>>>, errors: {} }));

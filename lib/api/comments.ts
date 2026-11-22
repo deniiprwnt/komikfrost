@@ -12,7 +12,7 @@
  */
 import * as cheerio from "cheerio";
 import { getMangaDetail, komikuSlugForTitles, shiniIdForTitles } from "./manga";
-import { normalizeChapterKey, SOURCE_PRIORITY, type MergedMangaDetail } from "./aggregator";
+import { chapterNum, normalizeChapterKey, SOURCE_PRIORITY, type MergedMangaDetail } from "./aggregator";
 import { createKeyedCache, withDataVersion } from "./cache";
 import { proxiedImage } from "./img-proxy";
 import type { CommentItem, CommentMedia, CommentsPayload, ComicSourceId, SourceComments } from "./types";
@@ -569,10 +569,46 @@ async function komikuApiComments(seriesId: string, chapterId: string | undefined
   }
 }
 
+/**
+ * URL chapter di halaman seri Komiku (mis. "/one-piece-chapter-1198/").
+ *
+ * Stem URL chapter Komiku sering BEDA dari slug seri ("komik-one-piece-indo"
+ * → "/one-piece-chapter-1198/"), jadi `${slug}-chapter-${n}` hanya benar
+ * untuk sebagian judul. Halaman seri selalu memuat tautan aslinya, jadi satu
+ * request HTML di sini menyelamatkan komentar chapter untuk judul yang
+ * detailnya tidak membawa ref Komiku (mis. One Piece: 24 komentar chapter
+ * 1198 sempat dilaporkan "tidak bisa dimuat").
+ */
+async function komikuChapterPath(mangaSlug: string, bare: string, trace?: Trace): Promise<string | null> {
+  const want = chapterNum(bare);
+  if (!Number.isFinite(want)) return null;
+  try {
+    const html = await fetchText(
+      `${KOMIKU_BASE}/manga/${mangaSlug}/`,
+      "text/html",
+      KOMIKU_BASE + "/",
+      trace,
+    );
+    const $ = cheerio.load(html);
+    let found: string | null = null;
+    $("a[href]").each((_, el) => {
+      if (found) return;
+      const href = $(el).attr("href") ?? "";
+      const m = href.match(/-chapter-([\d.]+?)\/?$/i);
+      if (!m) return;
+      // Bandingkan nomor, bukan string: "03" dan "3" adalah chapter yang sama.
+      if (chapterNum(m[1]) === want) found = href;
+    });
+    if (!found) trace?.push("  -> tautan chapter tidak ada di halaman seri");
+    return found;
+  } catch {
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Service gabungan                                                    */
 /* ------------------------------------------------------------------ */
-
 const commentCache = createKeyedCache<CommentsPayload>(60_000, 100);
 
 function chapterKey(tok: string): string {
@@ -602,6 +638,9 @@ function bareToken(tok: string): string {
 /**
  * Resolusi slug yang FAIL-SAFE: satu resolver error tidak menjatuhkan yang lain.
  */
+/** Sumber yang resolver slug-nya ERROR (bukan sekadar tidak ketemu), per objek slugs. */
+const resolveFailed = new WeakMap<object, Set<ComicSourceId>>();
+
 async function resolveAllSlugs(merged: MergedMangaDetail): Promise<Partial<Record<ComicSourceId, string>>> {
   const slugs: Partial<Record<ComicSourceId, string>> = { ...(merged.sourceSlug ?? {}) };
   const aliases = [merged.title, merged.altTitle].filter((x): x is string => !!x && x.trim().length > 0);
@@ -620,6 +659,10 @@ async function resolveAllSlugs(merged: MergedMangaDetail): Promise<Partial<Recor
     slugs.komiku ? Promise.resolve({ ok: true, value: slugs.komiku }) : safe("komiku", () => komikuSlugForTitles(aliases)),
   ]);
 
+  const failed = new Set<ComicSourceId>();
+  if (!shini.ok) failed.add("shinigami");
+  if (!komiku.ok) failed.add("komiku");
+  resolveFailed.set(slugs, failed);
   if (shini.ok && typeof shini.value === "string") slugs.shinigami = shini.value;
   if (komiku.ok && typeof komiku.value === "string") slugs.komiku = komiku.value;
   return slugs;
@@ -768,6 +811,7 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
     slugs = await resolveAllSlugs(merged);
   } catch {
     slugs = { ...(merged.sourceSlug ?? {}) };
+    resolveFailed.set(slugs, new Set<ComicSourceId>(["shinigami", "komiku"]));
   }
 
   const scope: CommentsPayload["scope"] = chapter ? "chapter" : "komik";
@@ -786,7 +830,11 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
     // (detail komik) dan satu thread per chapter.
     shinigami: async () => {
       const mangaSlug = slugs.shinigami;
-      if (!mangaSlug) return finish("shinigami", null);
+      if (!mangaSlug) {
+        return resolveFailed.get(slugs)?.has("shinigami")
+          ? finish("shinigami", null)
+          : none("shinigami", "Komik ini tidak ditemukan di sumber ini.");
+      }
 
       const trace = tr("shinigami");
       const absRef = (p: string) => (/^https?:\/\//i.test(p) ? p : `${KIRYUU_BASE}${p.startsWith("/") ? "" : "/"}${p}`);
@@ -800,6 +848,46 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
         const wpSlug = chapter ? `${mangaSlug}-chapter-${bare.replace(/\./g, "-")}` : mangaSlug;
         postId = await kiryuuWpId(chapter ? "chapter" : "manga", wpSlug, trace);
       }
+      // Cadangan: slug WP chapter sering tidak cocok (judul berslug lain,
+      // ref chapter tidak ikut di daftar gabungan). Cari nomor chapter di
+      // daftar chapter tema Kiryuu lewat id manga.
+      if (!postId && chapter) {
+        const mid = await kiryuuWpId("manga", mangaSlug, trace);
+        if (mid) {
+          const want = chapterNum(bare);
+          const body = JSON.parse(
+            await fetchText(
+              `${KIRYUU_BASE}/wp-json/kiru/v2/chapter?parent_id=${encodeURIComponent(mid)}`,
+              "application/json",
+              referer,
+              trace,
+            ),
+          ) as unknown;
+          const list: unknown[] = Array.isArray(body) ? body : isRec(body) && Array.isArray(body.data) ? body.data : [];
+          const pages = isRec(body) && typeof body.pages === "number" ? body.pages : 1;
+          let lowest = Infinity;
+          for (const ch of list) {
+            if (!isRec(ch) || ch.id == null) continue;
+            const raw =
+              typeof ch.number === "string" || typeof ch.number === "number"
+                ? String(ch.number)
+                : String(ch.slug ?? "").replace(/^.*-chapter-/, "");
+            const n = chapterNum(raw);
+            if (Number.isFinite(n) && n < lowest) lowest = n;
+            if (Number.isFinite(want) && n === want) {
+              postId = String(ch.id);
+              break;
+            }
+          }
+          trace?.push(postId ? `  -> chapter ketemu di daftar Kiryuu: post ${postId}` : "  -> chapter tidak ada di daftar Kiryuu");
+          // Daftar lengkap (<=100 chapter) dan nomor tidak ada = memang tidak ada.
+          // Daftar terpotong (>100 chapter) tetap memuat chapter TERBARU, jadi
+          // nomor di atas yang terkecil di daftar pasti tidak ada.
+          if (!postId && list.length > 0 && (pages <= 1 || (Number.isFinite(want) && want >= lowest))) {
+            return none("shinigami", "Chapter ini tidak ada di sumber ini.");
+          }
+        }
+      }
       if (!postId) {
         trace?.push("  -> id post Kiryuu tidak ditemukan");
         return finish("shinigami", null);
@@ -808,7 +896,11 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
     },
     komiku: async () => {
       const mangaSlug = slugs.komiku;
-      if (!mangaSlug) return finish("komiku", null);
+      if (!mangaSlug) {
+        return resolveFailed.get(slugs)?.has("komiku")
+          ? finish("komiku", null)
+          : none("komiku", "Komik ini tidak ditemukan di sumber ini.");
+      }
 
       const trace = tr("komiku");
 
@@ -838,19 +930,32 @@ async function loadComments(slug: string, chapter: string, debug = false): Promi
 
       // Chapter: pakai URL chapter dari daftar gabungan — stem URL chapter
       // Komiku ("one-piece-chapter-1198") sering BEDA dari slug seri
-      // ("komik-one-piece-indo"), jadi menebak dari slug seri gagal.
+      // ("komik-one-piece-indo"), jadi menebak dari slug seri gagal. Bila
+      // daftar gabungan tidak membawa ref Komiku, cari tautannya di halaman
+      // seri (lihat komikuChapterPath).
       const path = ref("komiku")?.url ?? "";
       const abs = (p: string) => (/^https?:\/\//i.test(p) ? p : `${KOMIKU_BASE}${p.startsWith("/") ? p : `/${p}`}`);
-      const urls = [...(path ? [abs(path)] : []), `${KOMIKU_BASE}/${mangaSlug}-chapter-${bare}/`];
+      const fromSeries = await komikuChapterPath(mangaSlug, bare, trace);
+      const urls = [
+        ...new Set([
+          ...(path ? [abs(path)] : []),
+          ...(fromSeries ? [abs(fromSeries)] : []),
+          `${KOMIKU_BASE}/${mangaSlug}-chapter-${bare}/`,
+        ]),
+      ];
+      let missing = 0;
       for (const url of urls) {
         try {
           const ids = await readIds(url);
           if (ids.series && ids.chapter) return komikuApiComments(ids.series, ids.chapter, trace);
-        } catch {
+        } catch (e) {
+          if (e instanceof Error && /HTTP 404/.test(e.message)) missing++;
           /* kandidat berikut */
         }
       }
       trace?.push("  -> series_id/chapter_id tidak ditemukan di HTML");
+      // Semua kandidat URL 404 = chapter memang belum ada di Komiku.
+      if (missing === urls.length) return none("komiku", "Chapter ini belum tersedia di sumber ini.");
       return finish("komiku", null);
     },
     // Komikcast tidak menyediakan komentar: halaman chapter/series-nya tidak

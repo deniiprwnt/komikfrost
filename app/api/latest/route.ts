@@ -70,6 +70,13 @@ export async function GET(req: NextRequest) {
     // bolak-balik tidak bakar scrape 3 source berulang, tapi daftar
     // terbaru tetap segar. Probe live TIDAK diberi Cache-Control sama
     // sekali agar respons selalu baru.
-    live ? undefined : { revalidate: 60, scope: "private" },
+    //
+    // max-age dulu 60 dtk + stale-while-revalidate 120 dtk: browser boleh
+    // menyajikan respons 3 menit lama TANPA menunggu jaringan, lalu data
+    // baru baru muncul di request berikutnya — ikut menyebabkan daftar
+    // "komik lama" tampil lebih dulu. Sekarang 15 dtk (SWR 30 dtk).
+    // Tanpa Cache-Control: browser tidak boleh menyajikan daftar terbaru
+    // dari HTTP cache (max-age + SWR dulu membolehkan Â±45 dtk data lama).
+    undefined,
   );
 }

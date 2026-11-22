@@ -98,7 +98,12 @@ const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url),
 
   const manga = read("lib/api/manga.ts");
   // Cache 15-30 dtk tidak boleh menghalangi deteksi update: probe live bypass.
-  assert.match(manga, /const latestCache = createKeyedCache<PagedResult<MangaCard>>\(120_000, 50\)/);
+  // TTL 60 dtk + jendela basi 30 dtk: daftar terbaru tidak boleh tampil
+  // sebagai data 2–4 menit lama (keluhan "komik lama muncul dulu").
+  assert.match(
+    manga,
+    /const latestCache = createKeyedCache<PagedResult<MangaCard>>\(20_000, 50, \{ staleMs: 0 \}\)/,
+  );
   const liveBlock = manga.slice(manga.indexOf("if (opts.live)"), manga.indexOf("return latestCache.load"));
   assert.ok(liveBlock.includes("liveInflight") && !liveBlock.includes("latestCache.load"), "probe live tidak memakai cache TTL");
   // Sumber tetap membuang cache HTTP upstream saat probe.

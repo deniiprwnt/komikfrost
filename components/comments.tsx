@@ -919,7 +919,11 @@ export function Comments({
           text={
             failedSources.length === data.sources.length
               ? "Komentar belum bisa dimuat dari ketiga sumber."
-              : "Belum ada komentar."
+              : failedSources.length > 0
+                ? `Komentar belum bisa dimuat dari ${failedSources
+                    .map((s) => LABEL[s.source])
+                    .join(", ")}.`
+                : "Belum ada komentar."
           }
           {...(failedSources.length > 0 ? { onRetry: retry } : {})}
         />

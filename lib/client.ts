@@ -20,6 +20,22 @@ export interface ApiSuccess<T> {
 const TTL_MS = 30_000; // 30 detik — data segar, tanpa jaringan.
 /** Batas data basi yang masih layak tampil sambil disegarkan: 5 menit. */
 const STALE_MS = 5 * 60_000;
+
+/**
+ * Daftar "terbaru" (/api/latest) punya batas basi jauh lebih ketat.
+ *
+ * Dulu daftar berumur menit–jam tetap ditampilkan lebih dulu (dari cache
+ * memori 5 menit atau snapshot 6 jam), lalu DIGANTI data baru beberapa detik
+ * kemudian setelah scrape selesai. Bagi pembaca itu terlihat seperti bug:
+ * "komik lama muncul dulu, komik baru menyusul". Untuk daftar terbaru,
+ * menampilkan data yang salah lebih buruk daripada skeleton sebentar.
+ */
+const LIST_STALE_MS = TTL_MS; // = masa segar: tidak ada tahap "basi tapi tampil".
+
+/** Batas tampil data basi per path — lihat LIST_STALE_MS. */
+function staleWindowMs(path: string): number {
+  return path.startsWith("/api/latest") ? LIST_STALE_MS : STALE_MS;
+}
 const cache = new Map<string, { at: number; data: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
@@ -52,6 +68,15 @@ const SNAP_PREFIX = "kf.snap:";
 const SNAP_TTL_MS = 6 * 60 * 60_000; // 6 jam — lebih tua dari itu, buang.
 const SNAP_MAX_CHARS = 250_000; // jaga kuota localStorage (~5 MB)
 
+/**
+ * Snapshot daftar terbaru hanya boleh dipakai kalau masih segar. Snapshot
+ * 6 jam membuat halaman menampilkan daftar lama seketika lalu menukarnya
+ * dengan data baru setelah scrape (beberapa detik) — persis keluhan
+ * "komik yang sudah rilis lama tampil dulu". Path lain (detail, genre,
+ * populer, rekomendasi) tetap memakai SNAP_TTL_MS.
+ */
+const SNAP_MAX_AGE_MS = 30_000;
+
 function snapshotAllowed(path: string): boolean {
   return (
     path.startsWith("/api/latest") ||
@@ -79,7 +104,8 @@ export function readApiSnapshot<T>(path: string): T | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { at?: number; data?: T };
     if (!parsed || typeof parsed.at !== "number") return null;
-    if (Date.now() - parsed.at > SNAP_TTL_MS) {
+    const maxAge = path.startsWith("/api/latest") ? SNAP_MAX_AGE_MS : SNAP_TTL_MS;
+    if (Date.now() - parsed.at > maxAge) {
       window.localStorage.removeItem(SNAP_PREFIX + path);
       return null;
     }
@@ -252,7 +278,7 @@ export async function apiGetSWR<T>(
   const hit = cache.get(path);
   const fresh = hit && Date.now() - hit.at < TTL_MS;
   if (fresh) return { data: hit.data as T, stale: false };
-  if (hit && Date.now() - hit.at < STALE_MS) {
+  if (hit && Date.now() - hit.at < staleWindowMs(path)) {
     // Basi tapi layak tampil — segarkan di background LEWAT apiGet agar
     // beberapa pemanggil bersamaan (mis. 3 section beranda) hanya memicu
     // 1 fetch (dedupe inflight); onFresh tiap pemanggil tetap dipicu.
@@ -289,7 +315,7 @@ export function peekApiCache<T>(path: string): T | null {
  */
 export function peekApiCacheStale<T>(path: string): T | null {
   const hit = cache.get(path);
-  if (hit && Date.now() - hit.at < STALE_MS) return hit.data as T;
+  if (hit && Date.now() - hit.at < staleWindowMs(path)) return hit.data as T;
   return null;
 }
 
