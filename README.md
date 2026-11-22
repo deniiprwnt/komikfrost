@@ -9,7 +9,7 @@ diambil langsung dari sumber data eksternal melalui API internal.
 > dicantumkan dalam dokumentasi ini. KomikFrost tidak menyimpan atau 
 > me-rehost konten komik.
  
-## Fitur
+## Fitur 
 
 ### Jelajah
 
