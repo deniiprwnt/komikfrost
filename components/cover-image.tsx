@@ -223,6 +223,20 @@ export function CoverImage({
     // tidak meledak jadi puluhan percobaan untuk satu slot kecil.
     for (const alt of alternateImageUrls(u).slice(0, 1)) pushCand(alt);
   }
+  // Pilihan TERAKHIR: URL upstream langsung (tanpa proxy). Proxy /api/img
+  // bisa gagal di hosting (IP server diblokir sumber, mis. poster Komikcast
+  // 502) padahal browser pengguna sendiri bisa menjangkau host-nya. Dicoba
+  // setelah SEMUA kandidat proxy gagal, tanpa Referer (lihat referrerPolicy).
+  for (const u of primarySrcs) {
+    const m = u.startsWith("/api/img") ? u.match(/[?&]u=([^&]+)/) : null;
+    if (!m) continue;
+    try {
+      const direct = decodeURIComponent(m[1]);
+      if (/^https:\/\//i.test(direct)) pushCand(direct);
+    } catch {
+      // URL tidak valid â€” lewati
+    }
+  }
   const key = candidates.join("|");
   const initialStatus: Status = candidates.length > 0 ? "loading" : "error";
   const [st, setSt] = useState<{ key: string; i: number; status: Status }>({
@@ -336,6 +350,9 @@ export function CoverImage({
           // eager menahan paint sehingga sampul lain di baris yang sama
           // terlambat muncul pada kunjungan pertama.
           decoding="async"
+          // Kandidat langsung (bukan /api/img): jangan kirim Referer situs
+          // ini agar tidak ditolak anti-hotlink sumber.
+          referrerPolicy={activeSrc && !activeSrc.startsWith("/") ? "no-referrer" : undefined}
           fetchPriority={eager ? "high" : "low"}
           onLoad={() => setSt({ key, i: cur.i, status: "loaded" })}
           onError={(e) => fail(e.currentTarget)}
