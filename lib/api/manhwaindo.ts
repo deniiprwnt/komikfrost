@@ -179,6 +179,9 @@ const seriesPathCache = new Map<string, string>();
 function rememberSeries(id: unknown, slug: string): void {
   const n = Number(id);
   if (!slug || !Number.isFinite(n)) return;
+  // Jangan menimpa alamat kanonis yang sudah dikoreksi lewat redirect (situs
+  // memotong slug panjang di alamat kanonis, jadi `<id>-<slug-penuh>` salah).
+  if (seriesPathCache.has(slug)) return;
   if (seriesPathCache.size > 3000) {
     const oldest = seriesPathCache.keys().next().value;
     if (oldest !== undefined) seriesPathCache.delete(oldest);
@@ -200,6 +203,27 @@ async function seriesPath(slug: string): Promise<string> {
     return path;
   }
   return `/komik/${clean}`;
+}
+
+/**
+ * Ambil `<path-seri><suffix>` dan ikuti redirect kanonis situs. Slug panjang
+ * dipotong situs di alamat kanonis (mis. `/komik/8989-class-de-2-banme-...-to`),
+ * sehingga `/komik/<id>-<slug-penuh>` hanya membalas redirect. Alamat hasil
+ * koreksi disimpan agar pemanggilan berikutnya langsung benar.
+ */
+async function fetchSeries(
+  clean: string,
+  suffix: string,
+  revalidate: number,
+): Promise<{ r: Fetched; path: string }> {
+  let path = await seriesPath(clean);
+  let r = await fetchData(`${path}${suffix}`, { revalidate });
+  if (r.redirect && r.redirect.startsWith("/komik/")) {
+    path = r.redirect.replace(/\/__data\.json.*$/, "").replace(/\/+$/, "").split("?")[0];
+    seriesPathCache.set(clean, path);
+    r = await fetchData(`${path}${suffix}`, { revalidate });
+  }
+  return { r, path };
 }
 
 function toCard(it: Row, extra: { altMatch?: boolean } = {}): MangaCard | null {
@@ -358,8 +382,7 @@ export async function seriesViews(slug: string): Promise<number | undefined> {
   const hit = viewsCache.get(slug);
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit.v;
   try {
-    const path = await seriesPath(slug);
-    const r = await fetchData(`${path}/__data.json`, { revalidate: 300 });
+    const { r } = await fetchSeries(slug, "/__data.json", 300);
     const n = Number(r.node?.series?.views);
     const v = Number.isFinite(n) ? n : undefined;
     viewsCache.set(slug, { at: Date.now(), v });
@@ -431,8 +454,7 @@ export async function fetchGenres(): Promise<GenreRef[]> {
 
 export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   const clean = slug.replace(/^\/+|\/+$/g, "");
-  const path = await seriesPath(clean);
-  const r = await fetchData(`${path}/__data.json`, { revalidate: 120 });
+  const { r, path } = await fetchSeries(clean, "/__data.json", 120);
   const n = r.node;
   const s: Row | undefined = n?.series;
   const title = str(s?.title);
@@ -497,6 +519,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   const status = str(s.status);
   const author = str(s.author);
   const score = typeof s.score === "number" && s.score > 0 ? String(s.score) : "";
+  const viewsN = Number(s.views);
 
   const firstTok = n.firstChapter ? chapterToken(n.firstChapter.numberRaw, n.firstChapter.param) : "";
   const firstChapter: ChapterRef | undefined = firstTok
@@ -519,6 +542,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     genres,
     ...(author ? { author } : {}),
     ...(status ? { status } : {}),
+    ...(Number.isFinite(viewsN) && viewsN >= 0 && s.views != null ? { views: viewsN } : {}),
     ...(score ? { rating: score } : {}),
     ...(firstChapter ? { firstChapter } : {}),
     ...(latestChapter ? { latestChapter } : {}),

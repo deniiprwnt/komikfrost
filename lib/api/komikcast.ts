@@ -337,6 +337,7 @@ export async function fetchKomikcastDetail(slug: string): Promise<MangaDetail> {
     // dipakai sebagai genre â€” biarkan agregator mengisinya dari sumber lain.
     genres: toGenres(s.genres),
     ...(s.status ? { status: s.status } : {}),
+    ...(typeof s.view_count === "number" ? { views: s.view_count } : {}),
     ...(typeof s.score === "number" ? { rating: String(s.score) } : {}),
     ...(first ? { firstChapter: first } : {}),
     ...(latest ? { latestChapter: latest } : {}),

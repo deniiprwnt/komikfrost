@@ -1178,6 +1178,16 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
   const synopsisText =
     pickBestSynopsis(SOURCE_PRIORITY.map((s) => details[s]?.synopsis)) ?? "";
   // Tema: field terpisah dari Genre, tetap kanonis Bahasa Inggris.
+  // Jumlah pembaca: dijumlah dari semua sumber yang menyediakannya.
+  let viewsTotal = 0;
+  let hasViews = false;
+  for (const s of SOURCE_PRIORITY) {
+    const v = details[s]?.views;
+    if (typeof v === "number" && Number.isFinite(v)) {
+      viewsTotal += v;
+      hasViews = true;
+    }
+  }
   const themeText = themeDisplayName(get("theme") as string | undefined);
   // Rating: pisahkan skor dari batas usia. Skor diambil dari sumber
   // prioritas tertinggi yang benar-benar memberi SKOR ("17+" bukan skor).
@@ -1225,6 +1235,7 @@ export function mergeDetails(details: Partial<Record<ComicSourceId, MangaDetail>
     genres,
     ...(get("author") ? { author: get("author") as string } : {}),
     ...(get("status") ? { status: get("status") as string } : {}),
+    ...(hasViews ? { views: viewsTotal } : {}),
     ...(ratingScore ? { rating: ratingScore } : {}),
     ...(ageLimit ? { ageLimit } : {}),
     ...(get("readingDirection") ? { readingDirection: get("readingDirection") as string } : {}),

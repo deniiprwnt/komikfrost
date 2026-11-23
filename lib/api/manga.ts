@@ -744,6 +744,26 @@ async function buildLatestPaged(
   return { items, hasNextPage: hasNext, total };
 }
 
+/**
+ * Angka baca satu judul lewat pencarian judul + alias di Manhwaindo
+ * (series.views) dan Komikcast (view_count); yang terbesar dipakai.
+ * Tidak ketemu / gagal = -1 (tidak ada angka yang dikarang).
+ */
+async function lookupViewsByTitle(title: string, altTitle?: string): Promise<number> {
+  const want = new Set(aliasKeys(title, altTitle));
+  const fromMi = async (): Promise<number> => {
+    const { items } = await searchMangaRemote(title, 1);
+    const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.has(x)));
+    return hit ? ((await seriesViews(hit.slug)) ?? -1) : -1;
+  };
+  const fromKc = async (): Promise<number> => {
+    const kc = await kcBriefForTitles(title, altTitle);
+    return kc?.brief.views ?? -1;
+  };
+  const r = await Promise.allSettled([fromMi(), fromKc()]);
+  return Math.max(-1, ...r.map((x) => (x.status === "fulfilled" ? x.value : -1)));
+}
+
 const SHINI_TOP_BY_PERIOD: Record<RankPeriod, ShiniTopFilter> = {
   harian: "daily",
   mingguan: "weekly",
@@ -815,20 +835,7 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
   });
   // Judul yang hanya ada di Kiryuu: cari angka bacanya lewat judul di
   // Manhwaindo dan Komikcast (ambil yang terbesar). Gagal/lambat = dilewati.
-  const lookupViews = async (m: MangaCard): Promise<number> => {
-    const want = new Set(aliasKeys(m.title, m.altTitle));
-    const fromMi = async (): Promise<number> => {
-      const { items } = await searchMangaRemote(m.title, 1);
-      const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.has(x)));
-      return hit ? ((await seriesViews(hit.slug)) ?? -1) : -1;
-    };
-    const fromKc = async (): Promise<number> => {
-      const kc = await kcBriefForTitles(m.title, m.altTitle);
-      return kc?.brief.views ?? -1;
-    };
-    const r = await Promise.allSettled([fromMi(), fromKc()]);
-    return Math.max(-1, ...r.map((x) => (x.status === "fulfilled" ? x.value : -1)));
-  };
+  const lookupViews = (m: MangaCard): Promise<number> => lookupViewsByTitle(m.title, m.altTitle);
   await Promise.all(
     scored
       .filter((s) => s.views < 0)
@@ -1122,6 +1129,12 @@ async function buildMangaDetail(slug: string, deep: boolean): Promise<MangaDetai
         }),
       );
     }
+  }
+  // Judul tanpa angka baca (mis. hanya ada di Kiryuu): cari lewat judul +
+  // alias di Manhwaindo/Komikcast. Gagal/lambat = dilewati.
+  if (deep && typeof merged.views !== "number") {
+    const v = await withTimeout(lookupViewsByTitle(merged.title, merged.altTitle), 3500).catch(() => null);
+    if (typeof v === "number" && v >= 0) merged.views = v;
   }
   // Kembalikan sebagai MangaDetail (chapters = MergedChapterItem[] adalah
   // subtype ChapterItem[] + field tambahan) + tempel info sources.

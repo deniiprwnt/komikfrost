@@ -91,6 +91,8 @@ export interface MangaDetail {
   genres: GenreRef[];
   author?: string;
   status?: string;
+  /** Jumlah pembaca per sumber (Manhwaindo series.views, Komikcast view_count). */
+  views?: number;
   rating?: string;
   /**
    * Batas usia konten (mis. "17+"), dipisah dari `rating` (skor 0-10).

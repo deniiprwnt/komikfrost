@@ -158,6 +158,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
     ...(detail.theme ? [["Tema", detail.theme]] as [string, string][] : []),
     ...(detail.author ? [["Author", detail.author]] as [string, string][] : []),
     ...(detail.status ? [["Status", detail.status]] as [string, string][] : []),
+    ["Pembaca", typeof detail.views === "number" ? detail.views.toLocaleString("id-ID") : "-"],
     ...(detail.rating ? [["Rating", detail.rating]] as [string, string][] : []),
     ...(detail.readingDirection ? [["Cara baca", detail.readingDirection]] as [string, string][] : []),
   ];
@@ -247,7 +248,19 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               {meta.map(([k, v]) => (
                 <div key={k} className="morph-stagger-item flex min-w-0 items-start gap-2">
                   <dt className="w-[74px] shrink-0 text-muted dark:text-muted-dark">{k}:</dt>
-                  <dd className="min-w-0 flex-1 break-words font-medium text-fg dark:text-fg-dark">{v}</dd>
+                  <dd className="min-w-0 flex-1 break-words font-medium text-fg dark:text-fg-dark">
+                    {k === "Pembaca" ? (
+                      <span className="inline-flex items-center gap-1.5 tabular-nums">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-muted dark:text-muted-dark">
+                          <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+                          <circle cx="12" cy="12" r="2.75" />
+                        </svg>
+                        {v}
+                      </span>
+                    ) : (
+                      v
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
