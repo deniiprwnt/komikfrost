@@ -247,15 +247,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             <dl className="morph-stagger mt-3 grid min-w-0 grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] min-[420px]:grid-cols-2 sm:text-sm">
               {meta.map(([k, v]) => (
                 <div key={k} className="morph-stagger-item flex min-w-0 items-start gap-2">
-                  <dt className="flex w-[96px] shrink-0 items-center gap-1 whitespace-nowrap text-muted dark:text-muted-dark">
-                    {k === "Pembaca" && (
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
-                        <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
-                        <circle cx="12" cy="12" r="2.75" />
-                      </svg>
-                    )}
-                    <span>{k}:</span>
-                  </dt>
+                  <dt className="w-[74px] shrink-0 text-muted dark:text-muted-dark">{k}:</dt>
                   <dd className={`min-w-0 flex-1 break-words font-medium text-fg dark:text-fg-dark${k === "Pembaca" ? " tabular-nums" : ""}`}>
                     {v}
                   </dd>
