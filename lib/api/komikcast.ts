@@ -107,6 +107,7 @@ interface KcSeries {
   status?: string;
   year?: number;
   score?: number;
+  view_count?: number;
   synopsis?: string;
   description?: string;
   sinopsis?: string;
@@ -359,6 +360,8 @@ export interface KcBrief {
   /** Alias EN dari sumber (dipakai pencocokan judul). */
   altTitle?: string;
   synopsis?: string;
+  /** Jumlah baca (view_count) bila disediakan sumber. */
+  views?: number;
 }
 
 /** Genre/tipe/sinopsis satu series — praktis tidak berubah, jadi disimpan
@@ -388,6 +391,7 @@ export async function fetchKomikcastBrief(slug: string): Promise<KcBrief> {
     ...(genreList.length > 0 ? { genres: genreList } : {}),
     ...(type ? { type } : {}),
     ...(syn ? { synopsis: syn } : {}),
+    ...(typeof s.view_count === "number" ? { views: s.view_count } : {}),
   };
   kcBriefCache.set(cacheKey, { at: Date.now(), brief });
   if (kcBriefCache.size > 1000) {
@@ -475,7 +479,10 @@ export async function fetchKomikcastLatest(opts: { fresh?: boolean } = {}): Prom
 /** Trending Komikcast (`/api/v1/home` → trending, max 20 kartu). */
 export async function fetchKomikcastTrending(): Promise<MangaCard[]> {
   const json = await fetchJson<{ trending?: KcSeries[] }>(`${KC_API}/home`);
-  const items = (json.trending ?? []).slice(0, 20).map(toCard);
+  const items = (json.trending ?? []).slice(0, 20).map((s) => ({
+    ...toCard(s),
+    ...(typeof s.view_count === "number" ? { views: String(s.view_count) } : {}),
+  }));
   await fillKcMeta(items);
   return items;
 }

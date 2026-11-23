@@ -25,6 +25,7 @@ import {
   fetchKiryuuGenres,
   fetchKiryuuLatest,
   fetchKiryuuMeta,
+  fetchKiryuuPopular,
   fetchKiryuuRecommended,
   findKiryuuSlugByTitles,
   resolveKiryuuDetailForSlug,
@@ -121,14 +122,17 @@ export async function fetchShiniLatest(
 /** Kiryuu tidak punya endpoint top â€” biarkan Komiku/Komikcast yang
  *  mengisi peringkat. */
 export async function fetchShiniTop(
-  _filter: ShiniTopFilter = "daily",
+  filter: ShiniTopFilter = "daily",
   _page = 1,
-  _pageSize = 10,
+  pageSize = 10,
 ): Promise<MangaCard[]> {
-  void _filter;
   void _page;
-  void _pageSize;
-  return [];
+  const period = filter === "daily" ? "daily" : filter === "weekly" ? "weekly" : "monthly";
+  try {
+    return await fetchKiryuuPopular(period, pageSize);
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchShiniRecommended(pageSize = 24): Promise<MangaCard[]> {

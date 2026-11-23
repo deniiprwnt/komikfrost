@@ -66,9 +66,9 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             <SourceBadge wide sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
           </div>
         )}
-        {item.synopsis && (
+        {(
           <p className="mt-1.5 line-clamp-2 break-words text-xs leading-relaxed text-fg/75 sm:text-[13px] dark:text-fg-dark/70">
-            {item.synopsis}
+            {item.synopsis ?? "Sinopsis belum tersedia dari sumber."}
           </p>
         )}
         {(item.firstChapter || item.latestChapter) && (

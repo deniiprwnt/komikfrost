@@ -13,6 +13,7 @@ import {
   fetchMangaList,
   fetchRanking,
   searchMangaRemote,
+  seriesViews,
   type MangaListParams,
   type RankPeriod,
 } from "./manhwaindo";
@@ -354,10 +355,25 @@ async function resolveCanonRaw(input: {
  * disimpan agar dicoba lagi.
  */
 const canonResultCache = createKeyedCache<CanonResult>(CANON_TTL, 1000);
+/** Hasil tanpa sinopsis tidak di-cache lama (bisa gangguan sementara): cukup 3 menit. */
+const weakCanon = new Map<string, { until: number; r: CanonResult }>();
 function resolveCanon(input: Parameters<typeof resolveCanonRaw>[0]): Promise<CanonResult> {
   const key = aliasId([input.title, input.altTitle ?? ""]);
   if (!key) return resolveCanonRaw(input);
-  return canonResultCache.load(key, () => resolveCanonRaw(input), (r) => r.genreCertain && r.typeCertain);
+  const weak = weakCanon.get(key);
+  if (weak && weak.until > Date.now()) return Promise.resolve(weak.r);
+  return canonResultCache.load(
+    key,
+    async () => {
+      const r = await resolveCanonRaw(input);
+      if (!r.synopsis) {
+        if (weakCanon.size > 1000) weakCanon.clear();
+        weakCanon.set(key, { until: Date.now() + 3 * 60_000, r });
+      }
+      return r;
+    },
+    (r) => r.genreCertain && r.typeCertain && !!r.synopsis,
+  );
 }
 
 /** Maks kartu yang dilengkapi per panggilan. */
@@ -724,7 +740,7 @@ async function buildLatestPaged(
   // Batas waktu enrich diturunkan (3000/4000 -> 1500/2500). Untuk probe live
   // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
   // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
-  await completeCardsBounded(items, opts.live ? 1500 : 2500);
+  await completeCardsBounded(items, opts.live ? 3000 : 4000);
   return { items, hasNextPage: hasNext, total };
 }
 
@@ -776,7 +792,62 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
   // Tipe/genre/sinopsis kanonis: peringkat menampilkan nilai yang SAMA dengan
   // beranda, pencarian, dan halaman detail.
   await completeCardsBounded(merged, 2500);
-  const top = [...merged].sort((a, b) => viewsNum(b) - viewsNum(a)).slice(0, 20);
+  // Angka baca per sumber (Manhwaindo + Komikcast) dan posisi peringkat tiap
+  // sumber. Kiryuu tidak punya angka baca: judulnya diberi perkiraan angka
+  // dari posisi peringkatnya sendiri (posisi ke-N ~ angka baca ke-N terbesar).
+  const raw: Record<ComicSourceId, MangaCard[]> = {
+    shinigami: sh,
+    komiku: data.komiku ?? [],
+    komikcast: data.komikcast ?? [],
+  };
+  const scored = merged.map((m) => {
+    let views = -1;
+    let pos = Infinity;
+    for (const s of SOURCE_PRIORITY) {
+      const slug = m.sourceSlug?.[s];
+      if (!slug) continue;
+      const i = raw[s].findIndex((c) => c.slug === slug);
+      if (i < 0) continue;
+      views = Math.max(views, viewsNum(raw[s][i]));
+      pos = Math.min(pos, i);
+    }
+    return { m, views, pos };
+  });
+  // Judul yang hanya ada di Kiryuu: cari angka bacanya lewat judul di
+  // Manhwaindo dan Komikcast (ambil yang terbesar). Gagal/lambat = dilewati.
+  const lookupViews = async (m: MangaCard): Promise<number> => {
+    const want = new Set(aliasKeys(m.title, m.altTitle));
+    const fromMi = async (): Promise<number> => {
+      const { items } = await searchMangaRemote(m.title, 1);
+      const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.has(x)));
+      return hit ? ((await seriesViews(hit.slug)) ?? -1) : -1;
+    };
+    const fromKc = async (): Promise<number> => {
+      const kc = await kcBriefForTitles(m.title, m.altTitle);
+      return kc?.brief.views ?? -1;
+    };
+    const r = await Promise.allSettled([fromMi(), fromKc()]);
+    return Math.max(-1, ...r.map((x) => (x.status === "fulfilled" ? x.value : -1)));
+  };
+  await Promise.all(
+    scored
+      .filter((s) => s.views < 0)
+      .map(async (s) => {
+        const v = await withTimeout(lookupViews(s.m), 3500).catch(() => null);
+        if (typeof v === "number" && v >= 0) s.views = v;
+      }),
+  );
+  const known = scored.filter((s) => s.views >= 0).map((s) => s.views).sort((a, b) => b - a);
+  const score = (s: { views: number; pos: number }): number => {
+    if (s.views >= 0) return s.views;
+    if (known.length === 0) return -(Number.isFinite(s.pos) ? s.pos : 999);
+    const at = Number.isFinite(s.pos) ? Math.min(s.pos, known.length - 1) : known.length - 1;
+    return known[at] - 0.5;
+  };
+  const top = scored
+    .sort((a, b) => score(b) - score(a) || a.pos - b.pos)
+    .slice(0, 20)
+    .map((s) => ({ ...s.m, ...(s.views >= 0 ? { views: String(s.views) } : {}) }));
   return top.map((m, i) => ({ ...m, rank: i + 1 }));
 }
 

@@ -352,10 +352,50 @@ function withRank(cards: MangaCard[]): MangaCard[] {
   return cards.map((c, i) => ({ ...c, rank: i + 1 }));
 }
 
+/** Jumlah baca per judul (series.views di halaman detail), di-cache 10 menit. */
+const viewsCache = new Map<string, { at: number; v?: number }>();
+export async function seriesViews(slug: string): Promise<number | undefined> {
+  const hit = viewsCache.get(slug);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.v;
+  try {
+    const path = await seriesPath(slug);
+    const r = await fetchData(`${path}/__data.json`, { revalidate: 300 });
+    const n = Number(r.node?.series?.views);
+    const v = Number.isFinite(n) ? n : undefined;
+    viewsCache.set(slug, { at: Date.now(), v });
+    return v;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchRanking(period: RankPeriod = "harian"): Promise<MangaCard[]> {
   const blocks = await homeBlocks();
   const pop = blocks.find((b) => b.kind === "popular");
-  return withRank(toCards(pop?.lists?.[RANK_LIST[period]]));
+  let cards = toCards(pop?.lists?.[RANK_LIST[period]]);
+  // Daftar beranda hanya 6 judul: lengkapi dari urutan "populer" situs.
+  if (cards.length < 12) {
+    try {
+      const r = await fetchData("/komik/__data.json?urut=populer", { revalidate: 120 });
+      const seen = new Set(cards.map((c) => c.slug));
+      for (const c of toCards(r.node?.result?.items)) {
+        if (!seen.has(c.slug)) {
+          seen.add(c.slug);
+          cards.push(c);
+        }
+      }
+    } catch {
+      // pakai daftar beranda saja
+    }
+  }
+  cards = cards.slice(0, 12);
+  await Promise.all(
+    cards.map(async (c) => {
+      const v = await seriesViews(c.slug);
+      if (v !== undefined) c.views = String(v);
+    }),
+  );
+  return withRank(cards);
 }
 
 export async function fetchHome(): Promise<HomeData> {

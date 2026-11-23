@@ -448,6 +448,33 @@ export async function fetchKiryuuRecommended(pageSize = 24): Promise<MangaCard[]
   return r.items;
 }
 
+/**
+ * Peringkat populer Kiryuu: slug diambil dari blok "Serial Populer" di beranda
+ * (tab daily/weekly/monthly, urutan = peringkat; situs tidak menampilkan angka
+ * baca), lalu data kartu lengkap lewat WP REST. Urutan peringkat dipertahankan.
+ */
+export async function fetchKiryuuPopular(
+  period: "daily" | "weekly" | "monthly" = "daily",
+  limit = 10,
+): Promise<MangaCard[]> {
+  const html = await fetchText(KIRYUU_BASE + "/", 300);
+  const $ = cheerio.load(html);
+  const slugs: string[] = [];
+  $(`ul[data-trending-chart="${period}"] li a[href*="/manga/"]`).each((_, el) => {
+    const m = ($(el).attr("href") ?? "").match(/\/manga\/([^/]+)\/?/);
+    if (m && !slugs.includes(m[1])) slugs.push(m[1]);
+  });
+  const top = slugs.slice(0, limit);
+  if (top.length === 0) return [];
+  const url = `${KIRYUU_WP}/manga?slug=${top.map(encodeURIComponent).join(",")}&per_page=${top.length}&${WP_EMBED}`;
+  const arr = await fetchWp<WpManga[]>(url, 300);
+  const list = Array.isArray(arr) ? arr : [];
+  const bySlug = new Map(list.map((m) => [m.slug, m]));
+  const ordered = top.map((s) => bySlug.get(s)).filter((m): m is WpManga => Boolean(m));
+  const cards = ordered.map((m, i) => ({ ...toCard(m), rank: i + 1 }));
+  return attachKiryuuChapters(cards, wpIdMap(ordered), false);
+}
+
 /** Tidak ada endpoint popular; pakai subset latest (dedupe dengan Komiku di UI). */
 export async function fetchKiryuuTop(pageSize = 10): Promise<MangaCard[]> {
   const r = await fetchKiryuuLatest(1, { pageSize });
