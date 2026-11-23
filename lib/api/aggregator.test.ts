@@ -45,7 +45,8 @@ import { splitAltTitles } from "./text.ts";
     komiku: { ...base, slug: "money-id", title: "Money Keeps Piling Up", genres: g("Drama", "Slice of Life", "Comedy"), theme: "Action" },
     komikcast: { ...base, slug: "money", title: "Money Keeps Piling Up", genres: g("Adventure") },
   } as never)!;
-  assert.deepEqual(d.genres.map((x) => x.name), ["Drama", "Fantasy", "Slice of Life", "Comedy"]);
+  // Pemenang = slot "komiku" (ManhwaIndo): genre-nya urut asli, lalu maks 2 tambahan dari sumber lain.
+  assert.deepEqual(d.genres.map((x) => x.name), ["Drama", "Slice of Life", "Comedy", "Fantasy", "Adventure"]);
   assert.equal(d.genres[0].name, "Drama");
   assert.ok(!d.genres.some((x) => x.name === "Action"), "theme tidak boleh jadi genre");
 }
@@ -81,8 +82,8 @@ console.log("aggregator.test (merge/alias): OK");
   assert.deepEqual(d.genres.map((x) => x.name), ["Drama", "Fantasy", "Slice of Life", "Comedy"]);
   // Tema tak dikenal / tema sumber non-pemenang tidak ikut.
   const e = mergeDetails({
-    shinigami: { ...base, slug: "u", title: "X", genres: g("Drama") },
-    komiku: { ...base, slug: "x-id", title: "X", genres: g("Drama"), theme: "Comedy" },
+    komiku: { ...base, slug: "x-id", title: "X", genres: g("Drama") },
+    shinigami: { ...base, slug: "u", title: "X", genres: g("Drama"), theme: "Comedy" },
   } as never)!;
   assert.deepEqual(e.genres.map((x) => x.name), ["Drama"]);
 }
@@ -99,7 +100,7 @@ import { dedupeKeys, filterUnseenCards } from "./aggregator.ts";
   assert.equal(kept.length, 1, "duplikat harus diteruskan ke mergeCards, bukan dibuang");
   const merged = mergeCards({ shinigami: [shini as never], komiku: [komikuDup as never] });
   assert.equal(merged.length, 1);
-  assert.deepEqual(merged[0].sources, ["shinigami", "komiku"]);
+  assert.deepEqual(merged[0].sources, ["komiku", "shinigami"]);
   assert.equal(merged[0].sourceSlug.komiku, "solo-leveling");
   assert.equal(merged[0].sourceSlug.shinigami, "uuid-1");
 }

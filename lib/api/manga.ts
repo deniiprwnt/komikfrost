@@ -15,7 +15,7 @@ import {
   searchMangaRemote,
   type MangaListParams,
   type RankPeriod,
-} from "./komiku";
+} from "./manhwaindo";
 import {
   fetchKomikcastBrief,
   fetchKomikcastDetail,

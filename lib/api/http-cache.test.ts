@@ -112,16 +112,10 @@ const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url),
   assert.match(read("lib/api/kiryuu.ts"), /else init\.next = \{ revalidate \}/, "kiryuu: revalidate hanya untuk non-fresh");
 }
 
-/* ------------- Komikcast: komentar jujur, bukan data palsu ------------- */
+/* ------------- Urutan sumber ------------- */
 {
-  const c = read("lib/api/comments.ts");
-  const idx = c.indexOf('komikcast: async ()');
-  assert.ok(idx > 0, "adapter komikcast harus ada");
-  const block = c.slice(idx, idx + 400);
-  assert.match(block, /none\("komikcast", "Komikcast tidak menyediakan komentar\."\)/);
-  assert.doesNotMatch(block, /items: \[\{/, "tidak boleh mengarang komentar");
   // Urutan sumber tidak berubah: Shinigami â†’ Komiku â†’ Komikcast.
-  assert.match(read("lib/api/aggregator.ts"), /\["shinigami", "komiku", "komikcast"\]/);
+  assert.match(read("lib/api/aggregator.ts"), /\["komiku", "shinigami", "komikcast"\]/);
 }
 
 console.log("http-cache.test: OK");

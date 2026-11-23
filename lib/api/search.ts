@@ -2,7 +2,7 @@
  * lib/api/search.ts — service pencarian (multi-source, berhalaman).
  * Berjalan server-side: ketiga source paralel → dedupe per halaman.
  */
-import { searchMangaRemote } from "./komiku";
+import { searchMangaRemote } from "./manhwaindo";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchKiryuuRemote } from "./kiryuu";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";

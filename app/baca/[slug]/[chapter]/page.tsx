@@ -8,7 +8,6 @@ import { isPopNav } from "@/lib/nav-scroll";
 import { getHistoryEntry, markChapterRead, saveHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
 import type { ChapterData, MangaDetail } from "@/lib/api/types";
-import { Comments } from "@/components/comments";
 import { chapterPathToRoute } from "@/components/cards";
 import { ErrorState } from "@/components/states";
 import { ReaderPageImage, ReaderPageError } from "@/components/cover-image";
@@ -899,7 +898,7 @@ export default function ReaderPage({
       <ChapterNav data={data} slug={data.mangaSlug} chapter={chapter} zoom={zoomControl} toc={tocControl} />
 
       {/* Komentar chapter dari 3 sumber — dimuat malas, di bawah nav. */}
-      <Comments key={`${slug}/${chapter}`} slug={slug} chapter={chapter} />
+      
 
       {/* Overlay tap: Prev / Daftar isi / Next — muncul saat gambar di-tap.
           Tab bar disembunyikan saat membaca, jadi cukup 1rem + safe-area dari bawah. */}

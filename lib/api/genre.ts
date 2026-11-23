@@ -11,7 +11,7 @@
  * Isi per genre: slug kanonis diterjemahkan ke slug milik tiap sumber
  * ("fantasi" jadi "fantasy" untuk Shinigami) sebelum diminta ke upstream.
  */
-import { fetchGenres, fetchMangaByGenre } from "./komiku";
+import { fetchGenres, fetchMangaByGenre } from "./manhwaindo";
 import { fetchKiryuuGenres, fetchKiryuuByGenre, fetchKiryuuLatest } from "./kiryuu";
 import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { canonicalGenre, normalizeGenreList, upstreamGenreSlugs } from "./genre-canonical";

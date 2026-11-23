@@ -78,7 +78,7 @@ const SOURCE_STYLE: Record<string, string> = {
 
 const SOURCE_SHORT: Record<string, string> = {
   shinigami: "Kiryuu",
-  komiku: "Komiku",
+  komiku: "ManhwaIndo",
   komikcast: "Komikcast",
 };
 

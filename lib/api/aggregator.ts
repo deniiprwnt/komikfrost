@@ -21,14 +21,15 @@ import { splitRating } from "./rating.ts";
 
 /**
  * URUTAN PRIORITAS FINAL — JANGAN DIBALIK:
- * SHINIGAMI SELALU UTAMA, Komiku fallback kedua, Komikcast fallback ketiga.
+ * Slot "komiku" kini berisi MANHWAINDO (lib/api/manhwaindo.ts) dan jadi UTAMA;
+ * slot "shinigami" = Kiryuu fallback kedua; Komikcast fallback ketiga.
  * Semua merge (kartu/detail/chapter) memakai urutan ini — data Shinigami
  * menang bila tersedia; Komikcast hanya mengisi yang kosong di keduanya.
  */
-export const SOURCE_PRIORITY: ComicSourceId[] = ["shinigami", "komiku", "komikcast"];
+export const SOURCE_PRIORITY: ComicSourceId[] = ["komiku", "shinigami", "komikcast"];
 
 export const SOURCE_LABEL: Record<ComicSourceId, string> = {
-  komiku: "Komiku",
+  komiku: "ManhwaIndo",
   shinigami: "Kiryuu",
   komikcast: "Komikcast",
 };
@@ -888,9 +889,29 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
         const c = g.cards[s];
         return Boolean(c && (c.updatedAt || typeof c.updatedAtTs === "number"));
       };
+      // ATURAN TERBARU: sumber yang MERILIS PERTAMA menang dan tidak ditimpa
+      // lagi oleh sumber lain yang menyusul. Di antara sumber yang sudah punya
+      // chapter tertinggi, pilih yang timestamp update-nya PALING AWAL.
+      // Selisih < 1 menit dianggap sama (label relatif dibulatkan per menit)
+      // dan jatuh ke urutan SOURCE_PRIORITY. Komentar prioritas di atas hanya
+      // berlaku untuk pemutus seri ini.
+      const tsOf = (s: ComicSourceId): number => {
+        const c = g.cards[s];
+        if (!c) return Infinity;
+        if (typeof c.updatedAtTs === "number" && Number.isFinite(c.updatedAtTs)) return c.updatedAtTs;
+        const m = updatedAtMinutes(c.updatedAt);
+        return Number.isFinite(m) ? now - m * 60_000 : Infinity;
+      };
+      const earliest = (list: ComicSourceId[]): ComicSourceId | undefined => {
+        let best: ComicSourceId | undefined;
+        for (const s of list) {
+          if (best === undefined || tsOf(s) < tsOf(best) - 60_000) best = s;
+        }
+        return best;
+      };
       const pick =
-        SOURCE_PRIORITY.find((s) => hasTime(s) && hasTop(s)) ??
-        SOURCE_PRIORITY.find(hasTime);
+        earliest(SOURCE_PRIORITY.filter((s) => hasTime(s) && hasTop(s))) ??
+        earliest(SOURCE_PRIORITY.filter(hasTime));
       if (pick) {
         mergedUpdatedAt = g.cards[pick]!.updatedAt;
         mergedUpdatedAtTs = g.cards[pick]!.updatedAtTs;
@@ -1032,6 +1053,26 @@ export function sortByFresh<T extends Pick<MangaCard, "updatedAt" | "updatedAtTs
   return cards
     .map((c, i) => ({ c, i, age: ageMinutes(c) }))
     .sort((a, b) => a.age - b.age || a.i - b.i)
+    .map(({ c }) => c);
+}
+
+/**
+ * Urutan tampil daftar terbaru: kelompok sumber mengikuti SOURCE_PRIORITY
+ * (Kiryuu â†’ Komiku â†’ Komikcast), dan DI DALAM tiap kelompok yang terbaru
+ * dulu (sortByFresh). Sumber kartu = sumber pada badge (`latestSource`),
+ * cadangan sumber prioritas tertinggi yang punya kartu itu.
+ */
+export function sortBySourceThenFresh<
+  T extends Pick<MangaCard, "updatedAt" | "updatedAtTs" | "latestSource" | "sources">,
+>(cards: T[]): T[] {
+  const rank = (c: T): number => {
+    const s = c.latestSource ?? c.sources?.[0];
+    const i = s ? SOURCE_PRIORITY.indexOf(s) : -1;
+    return i < 0 ? SOURCE_PRIORITY.length : i;
+  };
+  return sortByFresh(cards)
+    .map((c, i) => ({ c, i, r: rank(c) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
     .map(({ c }) => c);
 }
 

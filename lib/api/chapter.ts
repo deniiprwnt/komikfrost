@@ -3,7 +3,8 @@
  * SHINIGAMI UTAMA; Komiku fallback kedua, Komikcast fallback ketiga
  * per chapter yang tidak ada di source prioritas lebih tinggi.
  */
-import { fetchChapter, KomikuError } from "./komiku";
+import { KomikuError } from "./komiku";
+import { fetchChapter } from "./manhwaindo";
 import { fetchKomikcastChapter } from "./komikcast";
 // Slot "shinigami" di kode sekarang mengarah ke Kiryuu â€” semua fungsi
 // `fetchShini*` di lib/api/shinigami.ts adalah shim tipis ke lib/api/kiryuu.ts.
@@ -139,20 +140,20 @@ async function getChapterMerged(
   const order: ComicSourceId[] = [];
   if (prefer) order.push(prefer);
   if (entrySources.length > 0) {
-    const winner: ComicSourceId = hasShini
-      ? "shinigami"
-      : entryHas("komiku")
-        ? "komiku"
+    const winner: ComicSourceId = entryHas("komiku")
+      ? "komiku"
+      : hasShini
+        ? "shinigami"
         : "komikcast";
     if (!order.includes(winner)) order.push(winner);
-    for (const s of ["shinigami", "komiku", "komikcast"] as ComicSourceId[]) {
+    for (const s of ["komiku", "shinigami", "komikcast"] as ComicSourceId[]) {
       if (order.includes(s)) continue;
       // Shinigami boleh dicoba via nomor walau tidak ada di daftar (ID UUID).
       if (entryHas(s) || (s === "shinigami" && shinigamiId)) order.push(s);
     }
   } else {
     // Chapter belum ada di daftar gabungan (mis. baru terbit) -> coba semua.
-    for (const s of ["shinigami", "komiku", "komikcast"] as ComicSourceId[]) {
+    for (const s of ["komiku", "shinigami", "komikcast"] as ComicSourceId[]) {
       if (!order.includes(s)) order.push(s);
     }
   }
