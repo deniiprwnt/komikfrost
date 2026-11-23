@@ -510,13 +510,34 @@ export async function fetchKiryuuGenres(): Promise<GenreRef[]> {
   }
 }
 
+/**
+ * Filter genre WP REST Kiryuu hanya menerima ID term (angka), bukan slug:
+ * `genre=action` membalas 400 "bukan tipe integer" sehingga daftar genre
+ * Kiryuu selalu kosong. Slug diterjemahkan ke ID dulu, hasilnya di-cache
+ * (ID genre praktis tidak berubah; "tidak ada" disimpan lebih singkat).
+ */
+const genreIdCache = new Map<string, { until: number; id: number | null }>();
+async function kiryuuGenreId(slug: string): Promise<number | null> {
+  const key = slug.toLowerCase();
+  const hit = genreIdCache.get(key);
+  if (hit && hit.until > Date.now()) return hit.id;
+  const arr = await fetchWp<WpTerm[]>(`${KIRYUU_WP}/genre?slug=${encodeURIComponent(key)}`, 3600);
+  const found = Array.isArray(arr) ? arr.find((t) => t.slug === key) : undefined;
+  const id = typeof found?.id === "number" ? found.id : null;
+  if (genreIdCache.size > 300) genreIdCache.clear();
+  genreIdCache.set(key, { until: Date.now() + (id === null ? 10 * 60_000 : 24 * 3600_000), id });
+  return id;
+}
+
 export async function fetchKiryuuByGenre(
   genreSlug: string,
   page = 1,
   pageSize = 24,
 ): Promise<PagedResult<MangaCard>> {
   const p = Math.max(1, page);
-  const url = `${KIRYUU_WP}/manga?genre=${encodeURIComponent(genreSlug)}&orderby=modified&order=desc&per_page=${pageSize}&page=${p}&${WP_EMBED}`;
+  const genreId = /^\d+$/.test(genreSlug) ? Number(genreSlug) : await kiryuuGenreId(genreSlug);
+  if (genreId === null) return { items: [], hasNextPage: false };
+  const url = `${KIRYUU_WP}/manga?genre=${genreId}&orderby=modified&order=desc&per_page=${pageSize}&page=${p}&${WP_EMBED}`;
   try {
     const arr = await fetchWp<WpManga[]>(url, 120);
     const cards = Array.isArray(arr) ? arr : [];

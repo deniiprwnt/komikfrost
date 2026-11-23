@@ -80,7 +80,26 @@ export async function getMangaByGenre(
   const ku = data.komiku;
   const sh = data.shinigami;
   // 15 kartu per halaman UI, gabungan dua source dipotong di sini.
-  const merged = mergeCards({ komiku: ku?.items ?? [], shinigami: sh?.items ?? [] });
+  const mergedAll = mergeCards({ komiku: ku?.items ?? [], shinigami: sh?.items ?? [] });
+  // mergeCards menaruh kartu Manhwaindo lebih dulu, sehingga kartu yang hanya
+  // ada di Kiryuu selalu terpotong batas halaman. Selang-seling (2 lainnya :
+  // 1 khusus Kiryuu) supaya daftar benar-benar berisi beberapa sumber.
+  const isKiryuuOnly = (c: (typeof mergedAll)[number]): boolean =>
+    Boolean(c.sources?.includes("shinigami") && !c.sources.includes("komiku"));
+  const others = mergedAll.filter((c) => !isKiryuuOnly(c));
+  // Judul Kiryuu kadang membawa alias dalam kurung ("Judul (Alias)") sehingga
+  // tidak tergabung dengan kartu Manhwaindo yang sama. Buang kartu khusus
+  // Kiryuu yang judul dasarnya (tanpa kurung) sama persis dengan kartu lain.
+  const plain = (t: string): string => t.trim().toLowerCase();
+  const otherTitles = new Set(others.map((c) => plain(c.title)));
+  const onlyKiryuu = mergedAll.filter(
+    (c) => isKiryuuOnly(c) && !otherTitles.has(plain(c.title.replace(/\s*\([^)]*\)\s*$/, ""))),
+  );
+  const merged: typeof mergedAll = [];
+  for (let a = 0, b = 0; a < others.length || b < onlyKiryuu.length; ) {
+    for (let k = 0; k < 2 && a < others.length; k++) merged.push(others[a++]);
+    if (b < onlyKiryuu.length) merged.push(onlyKiryuu[b++]);
+  }
   // hasNextPage HANYA dari paginator sumber. Panjang gabungan dua sumber
   // hampir selalu lebih dari 15 walau ini halaman terakhir, sehingga tombol
   // halaman berikut muncul lalu menampilkan halaman kosong. Bila tidak ada
