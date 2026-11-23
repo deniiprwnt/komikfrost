@@ -749,19 +749,30 @@ async function buildLatestPaged(
  * (series.views) dan Komikcast (view_count); yang terbesar dipakai.
  * Tidak ketemu / gagal = -1 (tidak ada angka yang dikarang).
  */
+const viewsLookupCache = new Map<string, { at: number; v: number }>();
 async function lookupViewsByTitle(title: string, altTitle?: string): Promise<number> {
   const want = new Set(aliasKeys(title, altTitle));
+  const cacheKey = [...want].sort().join("|");
+  const cached = viewsLookupCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < 30 * 60_000) return cached.v;
   const fromMi = async (): Promise<number> => {
-    const { items } = await searchMangaRemote(title, 1);
-    const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.has(x)));
-    return hit ? ((await seriesViews(hit.slug)) ?? -1) : -1;
+    const tryQuery = async (q: string): Promise<number> => {
+      const { items } = await searchMangaRemote(q, 1);
+      const hit = items.find((k) => aliasKeys(k.title, k.altTitle).some((x) => want.has(x)));
+      return hit ? ((await seriesViews(hit.slug)) ?? -1) : -1;
+    };
+    let v = await tryQuery(title);
+    if (v < 0 && altTitle) v = await tryQuery(altTitle);
+    return v;
   };
   const fromKc = async (): Promise<number> => {
     const kc = await kcBriefForTitles(title, altTitle);
     return kc?.brief.views ?? -1;
   };
   const r = await Promise.allSettled([fromMi(), fromKc()]);
-  return Math.max(-1, ...r.map((x) => (x.status === "fulfilled" ? x.value : -1)));
+  const best = Math.max(-1, ...r.map((x) => (x.status === "fulfilled" ? x.value : -1)));
+  if (best >= 0) viewsLookupCache.set(cacheKey, { at: Date.now(), v: best });
+  return best;
 }
 
 const SHINI_TOP_BY_PERIOD: Record<RankPeriod, ShiniTopFilter> = {
@@ -840,7 +851,7 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     scored
       .filter((s) => s.views < 0)
       .map(async (s) => {
-        const v = await withTimeout(lookupViews(s.m), 3500).catch(() => null);
+        const v = await withTimeout(lookupViews(s.m), 6000).catch(() => null);
         if (typeof v === "number" && v >= 0) s.views = v;
       }),
   );
@@ -855,6 +866,16 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
     .sort((a, b) => score(b) - score(a) || a.pos - b.pos)
     .slice(0, 20)
     .map((s) => ({ ...s.m, ...(s.views >= 0 ? { views: String(s.views) } : {}) }));
+  // Kartu tanpa chapter terbaru (daftar sumber tidak membawanya): lengkapi dari
+  // ringkasan judul (cache 1 jam). Gagal/lambat = dilewati, tidak ada yang dikarang.
+  await Promise.all(
+    top
+      .filter((m) => !m.latestChapter)
+      .map(async (m) => {
+        const sum = await withTimeout(getMangaSummary(m.slug), 4000).catch(() => null);
+        if (sum?.latestChapter) m.latestChapter = sum.latestChapter;
+      }),
+  );
   return top.map((m, i) => ({ ...m, rank: i + 1 }));
 }
 

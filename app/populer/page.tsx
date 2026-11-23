@@ -78,16 +78,22 @@ function PopulerContent() {
     try {
       const res = await apiGet<{ period: string; items: MangaCard[] }>(
         `/api/popular?period=${period}`,
-        undefined,
+        { noStore: true },
       );
       if (!res.items || res.items.length === 0) return;
+      // Jangan kehilangan angka baca yang sudah tampil bila respons baru
+      // kebetulan gagal melengkapinya (pencarian angka bisa lambat).
+      const oldViews = new Map(cur.map((i) => [i.slug, i.views]));
+      const next = res.items.map((i) =>
+        i.views || !oldViews.get(i.slug) ? i : { ...i, views: oldViews.get(i.slug) },
+      );
+      // Seluruh daftar dibandingkan: urutan peringkat, angka baca, chapter.
       const sig = (l: MangaCard[]) =>
         l
-          .slice(0, 3)
-          .map((i) => `${i.slug}#${i.latestChapter?.url ?? ""}`)
+          .map((i) => `${i.slug}#${i.rank ?? ""}#${i.views ?? ""}#${i.latestChapter?.url ?? ""}`)
           .join("|");
-      if (sig(res.items) === sig(cur)) return;
-      setItems(res.items);
+      if (sig(next) === sig(cur)) return;
+      setItems(next);
     } catch {
       // Abaikan — daftar lama tetap tampil.
     }
