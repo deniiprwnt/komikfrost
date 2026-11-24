@@ -125,7 +125,7 @@ body {
     font-size: 1.25rem;
   }
   .rank-row {
-    margin-inline: -0.25rem;
+    margin-inline: 0;
     padding-inline: 0.25rem;
   }
   .rank-row::after {
@@ -145,7 +145,7 @@ body {
 /* ---- Desktop (>= 1024px) ---------------------------------------------------- */
 @media (min-width: 1024px) {
   .rank-row {
-    margin-inline: -0.75rem;
+    margin-inline: 0;
     padding-inline: 0.75rem;
   }
   .rank-row::after {

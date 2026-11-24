@@ -62,7 +62,7 @@ main .display-cond {
 
 /* ---- Peringkat: baris editorial -------------------------------------------- */
 .rank-row {
-  margin-inline: -0.5rem;
+  margin-inline: 0;
   padding-inline: 0.5rem;
   border-radius: 12px;
   transition: background-color 200ms var(--ease-out);
