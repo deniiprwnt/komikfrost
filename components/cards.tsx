@@ -194,7 +194,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         {/* Tipe (kiri) + sumber (kanan), selalu satu baris. Di kartu sempit
             ukuran badge mengecil mengikuti lebar cover (container query);
             sumber tetap bisa memendek dengan elipsis sebagai pengaman. */}
-        <div className="absolute inset-x-1 top-1 z-10 flex flex-nowrap items-center justify-between gap-1 @[9rem]:inset-x-1.5 @[9rem]:top-1.5">
+        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-nowrap items-center justify-between gap-1">
           {item.type ? (
             <TypeBadge
               type={item.type}
@@ -211,7 +211,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           />
         </div>
         {item.latestChapter && (
-          <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-accent px-2 py-1 text-[10px] font-semibold leading-tight text-white">
+          <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-accent px-1 py-0.5 text-[9px] font-semibold leading-tight text-white @[9rem]:px-1.5 @[9rem]:py-1 @[9rem]:text-[10px]">
             {item.latestChapter.label}
           </span>
         )}
