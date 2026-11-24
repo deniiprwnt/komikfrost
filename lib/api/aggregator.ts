@@ -804,6 +804,70 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       if (pin) tg.pin = pin;
     }
   }
+  // Pass 3c: judul resmi vs judul terjemahan yang tampil beda total (mis.
+  // "Immune to Corruption, I Wield a Cataclysmic Demon Sword" vs "The
+  // Corruption-Immune Swordsman's Calamity Sword"), sampulnya file berbeda.
+  // Bukti berlapis dan konservatif: rentang chapter IDENTIK (awal & terbaru),
+  // minimal 3 kata bermakna sama, dan >= 50% kata dari judul yang lebih pendek.
+  {
+    const STOP = new Set(["the", "and", "for", "with", "his", "her", "that", "this", "from"]);
+    const tokensOf = (k: string): Set<string> =>
+      new Set(
+        k
+          .replace(/^t:/, "")
+          .split(" ")
+          .filter((w) => w.length >= 3 && !STOP.has(w)),
+      );
+    const rangeKey = (g: { cards: Partial<Record<ComicSourceId, MangaCard>> }): string => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const s of SOURCE_PRIORITY) {
+        const c = g.cards[s];
+        if (!c) continue;
+        const f = chapterNum(c.firstChapter?.label);
+        const l = chapterNum(c.latestChapter?.label);
+        if (Number.isFinite(f)) lo = Math.min(lo, f);
+        if (Number.isFinite(l)) hi = Math.max(hi, l);
+      }
+      return Number.isFinite(lo) && Number.isFinite(hi) ? `${lo}|${hi}` : "";
+    };
+    const countSrc = (g: { cards: Partial<Record<ComicSourceId, MangaCard>> }): number =>
+      SOURCE_PRIORITY.filter((s) => g.cards[s]).length;
+    const buckets = new Map<string, string[]>();
+    for (const [k, g] of groups) {
+      if (absorbed.has(k)) continue;
+      const rk = rangeKey(g);
+      if (!rk) continue;
+      const arr = buckets.get(rk);
+      if (arr) arr.push(k);
+      else buckets.set(rk, [k]);
+    }
+    for (const [, ks] of buckets) {
+      if (ks.length < 2 || ks.length > 6) continue;
+      for (let a = 0; a < ks.length; a++) {
+        for (let b = a + 1; b < ks.length; b++) {
+          const ka = ks[a];
+          const kb = ks[b];
+          if (absorbed.has(ka) || absorbed.has(kb)) continue;
+          const ta = tokensOf(ka);
+          const tb = tokensOf(kb);
+          let shared = 0;
+          for (const w of ta) if (tb.has(w)) shared++;
+          if (shared < 3 || shared < Math.min(ta.size, tb.size) * 0.5) continue;
+          const ga = groups.get(ka)!;
+          const gb = groups.get(kb)!;
+          const [tk, lk] = countSrc(gb) > countSrc(ga) ? [kb, ka] : [ka, kb];
+          const tg = groups.get(tk)!;
+          const lg = groups.get(lk)!;
+          for (const s of SOURCE_PRIORITY) {
+            if (lg.cards[s] && !tg.cards[s]) tg.cards[s] = lg.cards[s]!;
+            else if (lg.cards[s] && tg.cards[s]) tg.cards[s] = absorbFallbackCard(tg.cards[s]!, lg.cards[s]!);
+          }
+          absorbed.add(lk);
+        }
+      }
+    }
+  }
   for (const k of absorbed) groups.delete(k);
 
   const out: MergedMangaCard[] = [];
