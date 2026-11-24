@@ -1,5 +1,5 @@
 /**
- * Yuki — maskot KomikFrost: rubah salju teal yang imut, bermata besar berkilau,
+ * Yuki — maskot KomikFrost: rubah salju violet yang imut, bermata besar berkilau,
  * berpipi bulat merona, berekor kembar yang lebat, bersyal mint empuk dan berjubah
  * biru malam berhias salju. Digambar sebagai SVG murni (gradasi lembut, garis tinta
  * tipis, kilau & cahaya tepi) — satu komponen, delapan ekspresi — dipakai oleh halaman
@@ -14,17 +14,17 @@ import { UzumakiMark } from "@/components/uzumaki-mark";
 
 export type Mood = "happy" | "lost" | "stern" | "tired" | "dizzy" | "faint" | "puzzled" | "guard";
 
-const INK = "#0f2528";
-const FUR = "#22b5a9";
-const FUR_LIGHT = "#6fe6d8";
-const FUR_SHADE = "#0e8580";
-const CREAM = "#f6fdfb";
-const CREAM_SHADE = "#cfeae6";
+const INK = "#170f28";
+const FUR = "#3f22b5";
+const FUR_LIGHT = "#846fe6";
+const FUR_SHADE = "#280e85";
+const CREAM = "#f7f6fd";
+const CREAM_SHADE = "#d3cfea";
 const NAVY = "#2c3a8c";
 const NAVY_LIGHT = "#5568d0";
 const NAVY_DARK = "#171e55";
-const ICE = "#c9f7f0";
-const ICE_DEEP = "#7fe3d6";
+const ICE = "#d0c9f7";
+const ICE_DEEP = "#907fe3";
 const GOLD = "#f5c24f";
 const PINK = "#ff9fb2";
 const MOUTH = "#5c1f31";
@@ -155,7 +155,7 @@ function Sparkle({ x, y, s = 1, fill = "#fff6c2", className, delay = 0 }: { x: n
 
 /** Titik salju kecil melayang (hiasan, tanpa tinta). */
 function Flake({ x, y, r = 2.4, className, delay = 0 }: { x: number; y: number; r?: number; className?: string; delay?: number }) {
-  return <circle className={className} style={delay ? { animationDelay: `${delay}s` } : undefined} cx={x} cy={y} r={r} fill="#fff" opacity={0.95} stroke="#9fe6dd" strokeWidth={1} />;
+  return <circle className={className} style={delay ? { animationDelay: `${delay}s` } : undefined} cx={x} cy={y} r={r} fill="#fff" opacity={0.95} stroke="#ab9fe6" strokeWidth={1} />;
 }
 
 /** Ikat kepala shinobi Konoha: kain biru, pelat baja berkilau berlambang daun, dua tutup ujung berpaku. */
@@ -318,8 +318,8 @@ function Eye({ x, y, lx = 0, ly = 0, blink = true, shine = "normal" }: { x: numb
         <g className="yk-look">
           <g transform={`translate(${lx} ${ly})`}>
             <ellipse cy={1.6} rx={10.8} ry={13.6} fill="url(#yk-iris)" />
-            <ellipse cy={4.4} rx={5.6} ry={7.2} fill="#05222b" />
-            <ellipse cy={9.4} rx={7.4} ry={3.4} fill="#a6fff0" opacity={0.5} />
+            <ellipse cy={4.4} rx={5.6} ry={7.2} fill="#14052b" />
+            <ellipse cy={9.4} rx={7.4} ry={3.4} fill="#b3a6ff" opacity={0.5} />
             {shine === "wet" ? (
               <>
                 <circle cx={-4.6} cy={-5.4} r={5.2} fill="#fff" />
@@ -482,26 +482,26 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
     <svg key={mood} viewBox="0 0 220 266" preserveAspectRatio="xMidYMax meet" overflow="visible" style={{ display: "block", width: "100%", height: "auto", maxWidth: "100%" }} className={`yk yk-${mood} ${className}`} aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id="yk-fur" cx="0.36" cy="0.26" r="0.9">
-          <stop offset="0" stopColor="#58dccd" />
-          <stop offset="0.5" stopColor="#25b8ac" />
-          <stop offset="1" stopColor="#0f8983" />
+          <stop offset="0" stopColor="#7058dc" />
+          <stop offset="0.5" stopColor="#4225b8" />
+          <stop offset="1" stopColor="#290f89" />
         </radialGradient>
         <linearGradient id="yk-face" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#dcf1ee" />
+          <stop offset="1" stopColor="#dfdcf1" />
         </linearGradient>
         <linearGradient id="yk-ear-in" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fff4f5" />
           <stop offset="1" stopColor="#ffc3cf" />
         </linearGradient>
         <linearGradient id="yk-ear-tip" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0b4e52" />
-          <stop offset="1" stopColor="#0f6f72" />
+          <stop offset="0" stopColor="#1f0b52" />
+          <stop offset="1" stopColor="#290f72" />
         </linearGradient>
         <radialGradient id="yk-iris" cx="0.5" cy="0.2" r="0.95">
-          <stop offset="0" stopColor="#8af5e8" />
-          <stop offset="0.45" stopColor="#2aa3b0" />
-          <stop offset="1" stopColor="#0b3441" />
+          <stop offset="0" stopColor="#9d8af5" />
+          <stop offset="0.45" stopColor="#532ab0" />
+          <stop offset="1" stopColor="#200b41" />
         </radialGradient>
         <linearGradient id="yk-steel" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffffff" />
@@ -513,8 +513,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           <stop offset="1" stopColor="#0a3590" />
         </linearGradient>
         <linearGradient id="yk-scarf" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#e4fff9" />
-          <stop offset="1" stopColor="#8be9dc" />
+          <stop offset="0" stopColor="#e7e4ff" />
+          <stop offset="1" stopColor="#9a8be9" />
         </linearGradient>
         <linearGradient id="yk-gold" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffeaa3" />
@@ -529,16 +529,16 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
           <stop offset="1" stopColor="#222c70" />
         </linearGradient>
         <linearGradient id="yk-tail" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#0f8983" />
-          <stop offset="1" stopColor="#3ccfc0" />
+          <stop offset="0" stopColor="#290f89" />
+          <stop offset="1" stopColor="#573ccf" />
         </linearGradient>
         <linearGradient id="yk-tail-back" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#0b6f6b" />
-          <stop offset="1" stopColor="#1fa89c" />
+          <stop offset="0" stopColor="#210b6f" />
+          <stop offset="1" stopColor="#3a1fa8" />
         </linearGradient>
         <linearGradient id="yk-cover" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3be0cf" />
-          <stop offset="1" stopColor="#0e7a84" />
+          <stop offset="0" stopColor="#593be0" />
+          <stop offset="1" stopColor="#310e84" />
         </linearGradient>
         <radialGradient id="yk-blush" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" stopColor="#ff8fa3" stopOpacity="0.95" />
@@ -571,8 +571,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
       </defs>
 
       {/* tanah */}
-      <ellipse className="yk-shadow" cx={110} cy={262} rx={66} ry={6.5} fill="#0b3b40" opacity={0.3} />
-      <ellipse cx={110} cy={261.5} rx={44} ry={3.4} fill="#06262a" opacity={0.28} />
+      <ellipse className="yk-shadow" cx={110} cy={262} rx={66} ry={6.5} fill="#1b0b40" opacity={0.3} />
+      <ellipse cx={110} cy={261.5} rx={44} ry={3.4} fill="#11062a" opacity={0.28} />
 
       <g transform={mood === "faint" ? "rotate(-11 110 210)" : undefined}>
         <g className={mood === "faint" ? "yk-limp" : "yk-bob"}>
@@ -647,7 +647,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <path d="M99 141 Q110 165 121 141 Z" fill={MOUTH} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
                 <path d="M101.800 142.500 L106.400 142.500 L104.100 148 Z M113.600 142.500 L118.200 142.500 L115.900 148 Z" fill="#fff" stroke={INK} strokeWidth={1.3} strokeLinejoin="round" />
                 <Sparkle x={26} y={78} s={1} className="yk-twinkle" />
-                <Sparkle x={198} y={34} s={0.75} fill="#a6ece2" className="yk-twinkle" delay={0.6} />
+                <Sparkle x={198} y={34} s={0.75} fill="#b1a6ec" className="yk-twinkle" delay={0.6} />
                 <Flake x={14} y={104} r={2.4} className="yk-twinkle" delay={0.3} />
                 <Flake x={208} y={92} r={2.2} className="yk-twinkle" delay={0.9} />
               </>
@@ -684,8 +684,8 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
                 <Eye x={79} y={112} blink={false} />
                 <Eye x={141} y={112} blink={false} />
                 {/* kelopak turun miring = tatapan tajam */}
-                <path d="M60 92 L98 107 L98 78 L60 78 Z" fill="#27b9ad" />
-                <path d="M160 92 L122 107 L122 78 L160 78 Z" fill="#27b9ad" />
+                <path d="M60 92 L98 107 L98 78 L60 78 Z" fill="#4427b9" />
+                <path d="M160 92 L122 107 L122 78 L160 78 Z" fill="#4427b9" />
                 <path d="M60 91 L99 107 M160 91 L121 107" stroke={INK} strokeWidth={5} strokeLinecap="round" />
                 <Nose />
                 <path d="M99 151 Q110 141 121 151" fill="none" stroke={INK} strokeWidth={4} strokeLinecap="round" />
@@ -761,7 +761,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
               <g className="yk-prop" style={{ transformOrigin: "192px 142px" }}><g transform="translate(200 121) rotate(8)">
                 <rect x={-19} y={-25} width={38} height={50} rx={4} fill="#fff" stroke={INK} strokeWidth={3.400} />
                 <rect x={-19} y={-25} width={34} height={50} rx={4} fill="url(#yk-cover)" stroke={INK} strokeWidth={3.400} />
-                <rect x={-17} y={-23} width={6} height={46} rx={2} fill="#0a5d5a" opacity={0.7} />
+                <rect x={-17} y={-23} width={6} height={46} rx={2} fill="#1d0a5d" opacity={0.7} />
                 <FrostMark x={-8} y={-13} w={20} h={20} color="#fff" stroke={10} />
                 <path d="M-8 14 H12" stroke="#fff" strokeWidth={2.400} strokeLinecap="round" opacity={0.7} />
                 <Star x={12} y={-23} s={0.95} />
@@ -822,7 +822,7 @@ export function Yuki({ mood = "happy", className = "" }: { mood?: Mood; classNam
         {mood === "dizzy" && (
           <g className="yk-orbit">
             <Star x={34} y={88} s={0.68} fill="#ff9fb2" />
-            <Star x={184} y={88} s={0.68} fill="#7fe3d6" />
+            <Star x={184} y={88} s={0.68} fill="#907fe3" />
             <Star x={110} y={34} s={0.72} />
           </g>
         )}

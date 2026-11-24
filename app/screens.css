@@ -5,8 +5,8 @@
 /* Prefix kelas: sx-  (tidak bentrok dengan mg-* / bs-* lama).               */
 /* ======================================================================== */
 
-@property --t  { syntax: "<color>"; inherits: true; initial-value: #14b8a6; }
-@property --ti { syntax: "<color>"; inherits: true; initial-value: #0f766e; }
+@property --t  { syntax: "<color>"; inherits: true; initial-value: #3214b8; }
+@property --ti { syntax: "<color>"; inherits: true; initial-value: #240f76; }
 
 html:has([data-bare-screen]) { overflow: hidden; }
 html:has([data-bare-screen]) :is(aside.sb, [data-app-header], .app-shell > footer, .dock-wrap, .fab-in) {
@@ -56,7 +56,7 @@ html.dark .sx {
   --ti: var(--tl);
 }
 
-.sx-t-teal   { --tm: #14b8a6; --tl: #5eead4; --td: #0f766e; }
+.sx-t-teal   { --tm: #3214b8; --tl: #735eea; --td: #240f76; }
 .sx-t-blue   { --tm: #3b82f6; --tl: #8cbcff; --td: #1d4ed8; }
 .sx-t-amber  { --tm: #f59e0b; --tl: #fcd34d; --td: #b45309; }
 .sx-t-orange { --tm: #f97316; --tl: #fdba74; --td: #c2410c; }

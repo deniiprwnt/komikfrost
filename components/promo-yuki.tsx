@@ -8,12 +8,12 @@ import { UzumakiMark } from "@/components/uzumaki-mark";
  *   <PromoYukiPaw />   → telapak, DI DEPAN papan (jari mencengkeram tepi atas)
  * Tanpa <defs>/ID, aman dirender berkali-kali.
  */
-const INK = "#0f2528";
-const FUR = "#22b5a9";
-const FUR_LIGHT = "#6fe6d8";
-const FUR_SHADE = "#0e8580";
-const CREAM = "#f6fdfb";
-/** Garis luar karakter: ikut --yuki-line (teal di mode terang) di kartu promo; di tempat lain tetap INK. */
+const INK = "#170f28";
+const FUR = "#3f22b5";
+const FUR_LIGHT = "#846fe6";
+const FUR_SHADE = "#280e85";
+const CREAM = "#f7f6fd";
+/** Garis luar karakter: ikut --yuki-line (violet di mode terang) di kartu promo; di tempat lain tetap INK. */
 const EDGE = { stroke: `var(--yuki-line, ${INK})` } as const;
 
 export function PromoYukiHead({
@@ -28,7 +28,7 @@ export function PromoYukiHead({
   const ear = (
     <>
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill={FUR} />
-      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0b4e52" />
+      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#1f0b52" />
       <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#ffd3dc" />
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" style={EDGE} strokeWidth="2" strokeLinejoin="round" />
     </>
@@ -36,8 +36,8 @@ export function PromoYukiHead({
   const eye = (cx: number) => (
     <g className="sb-sign__eye">
       <ellipse cx={cx} cy="38.500" rx="4.800" ry="6" fill={INK} />
-      <ellipse cx={cx} cy="39.200" rx="3.900" ry="4.900" fill="#2aa3b0" />
-      <ellipse cx={cx} cy="40.400" rx="2.100" ry="2.800" fill="#05222b" />
+      <ellipse cx={cx} cy="39.200" rx="3.900" ry="4.900" fill="#532ab0" />
+      <ellipse cx={cx} cy="40.400" rx="2.100" ry="2.800" fill="#14052b" />
       <circle cx={cx - 1.600} cy="36.600" r="1.700" fill="#fff" />
       <circle cx={cx + 1.700} cy="41.200" r=".85" fill="#fff" opacity=".95" />
     </g>

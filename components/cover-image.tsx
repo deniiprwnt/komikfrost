@@ -28,18 +28,18 @@ function Speed() {
   return <span className="cover-ph__speed" aria-hidden="true" />;
 }
 /**
- * Yuki (maskot rubah teal) versi ringkas untuk placeholder gambar.
+ * Yuki (maskot rubah violet) versi ringkas untuk placeholder gambar.
  * Tanpa <defs>/ID — aman dirender puluhan kali di satu halaman (grid cover).
  * Varian "err": telinga terkulai + mata spiral pusing.
  */
 function AnimeFace({ variant }: { variant: "load" | "err" }) {
-  const INK = "#0f2528";
-  const FUR = "#22b5a9";
+  const INK = "#170f28";
+  const FUR = "#3f22b5";
   const err = variant === "err";
   const ear = (
     <>
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill={FUR} />
-      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#0b4e52" />
+      <path d="M16 3c4 1.500 8 5 10.500 9L12 17c-.500-5 .500-9 4-14z" fill="#1f0b52" />
       <path d="M17 27c-3-6-3-11-1-16 5 3 8 9 9 16z" fill="#ffd3dc" />
       <path d="M13 31C9 20 11 11 16 3c9 4 15 13 16 27z" fill="none" stroke={INK} strokeWidth="2.200" strokeLinejoin="round" />
     </>
@@ -47,8 +47,8 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
   const eye = (cx: number) => (
     <g className="ph-eye">
       <ellipse cx={cx} cy="38.500" rx="4.800" ry="6" fill={INK} />
-      <ellipse cx={cx} cy="39.200" rx="3.900" ry="4.900" fill="#2aa3b0" />
-      <ellipse cx={cx} cy="40.400" rx="2.100" ry="2.800" fill="#05222b" />
+      <ellipse cx={cx} cy="39.200" rx="3.900" ry="4.900" fill="#532ab0" />
+      <ellipse cx={cx} cy="40.400" rx="2.100" ry="2.800" fill="#14052b" />
       <circle cx={cx - 1.600} cy="36.600" r="1.700" fill="#fff" />
       <circle cx={cx + 1.700} cy="41.200" r=".85" fill="#fff" opacity=".95" />
     </g>
@@ -59,13 +59,13 @@ function AnimeFace({ variant }: { variant: "load" | "err" }) {
       <g>{ear}</g>
       <g transform="translate(64 0) scale(-1 1)">{ear}</g>
       {/* rumbai pipi */}
-      <path d="M12 41Q6 41 3.500 44.500Q7.500 45 8 47Q5 49 6.500 52Q11 52.500 15 51Z" fill="#f6fdfb" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-      <path d="M52 41Q58 41 60.500 44.500Q56.500 45 56 47Q59 49 57.500 52Q53 52.500 49 51Z" fill="#f6fdfb" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 41Q6 41 3.500 44.500Q7.500 45 8 47Q5 49 6.500 52Q11 52.500 15 51Z" fill="#f7f6fd" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M52 41Q58 41 60.500 44.500Q56.500 45 56 47Q59 49 57.500 52Q53 52.500 49 51Z" fill="#f7f6fd" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
       {/* kepala + muka krem */}
-      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#0e8580" />
+      <ellipse cx="32" cy="40" rx="24" ry="19" fill="#280e85" />
       <ellipse cx="30.500" cy="38.500" rx="23.400" ry="17.800" fill={FUR} />
-      <ellipse cx="26" cy="31" rx="14" ry="6" fill="#6fe6d8" opacity=".4" />
-      <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill="#f6fdfb" />
+      <ellipse cx="26" cy="31" rx="14" ry="6" fill="#846fe6" opacity=".4" />
+      <path d="M9 43Q19 40 26 46Q30 49 32 49Q34 49 38 46Q45 40 55 43Q53 58 32 59Q11 58 9 43Z" fill="#f7f6fd" />
       <ellipse cx="32" cy="40" rx="24" ry="19" fill="none" stroke={INK} strokeWidth="2.400" />
       {/* wajah */}
       {err ? (

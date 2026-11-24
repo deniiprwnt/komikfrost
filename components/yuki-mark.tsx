@@ -3,15 +3,15 @@
  * ikon PWA, placeholder cover, kepala bagian kosong. Digambar geometris
  * (tanpa gradasi, tanpa bayangan) supaya tetap terbaca di 16px.
  *
- * Palet identitas tetap: bulu teal, muka krem, syal mint. Satu warna tinta
+ * Palet identitas tetap: bulu violet, muka krem, syal lavender. Satu warna tinta
  * tipis memegang siluet. Untuk Yuki penuh (8 ekspresi) pakai <Yuki>.
  */
 const INK = "#0a0b0d";
-const FUR = "#22b5a9";
-const FUR_LIGHT = "#6fe6d8";
-const FUR_SHADE = "#0e8580";
-const CREAM = "#f6fdfb";
-const MINT = "#7fe3d6";
+const FUR = "#3f22b5";
+const FUR_LIGHT = "#846fe6";
+const FUR_SHADE = "#280e85";
+const CREAM = "#f7f6fd";
+const MINT = "#907fe3";
 const BLUSH = "#ff8fa3";
 
 export function YukiMark({
@@ -22,9 +22,9 @@ export function YukiMark({
   className?: string;
   muted?: boolean;
 }) {
-  const fur = muted ? "#5f8a86" : FUR;
-  const furLight = muted ? "#8fb3af" : FUR_LIGHT;
-  const furShade = muted ? "#436462" : FUR_SHADE;
+  const fur = muted ? "#675f8a" : FUR;
+  const furLight = muted ? "#958fb3" : FUR_LIGHT;
+  const furShade = muted ? "#4a4364" : FUR_SHADE;
 
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">

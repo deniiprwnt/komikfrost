@@ -22,7 +22,7 @@
   --radius-2xl: 14px;
   --radius-3xl: 18px;
 
-  /* Palet teal-ink yang sama, dihaluskan: permukaan gelap sedikit
+  /* Palet violet-ink yang sama, dihaluskan: permukaan gelap sedikit
      diangkat, garis lebih tipis, aksen kurang jenuh. */
   --color-ink: #080e11;
   --color-ink-2: #0e171b;
@@ -539,7 +539,7 @@ time,
 
 /* ---- Karakter anime (SVG orisinal) + HUD + progress miring ------------- */
 .cover-ph {
-  --ph-hair: #2a4c51;
+  --ph-hair: #372a51;
   --ph-hair-hi: #6f9ea3;
   --ph-skin: #ffe4d4;
   --ph-iris-a: #7fb0b4;
@@ -639,25 +639,25 @@ time,
 .dark .cover-ph--err {
   background:
     radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--color-accent) 34%, transparent) 0%, transparent 60%),
-    linear-gradient(160deg, #14292c 0%, #111a1f 55%, #172a2d 100%);
+    linear-gradient(160deg, #1c142c 0%, #111a1f 55%, #1e172d 100%);
 }
 .dark .cover-ph__label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
 
-/* ---- Error: warna primary (teal) ------------- */
+/* ---- Error: warna primary (violet) ------------- */
 .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent) 24%, transparent);
   --ph-iris-a: #7fb0b4;
-  --ph-iris-b: #0b6b66;
+  --ph-iris-b: #200b6b;
 }
 .dark .cover-ph--err {
   --ph-line: color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
   --ph-iris-a: #9cc3c6;
   --ph-iris-b: #3d6a70;
 }
-/* Latar error & loading (sama): mesh teal lembut (tanpa pola kotak), rambut karakter teal. */
+/* Latar error & loading (sama): mesh violet lembut (tanpa pola kotak), rambut karakter violet. */
 .cover-ph--err,
 .cover-ph--load {
-  --ph-hair: #2a4c51;
+  --ph-hair: #372a51;
   --ph-hair-hi: #6f9ea3;
   background:
     radial-gradient(70% 55% at 50% 46%, #ffffffd9 0%, transparent 70%),
@@ -669,9 +669,9 @@ time,
 .dark .cover-ph--load {
   background:
     radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 72%),
-    radial-gradient(90% 60% at 0% 0%, #14302f 0%, transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, #162f33 0%, transparent 62%),
-    linear-gradient(160deg, #0f1c20 0%, #0c1519 100%);
+    radial-gradient(90% 60% at 0% 0%, #1a1430 0%, transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, #201633 0%, transparent 62%),
+    linear-gradient(160deg, #160f20 0%, #0c1519 100%);
 }
 .cover-ph--err .cover-ph__speed,
 .cover-ph--load .cover-ph__speed { opacity: 0.32; }
@@ -1468,9 +1468,9 @@ article.cv-auto:not(.group):active {
 }
 .sb-sign {
   --paw: clamp(1.45rem, 11.5cqw, 2rem);
-  /* Tepi papan & telapak: teal primer (bukan hitam). */
+  /* Tepi papan & telapak: violet primer (bukan hitam). */
   --edge: var(--color-accent);
-  --edge-shadow: color-mix(in srgb, var(--color-accent) 62%, #02130f);
+  --edge-shadow: color-mix(in srgb, var(--color-accent) 62%, #040213);
   --yuki-line: var(--edge); /* garis luar kepala & telapak */
   position: relative;
   display: flex;
@@ -1537,22 +1537,22 @@ article.cv-auto:not(.group):active {
 .sb-sign__board::before { top: 8px; }
 .sb-sign__board::after { bottom: 8px; }
 .dark .sb-sign {
-  /* Mode gelap: tepi teal gelap (sesuai desain yang dipilih). */
-  --edge: #104344;
-  --edge-shadow: #104344;
-  --yuki-line: #0f2528;
+  /* Mode gelap: tepi violet gelap (sesuai desain yang dipilih). */
+  --edge: #1d1044;
+  --edge-shadow: #1d1044;
+  --yuki-line: #170f28;
 }
 .dark .sb-sign__board {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 46%),
-    linear-gradient(180deg, #1a3237 0%, #0f1e24 100%);
+    linear-gradient(180deg, #241a37 0%, #0f1e24 100%);
   box-shadow:
     0 4px 0 var(--edge-shadow);
 }
 .dark .sb-sign__board { --screw: rgba(255, 255, 255, 0.24); }
 
 .sb-sign__paw {
-  color: var(--yuki-line); /* garis telapak: teal di mode terang, gelap di mode gelap */
+  color: var(--yuki-line); /* garis telapak: violet di mode terang, gelap di mode gelap */
   position: absolute;
   z-index: 2;
   top: calc(var(--paw) * -0.62);
@@ -1569,9 +1569,9 @@ article.cv-auto:not(.group):active {
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.015em;
-  color: #10201f;
+  color: #131020;
 }
-.dark .sb-promo__title { color: #f1f8f7; }
+.dark .sb-promo__title { color: #f2f1f8; }
 .sb-promo__live {
   display: inline-flex;
   align-items: center;
@@ -1908,11 +1908,11 @@ html:has([data-bare-screen]) :is(aside.sb, [data-app-header], .app-shell > foote
   --bad: #bf3b34;
   --pk: rgba(11, 107, 102, 0.55);   /* garis properti adegan */
   --pf: #ffffff;                    /* isi properti adegan */
-  --sp: #d3ebe9;                    /* permukaan lubang/kunci di properti */
-  --sky-a: #b9dedc;
-  --sky-b: #e6f4f3;
+  --sp: #d8d3eb;                    /* permukaan lubang/kunci di properti */
+  --sky-a: #c1b9de;
+  --sky-b: #e9e6f4;
   --drift-a: #ffffff;
-  --drift-b: #d9ecea;
+  --drift-b: #dcd9ec;
   --snow: #ffffff;
   --kfont: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP", var(--font-display), sans-serif;
   background: var(--pg);
@@ -1929,11 +1929,11 @@ html.dark .bs {
   --mu: var(--color-muted-dark);
   --bad: #ef857c;
   --pk: rgba(150, 236, 226, 0.5);
-  --pf: #1b3d42;
-  --sp: #0f2a2f;
-  --sky-a: #07151a;
-  --sky-b: #12363b;
-  --drift-a: #bfdedb;
+  --pf: #281b42;
+  --sp: #1a0f2f;
+  --sky-a: #0f071a;
+  --sky-b: #1f123b;
+  --drift-a: #c5bfde;
   --drift-b: #84b3b0;
 }
 
@@ -2012,7 +2012,7 @@ html.dark .mg-btn:focus-visible, html.dark .mg-chip:focus-visible, html.dark .mg
 }
 @media (hover: hover) {
   .mg-btn-primary:hover { color: #fff; border-color: transparent; background: var(--color-accent-strong); transform: translateY(-1px); }
-  html.dark .mg-btn-primary:hover { background: #1a9a92; }
+  html.dark .mg-btn-primary:hover { background: #351a9a; }
 }
 .mg-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
