@@ -9,17 +9,23 @@ import { CoverImage } from "./cover-image";
 import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 
 /**
- * Kartu list ala Komiku: cover + badge tipe/sumber + judul + "Genre Â· waktu" +
+ * Kartu list ala Komiku: cover + badge tipe + judul + "Genre . waktu" +
  * sinopsis + tombol "Awal" / "Terbaru".
  * Dipakai /terbaru dan /genre/[slug] agar tampilannya sama.
  *
  * Seluruh kartu bisa diklik: tautan judul diperluas menutupi kartu (stretched
  * link), sedangkan cover dan tombol chapter berada di atasnya (z-10) agar
  * tetap punya tujuan sendiri.
+ *
+ * Badge sumber: di HP (<640px) cover hanya 96px, jadi sumber ada di baris meta
+ * di samping waktu. Mulai sm, cover cukup lebar: sumber masuk ke dalam cover,
+ * sejajar badge tipe.
  */
 export function KomikListCard({ item }: { item: MangaCard }) {
   const warm = useIntentPrefetch(`/api/manga/${encodeURIComponent(item.slug)}`);
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
+  const sources = item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1);
+  const hasSource = Boolean(sources && sources.length > 0);
   // Animasi cover terbang ke detail tetap jalan walau yang diklik bukan cover.
   const morph = (e: React.MouseEvent<HTMLAnchorElement>) =>
     captureCoverMorph(item.slug, e.currentTarget.closest("article"));
@@ -41,23 +47,13 @@ export function KomikListCard({ item }: { item: MangaCard }) {
           title={item.title}
           className="h-full w-full object-cover"
         />
-        {/* Tipe (kiri) + sumber (kanan) sebaris di dalam cover, sama seperti
-            kartu grid. Ukuran mengecil mengikuti lebar cover (container query). */}
-        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-nowrap items-center justify-between gap-1">
-          {item.type ? (
-            <TypeBadge
-              type={item.type}
-              flush
-              className="px-1! py-0.5! text-[9px]! @[9rem]:px-1.5! @[9rem]:py-1! @[9rem]:text-[10px]!"
-            />
-          ) : (
-            <span />
+        <div className="absolute inset-x-2 top-2 z-10 flex flex-nowrap items-center justify-between gap-1">
+          {item.type ? <TypeBadge type={item.type} flush /> : <span />}
+          {hasSource && (
+            <div className="ml-auto hidden min-w-0 sm:flex">
+              <SourceBadge shrink sources={sources} />
+            </div>
           )}
-          <SourceBadge
-            shrink
-            className="ml-auto min-w-0 [&>span]:rounded-md [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[9px] @[9rem]:[&>span]:px-1.5 @[9rem]:[&>span]:py-1 @[9rem]:[&>span]:text-[10px]"
-            sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
-          />
         </div>
       </Link>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -76,10 +72,17 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.title}
           </Link>
         </div>
-        {(item.genre || updated) && (
-          <p className="mt-1 min-w-0 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
-            {[item.genre, updated].filter(Boolean).join(" Â· ")}
-          </p>
+        {(item.genre || updated || hasSource) && (
+          <div className="mt-1 flex min-w-0 items-center gap-1.5">
+            <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
+              {[item.genre, updated].filter(Boolean).join(" \u00b7 ")}
+            </p>
+            {hasSource && (
+              <span className="shrink-0 sm:hidden">
+                <SourceBadge wide sources={sources} />
+              </span>
+            )}
+          </div>
         )}
         {(
           <p className="mt-1.5 line-clamp-2 break-words text-xs leading-relaxed text-fg/75 sm:text-[13px] dark:text-fg-dark/70">

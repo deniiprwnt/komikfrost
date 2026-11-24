@@ -215,6 +215,8 @@ html.dark {
   --tone-other: #8fa3a8;
 }
 .bdg {
+  /* Sudut tipis di semua platform: chip 9-10px tidak boleh terlihat seperti pil. */
+  border-radius: 4px;
   --b-tone: var(--tone-other);
   --b-dot: var(--tone-other);
   background: color-mix(in srgb, var(--b-tone) 13%, transparent);
