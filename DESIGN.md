@@ -1,12 +1,12 @@
 ---
 version: beta
 name: KomikFrost
-description: Indonesian manga-reader aggregator. Editorial, cover-first, quiet surfaces, one deep teal accent.
+description: Indonesian manga-reader aggregator. Editorial, cover-first, quiet surfaces, one deep violet accent.
 colors:
-  primary: "#0C7168"
-  primary-strong: "#085A53"
-  primary-soft: "#D7EEEA"
-  primary-on-dark: "#6CCBBD"
+  primary: "#5B47D6"
+  primary-strong: "#4733B8"
+  primary-soft: "#E6E2FA"
+  primary-on-dark: "#B3A8FF"
   paper: "#F3F6F5"
   paper-raised: "#FFFFFF"
   paper-sunken: "#E8EEED"
@@ -70,9 +70,9 @@ are leftovers from earlier experiments.
 
 ## Colors
 
-- **Primary teal (#0C7168):** the single interaction color, flat, never a
-  gradient. On dark surfaces, accent text uses #6CCBBD (softened from the
-  earlier neon #66DCCB) and filled accents keep #118079, hover #13827A, so
+- **Primary violet (#5B47D6):** the single interaction color, flat, never a
+  gradient. On dark surfaces, accent text uses #B3A8FF (a pale tint of the accent, so
+  it stays readable on ink) and filled accents keep #6A57E0, hover #7060E4, so
   white text stays readable (4.6+).
 - **Neutrals:** near-neutral with a faint green cast. Light uses #F3F6F5
   paper with white raised surfaces; dark uses #080E11 ink, deliberately
@@ -89,7 +89,7 @@ are leftovers from earlier experiments.
 - Color tokens live in two places that must match: `@theme` in `globals.css`
   and the `:root` overrides in `theme.css`.
 - **Contrast (WCAG AA, measured):** muted text 5.05+ on every light surface
-  and 6.18+ on dark; white on every accent and mark fill 4.79+. Gold is
+  and 6.18+ on dark; white on every accent and mark fill 4.69+. Gold is
   3.82 on paper, so it stays on large rank numbers only. Ranks 4+ use muted
   at 85%, not lower.
 

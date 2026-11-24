@@ -1,22 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="bg" x1="9" y1="3" x2="55" y2="62" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1a9a92"/>
-      <stop offset="0.52" stop-color="#0b6b66"/>
-      <stop offset="1" stop-color="#064e4a"/>
-    </linearGradient>
-    <radialGradient id="bloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(49 54) rotate(-90) scale(40)">
-      <stop offset="0" stop-color="#62d6c8" stop-opacity="0.45"/>
-      <stop offset="0.6" stop-color="#62d6c8" stop-opacity="0.14"/>
-      <stop offset="1" stop-color="#62d6c8" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="mark" x1="32" y1="16" x2="32" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#e1eeec"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="6" fill="url(#bg)"/>
-  <rect width="64" height="64" rx="6" fill="url(#bloom)"/>
-  <rect x="0.25" y="0.25" width="63.5" height="63.5" rx="5.75" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="0.5"/>
-  <path fill="url(#mark)" d="M16 16H31L24 32L31 48H16Z M39 16H48V48H39L32 32Z"/>
+  <rect width="64" height="64" rx="6" fill="#5b47d6"/>
+  <path fill="#ffffff" d="M16 16H31L24 32L31 48H16Z M39 16H48V48H39L32 32Z"/>
 </svg>

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KomikFrost">
-  <rect width="512" height="512" fill="#118079"/>
+  <rect width="512" height="512" fill="#5b47d6"/>
   <g transform="translate(56.4 56.4) scale(2.496) translate(-48 -48)">
     <path fill="#ffffff" fill-rule="evenodd" d="M64 64H124L96 128L124 192H64Z M156 64H192V192H156L128 128Z"/>
   </g>

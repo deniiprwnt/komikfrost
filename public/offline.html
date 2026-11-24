@@ -42,13 +42,13 @@
   --color-fg-dark: #e7f1f1;
   --color-muted: #566a70;
   --color-muted-dark: #8ba2a8;
-  --color-accent: #0b6b66;
-  --color-accent-strong: #064e4a;
+  --color-accent: #5b47d6;
+  --color-accent-strong: #4733b8;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 html.dark {
-  --color-accent: #118079;
-  --color-accent-strong: #62d6c8;
+  --color-accent: #6a57e0;
+  --color-accent-strong: #b3a8ff;
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -61,7 +61,7 @@ body { margin: 0; }
   padding: max(1.5rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
 }
 @media (min-width: 640px) { .bs-inner { padding-left: 2rem; padding-right: 2rem; } }
-.mg-mark { display: flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 10%; background: #0b6b66; color: #fff; }
+.mg-mark { display: flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 10%; background: #5b47d6; color: #fff; }
 .mg-mark svg { width: 78%; height: 78%; }
 .bs {
   position: fixed; inset: 0; z-index: 300; overflow-y: auto; overflow-x: hidden;
@@ -103,13 +103,13 @@ html.dark .bs {
 }
 
 /* Warna aksen halaman: --t untuk bidang/garis, --ti untuk TEKS (kontras cukup di atas halaman). */
-.bs-t-teal   { --t: #1a9a92; --ti: #0b6b66; }
+.bs-t-teal   { --t: #6a57e0; --ti: #5b47d6; }
 .bs-t-blue   { --t: #4d8fd1; --ti: #2b66a8; }
 .bs-t-amber  { --t: #d8a84a; --ti: #8f6410; }
 .bs-t-orange { --t: #e8743b; --ti: #b24d17; }
 .bs-t-red    { --t: #e5594f; --ti: #b5342b; }
 .bs-t-violet { --t: #8f7ee6; --ti: #6354c4; }
-html.dark .bs-t-teal   { --t: #62d6c8; --ti: #62d6c8; }
+html.dark .bs-t-teal   { --t: #8d7fef; --ti: #b3a8ff; }
 html.dark .bs-t-blue   { --t: #6ea8ec; --ti: #8ebcf2; }
 html.dark .bs-t-amber  { --t: #e4b861; --ti: #ecc678; }
 html.dark .bs-t-orange { --t: #f08c5a; --ti: #f4a37a; }

@@ -38,18 +38,18 @@
   --color-muted: #56676a;
   --color-muted-dark: #8fa3a8;
 
-  /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
-  --color-accent: #0c7168;
-  --color-accent-strong: #085a53;
-  --color-accent-soft: #d7eeea;
-  --color-accent-soft-dark: #10393a;
+  /* Aksen violet: terang lebih dalam (kontras teks), gelap lebih lembut. */
+  --color-accent: #5b47d6;
+  --color-accent-strong: #4733b8;
+  --color-accent-soft: #e6e2fa;
+  --color-accent-soft-dark: #241f4a;
 
   /* Penanda tipe bacaan — hue sama, saturasi diredam. */
   --color-mark-manga: #b94a43;
   --color-mark-manhwa: #2c68a6;
   --color-mark-manhua: #8f6112;
 
-  /* Emas hangat sebagai pasangan teal: peringkat 1–3. Lebih tua di terang agar terbaca. */
+  /* Emas hangat sebagai pasangan violet: peringkat 1–3. Lebih tua di terang agar terbaca. */
   --color-gold: #a9710f;
 
   --color-fresh: #1b7a40;
@@ -64,12 +64,12 @@
   --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Tema gelap: isi aksen tetap teal sedang (teks/ikon putih di atasnya
+/* Tema gelap: isi aksen tetap violet sedang (teks/ikon putih di atasnya
    tetap putih, mis. logo & tombol). Teks beraksen di atas gelap memakai
-   teal yang lebih terang lewat aturan di bawah. */
+   violet yang lebih terang lewat aturan di bawah. */
 html.dark {
-  --color-accent: #118079;
-  --color-accent-strong: #6ccbbd;
+  --color-accent: #6a57e0;
+  --color-accent-strong: #b3a8ff;
   --color-gold: #ecbf5f;
 }
 :root {
@@ -115,7 +115,7 @@ html.dark {
    (untuk teks), jadi hover latar memakai aksen yang sedikit diangkat agar
    teks putih tetap terbaca. */
 .dark .hover\:bg-accent-strong:hover {
-  background-color: #13827a;
+  background-color: #7060e4;
 }
 
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).
@@ -603,7 +603,7 @@ time,
   inset: 0;
   width: 42%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-accent), #7fe3d6);
+  background: linear-gradient(90deg, var(--color-accent), #b3a8ff);
   animation: ph-bar 1.15s cubic-bezier(.5,0,.5,1) infinite;
 }
 @keyframes ph-bar {
@@ -1938,13 +1938,13 @@ html.dark .bs {
 }
 
 /* Warna aksen halaman: --t untuk bidang/garis, --ti untuk TEKS (kontras cukup di atas halaman). */
-.bs-t-teal   { --t: #1a9a92; --ti: #0b6b66; }
+.bs-t-teal   { --t: #6a57e0; --ti: #5b47d6; }
 .bs-t-blue   { --t: #4d8fd1; --ti: #2b66a8; }
 .bs-t-amber  { --t: #d8a84a; --ti: #8f6410; }
 .bs-t-orange { --t: #e8743b; --ti: #b24d17; }
 .bs-t-red    { --t: #e5594f; --ti: #b5342b; }
 .bs-t-violet { --t: #8f7ee6; --ti: #6354c4; }
-html.dark .bs-t-teal   { --t: #62d6c8; --ti: #62d6c8; }
+html.dark .bs-t-teal   { --t: #8d7fef; --ti: #b3a8ff; }
 html.dark .bs-t-blue   { --t: #6ea8ec; --ti: #8ebcf2; }
 html.dark .bs-t-amber  { --t: #e4b861; --ti: #ecc678; }
 html.dark .bs-t-orange { --t: #f08c5a; --ti: #f4a37a; }
