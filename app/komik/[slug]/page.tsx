@@ -168,7 +168,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
     <article className="morph-in mx-auto flex w-full min-w-0 flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_440px]">
       {/* Header: cover + info */}
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:gap-6 lg:col-start-1">
-        <div data-cover-slot className="cover-tile relative mx-auto aspect-[3/4] w-32 shrink-0 overflow-hidden rounded-xl bg-paper-3 min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52 dark:bg-ink-3">
+        <div data-cover-slot className="cover-tile relative mx-auto aspect-[3/4] w-32 shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52 dark:bg-ink-3">
           <CoverImage src={detail.cover} alt={detail.title} title={detail.title} priority label="Cover tidak tersedia" className="block h-full w-full object-cover" />
         </div>
         <div className="min-w-0 flex-1">
@@ -210,7 +210,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               aria-label={saved ? "Hapus dari favorit" : "Simpan ke favorit"}
               aria-pressed={saved}
               title={saved ? "Hapus dari favorit" : "Simpan ke favorit"}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors active:scale-95 ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--r-ctl)] border transition-colors active:scale-95 ${
                 saved
                   ? "border-accent bg-accent-soft text-accent dark:bg-accent-soft-dark"
                   : "border-line text-muted hover:border-accent hover:text-accent dark:border-line-dark dark:text-muted-dark"
@@ -260,7 +260,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             {detail.latestChapter && (
               <Link
                 href={chapterPathToRoute(detail.latestChapter.url)}
-                className="morph-stagger-item min-w-0 flex-1 truncate rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white transition-transform active:scale-[0.98] min-[420px]:flex-none sm:order-2"
+                className="morph-stagger-item min-w-0 flex-1 truncate rounded-[var(--r-ctl)] bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white transition-transform active:scale-[0.98] min-[420px]:flex-none sm:order-2"
               >
                 Lanjut · {detail.latestChapter.label}
               </Link>
@@ -268,7 +268,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             {detail.firstChapter && (
               <Link
                 href={chapterPathToRoute(detail.firstChapter.url)}
-                className="morph-stagger-item min-w-0 flex-1 truncate rounded-lg border border-line px-5 py-2.5 text-center text-sm font-semibold text-fg min-[420px]:flex-none dark:border-line-dark dark:text-fg-dark sm:order-1"
+                className="morph-stagger-item min-w-0 flex-1 truncate rounded-[var(--r-ctl)] border border-line px-5 py-2.5 text-center text-sm font-semibold text-fg min-[420px]:flex-none dark:border-line-dark dark:text-fg-dark sm:order-1"
               >
                 Baca dari awal
               </Link>
@@ -290,7 +290,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       )}
 
       {/* Daftar chapter — kolom kanan yang menempel saat scroll di desktop */}
-      <section className="min-w-0 rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:row-span-3 dark:border-line-dark dark:bg-ink-2">
+      <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:row-span-3 dark:border-line-dark dark:bg-ink-2">
         {/* Judul + tombol urut di baris atas; pencarian penuh selebar kartu di bawahnya. */}
         <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="display-cond order-1 min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
@@ -303,7 +303,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               placeholder="Cari chapter..."
               aria-label="Cari chapter"
               enterKeyHint="search"
-              className="search-field order-3 h-12 w-full min-w-0 basis-full rounded-lg border border-line bg-paper px-4 text-base text-fg outline-none sm:h-10 sm:text-sm dark:border-line-dark dark:bg-ink dark:text-fg-dark"
+              className="search-field order-3 h-12 w-full min-w-0 basis-full rounded-[var(--r-ctl)] border border-line bg-paper px-4 text-base text-fg outline-none sm:h-10 sm:text-sm dark:border-line-dark dark:bg-ink dark:text-fg-dark"
             />
           )}
           {detail.chapters.length > 1 && (
@@ -311,7 +311,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               onClick={() => setAsc((a) => !a)}
               aria-label={asc ? "Urutkan terbaru dulu" : "Urutkan terlama dulu"}
               title={asc ? "Terbaru dulu" : "Terlama dulu"}
-              className="order-2 flex shrink-0 items-center gap-1 rounded-lg border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent sm:text-xs dark:border-line-dark dark:bg-ink dark:text-muted-dark"
+              className="order-2 flex shrink-0 items-center gap-1 rounded-[var(--r-ctl)] border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent sm:text-xs dark:border-line-dark dark:bg-ink dark:text-muted-dark"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
                 <path
@@ -330,7 +330,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           <EmptyState message="Belum ada chapter untuk komik ini di sumber data." />
         )}
         {ordered.length === 0 && detail.chapters.length > 0 && (
-          <div className="rounded-xl border border-line bg-paper dark:border-line-dark dark:bg-ink">
+          <div className="rounded-[var(--r-ctl)] border border-line bg-paper dark:border-line-dark dark:bg-ink">
             <EmptyState
               className="!py-8 sm:!py-10"
               message={`Tidak ada chapter yang cocok dengan "${filter}".`}
@@ -339,7 +339,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               <button
                 type="button"
                 onClick={() => setFilter("")}
-                className="rounded-lg border border-line bg-paper-2 px-4 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink-2"
+                className="rounded-[var(--r-ctl)] border border-line bg-paper-2 px-4 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent active:scale-[0.97] dark:border-line-dark dark:bg-ink-2"
               >
                 Hapus pencarian
               </button>
@@ -347,7 +347,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           </div>
         )}
         {ordered.length > 0 && (
-        <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] lg:min-h-48 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
+        <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] lg:min-h-48 divide-y divide-line overflow-y-auto rounded-[var(--r-ctl)] border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
           {ordered.map((c) => {
             const route = chapterPathToRoute(c.url);
             const isRead = readSet.has(readKey(route.split("/").pop() ?? ""));
@@ -395,7 +395,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
             </h2>
             <Link
               href={`/genre/${detail.genres[0].slug}`}
-              className="shrink-0 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+              className="shrink-0 rounded-[var(--r-ctl)] border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
             >
               Lihat semua →
             </Link>

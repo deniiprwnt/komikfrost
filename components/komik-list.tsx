@@ -76,7 +76,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.firstChapter && (
               <Link
                 href={chapterPathToRoute(item.firstChapter.url)}
-                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-lg border border-line bg-paper px-3.5 py-1 text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs dark:border-line-dark dark:bg-ink dark:text-fg-dark"
+                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-[var(--r-ctl)] border border-line bg-paper px-3.5 py-1 text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1 sm:text-xs dark:border-line-dark dark:bg-ink dark:text-fg-dark"
               >
                 <span className="truncate">
                   <span className="sm:hidden">{item.firstChapter.label}</span>
@@ -89,7 +89,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.latestChapter && (
               <Link
                 href={chapterPathToRoute(item.latestChapter.url)}
-                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-lg bg-accent px-3.5 py-1 text-xs font-semibold text-white transition-[opacity,transform] active:scale-[0.97] hover:opacity-90 sm:min-h-0 sm:flex-none sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs"
+                className="inline-flex min-h-9 min-w-0 flex-1 items-center justify-center truncate rounded-[var(--r-ctl)] bg-accent px-3.5 py-1 text-xs font-semibold text-white transition-[opacity,transform] active:scale-[0.97] hover:opacity-90 sm:min-h-0 sm:flex-none sm:px-2.5 sm:py-1 sm:text-xs"
               >
                 <span className="truncate">
                   <span className="sm:hidden">{item.latestChapter.label}</span>
@@ -110,7 +110,7 @@ export function KomikListSkeleton({ count = 8 }: { count?: number }) {
     <div className="flex flex-col gap-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex gap-3 border-b border-line py-4 sm:gap-4 dark:border-line-dark">
-          <div className="shimmer h-[132px] w-[96px] shrink-0 rounded-lg sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px]" />
+          <div className="shimmer h-[132px] w-[96px] shrink-0 rounded-[var(--r-cover)] sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px]" />
           <div className="min-w-0 flex-1 space-y-2 py-1">
             <div className="shimmer h-4 w-11/12 rounded-md" />
             <div className="shimmer h-3 w-1/2 rounded-md" />

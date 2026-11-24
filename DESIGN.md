@@ -80,6 +80,10 @@ are leftovers from earlier experiments.
 - **Type marks:** manga red, manhwa blue, manhua amber. One color per
   reading origin, learned once.
 - **Source badges** reuse the same hues instead of inventing new ones.
+- **Contrast (WCAG AA, measured):** muted text 5.05+ on every light surface
+  and 6.18+ on dark; white on every accent and mark fill 4.79+. Gold is
+  3.82 on paper, so it stays on large rank numbers only. Ranks 4+ use muted
+  at 85%, not lower.
 
 `theme-color` meta values (`app/layout.tsx`, `components/theme.tsx`) must
 match the paper color: #F3F6F5 light, #080E11 dark.
@@ -90,6 +94,7 @@ match the paper color: #F3F6F5 light, #080E11 dark.
   and rank numbers.
 - **Figtree** for body and meta. Titles 13px semibold, meta 11-12px muted.
 - No uppercase labels with wide tracking; no monospace display type.
+- Headings use `text-wrap: balance`; numbers are tabular.
 
 ## Layout
 
@@ -122,7 +127,9 @@ Radius depends on `<html data-platform>`, set before first paint:
 Preview on desktop with `/?platform=ios`, `/?platform=android`,
 `/?platform=desktop`; `/?platform=auto` clears the choice. Elements that
 need a fixed shape use `--r-cover`, `--r-ctl`, `--r-pill`, `--r-dock`
-rather than hard-coded values.
+rather than hard-coded values. Skeletons mirror the shape of what they
+stand in for (covers `--r-cover`, controls `--r-ctl`), and grid cards have
+no box.
 
 ## Elevation
 

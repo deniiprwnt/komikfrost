@@ -70,7 +70,7 @@ body {
 
 /* Peringkat: 1-3 emas, sisanya senyap. */
 .rank-num {
-  color: color-mix(in srgb, var(--color-muted) 70%, transparent);
+  color: color-mix(in srgb, var(--color-muted) 85%, transparent);
 }
 .rank-num.text-gold {
   color: var(--color-gold);

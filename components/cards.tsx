@@ -417,7 +417,7 @@ export function RankRow({ item }: { item: MangaCard }) {
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="relative z-10 h-[80px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-paper-3 ring-1 ring-black/5 sm:h-[96px] sm:w-[72px] dark:bg-ink-3 dark:ring-white/10"
+        className="relative z-10 h-[80px] w-[60px] shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 ring-1 ring-black/5 sm:h-[96px] sm:w-[72px] dark:bg-ink-3 dark:ring-white/10"
       >
         <CoverImage
           src={item.thumbnail}

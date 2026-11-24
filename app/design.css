@@ -233,3 +233,19 @@ main .display-cond {
     mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
   }
 }
+
+/* ---- Tipografi: detail halus ------------------------------------------------ */
+/* Judul dipatahkan seimbang (tanpa baris yatim); angka selalu tabular. */
+main h1,
+main h2,
+main h3 {
+  text-wrap: balance;
+}
+body {
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+.tabular-nums,
+.rank-num {
+  font-variant-numeric: tabular-nums lining-nums;
+}

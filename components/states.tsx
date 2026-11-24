@@ -8,9 +8,9 @@ export function GridSkeleton({ count = 10 }: { count?: number }) {
   return (
     <div aria-hidden="true" className="grid-cards">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-xl bg-paper-2 dark:bg-ink-2">
-          <div className="shimmer aspect-[3/4]" />
-          <div className="space-y-1.5 p-2 sm:p-2.5">
+        <div key={i} className="flex flex-col gap-2">
+          <div className="shimmer aspect-[3/4] rounded-[var(--r-cover)]" />
+          <div className="space-y-1.5 px-0.5">
             <div className="shimmer h-3 w-11/12 rounded-md" />
             <div className="shimmer h-2.5 w-2/3 rounded-md" />
           </div>
@@ -26,7 +26,7 @@ export function ListSkeleton({ count = 8 }: { count?: number }) {
     <div aria-hidden="true" className="divide-y divide-line dark:divide-line-dark">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex gap-2.5 py-3 sm:gap-3">
-          <div className="shimmer h-[60px] w-[92px] shrink-0 rounded-lg sm:h-[68px] sm:w-[110px]" />
+          <div className="shimmer h-[60px] w-[92px] shrink-0 rounded-[var(--r-ctl)] sm:h-[68px] sm:w-[110px]" />
           <div className="min-w-0 flex-1 space-y-2 py-1">
             <div className="shimmer h-3.5 w-3/4 rounded-md" />
             <div className="shimmer h-3 w-1/2 rounded-md" />
