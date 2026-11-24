@@ -191,13 +191,14 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
             harus di atasnya agar tetap terlihat. Badge chapter melebihi tepi
             kiri/bawah 1px (terpotong overflow-hidden) agar tetap menempel saat
             gambar di-scale ketika hover. */}
-        {/* Tipe (kiri) + sumber (kanan). Di kartu sempit (iPhone, rail
-            Rekomendasi) keduanya tidak muat satu baris, jadi sumber turun ke
-            baris berikutnya alih-alih terpotong tepi cover. */}
-        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-wrap items-start justify-between gap-1">
-          {item.type ? <TypeBadge type={item.type} flush /> : <span />}
+        {/* Tipe di atas, sumber di bawahnya, rata kiri. Ditumpuk (bukan
+            sebaris) supaya posisinya sama di semua kartu dan tidak pernah
+            terpotong, apa pun lebar kartunya (grid iPhone, rail Rekomendasi). */}
+        <div className="absolute left-1.5 top-1.5 z-10 flex max-w-[calc(100%-0.75rem)] flex-col items-start gap-1">
+          {item.type && <TypeBadge type={item.type} flush />}
           <SourceBadge
-            className="ml-auto max-w-full [&>span]:rounded-md [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[10px]"
+            shrink
+            className="max-w-full [&>span]:rounded-md [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[10px]"
             sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
           />
         </div>
