@@ -106,7 +106,7 @@ function ChapterNav({
   const { prevHref, nextHref } = navHrefs(data, slug, chapter);
 
   const base =
-    "group relative flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[13px] font-semibold select-none transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out active:scale-[0.97] sm:h-12 sm:gap-2 sm:px-6 sm:text-sm";
+    "group relative flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-[var(--r-ctl)] px-4 text-[13px] font-semibold select-none transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out active:scale-[0.97] sm:h-12 sm:gap-2 sm:px-6 sm:text-sm";
   const ghost = `${base} border border-line bg-white text-fg hover:border-accent/60 hover:bg-accent-soft hover:text-accent-strong dark:border-line-dark dark:bg-ink-3/70 dark:text-fg-dark dark:hover:border-accent/60 dark:hover:bg-accent/10 dark:hover:text-white`;
   const primary = `${base} bg-accent text-white hover:bg-accent-strong`;
   const off = `${base} cursor-not-allowed border border-line/70 text-muted/50 active:scale-100 dark:border-line-dark/50 dark:text-muted-dark/45`;
@@ -116,7 +116,7 @@ function ChapterNav({
       aria-label="Navigasi chapter"
       className={`relative mx-auto grid w-full min-w-0 ${
         zoom ? "grid-cols-[1fr_auto_auto_1fr]" : "grid-cols-[1fr_auto_1fr]"
-      } items-center gap-1.5 rounded-2xl border border-line bg-paper-2 p-1.5 sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2 ${
+      } items-center gap-1.5 rounded-[calc(var(--r-ctl)+6px)] border border-line bg-paper-2 p-1.5 sm:gap-2 sm:p-2 dark:border-line-dark dark:bg-ink-2 ${
         floating
           ? "max-w-md shadow-[0_12px_28px_-14px_rgba(8,28,32,0.4)] sm:max-w-lg dark:shadow-[0_12px_28px_-14px_rgba(0,0,0,0.85)]"
           : "max-w-md sm:max-w-lg"
@@ -141,7 +141,7 @@ function ChapterNav({
           href={`/komik/${slug}`}
           aria-label="Daftar isi"
           title="Daftar isi"
-          className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl text-muted transition-[background-color,color,transform] duration-200 hover:bg-paper-3 hover:text-fg active:scale-95 dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
+          className="flex h-11 w-11 items-center justify-center gap-2 rounded-[var(--r-ctl)] text-muted transition-[background-color,color,transform] duration-200 hover:bg-paper-3 hover:text-fg active:scale-95 dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark sm:h-12 sm:w-auto sm:px-4 sm:text-sm sm:font-medium"
         >
           <IconList className="h-[18px] w-[18px] shrink-0" />
           <span className="hidden sm:inline">Daftar isi</span>
@@ -737,7 +737,7 @@ export default function ReaderPage({
           <div
             role="group"
             aria-label="Mode baca"
-            className="flex shrink-0 rounded-xl border border-line bg-paper-2 p-1 text-xs font-semibold shadow-sm dark:border-line-dark dark:bg-ink-2"
+            className="flex shrink-0 rounded-[var(--r-ctl)] border border-line bg-paper-2 p-1 text-xs font-semibold dark:border-line-dark dark:bg-ink-2"
           >
             {(["scroll", "page"] as const).map((m) => (
               <button
@@ -746,7 +746,7 @@ export default function ReaderPage({
                 aria-pressed={mode === m}
                 className={`touch-manipulation rounded-lg px-3.5 py-1.5 transition-colors ${
                   mode === m
-                    ? "bg-accent text-white shadow-sm"
+                    ? "bg-accent text-white"
                     : "text-muted hover:bg-paper-3 hover:text-fg dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"
                 }`}
               >
@@ -759,7 +759,7 @@ export default function ReaderPage({
           <div
             role="group"
             aria-label="Ukuran gambar"
-            className="flex shrink-0 items-center rounded-xl border border-line bg-paper-2 p-1 text-xs font-semibold shadow-sm dark:border-line-dark dark:bg-ink-2"
+            className="flex shrink-0 items-center rounded-[var(--r-ctl)] border border-line bg-paper-2 p-1 text-xs font-semibold dark:border-line-dark dark:bg-ink-2"
           >
             <button
               type="button"
@@ -810,7 +810,7 @@ export default function ReaderPage({
       {/* Pindah chapter tanpa balik ke detail — daftar dari cache detail,
           dimuat di background bila cache kosong (lihat effect di bawah). */}
       {chapters !== null && chapters.length > 1 && (
-        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-[var(--r-ctl)] border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2">
           <span className="shrink-0 text-xs font-semibold text-muted dark:text-muted-dark">
             Chapter
           </span>
@@ -835,7 +835,7 @@ export default function ReaderPage({
         <div
           role="status"
           aria-live="polite"
-          className="fade-rise flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2"
+          className="fade-rise flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-ctl)] border border-line bg-paper-2 px-3 py-2 text-sm dark:border-line-dark dark:bg-ink-2"
         >
           <p className="min-w-0 flex-1 text-muted dark:text-muted-dark">
             {failed.size} dari {data.images.length} halaman gagal dimuat.
@@ -843,7 +843,7 @@ export default function ReaderPage({
           <button
             type="button"
             onClick={() => load()}
-            className="min-h-11 shrink-0 touch-manipulation rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.97]"
+            className="min-h-11 shrink-0 touch-manipulation rounded-[var(--r-ctl)] bg-accent px-4 py-2 text-sm font-semibold text-white active:scale-[0.97]"
           >
             Muat ulang
           </button>
@@ -854,7 +854,7 @@ export default function ReaderPage({
         <div className={`min-w-0 ${zoom > 100 ? "overflow-x-auto" : ""}`}>
           <div
             ref={pagesRef}
-            className="mx-auto flex min-w-0 flex-col overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black"
+            className="mx-auto flex min-w-0 flex-col overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-black"
             style={zoom === 100 ? undefined : { width: `${zoom}%` }}
           >
             {data.images.map((src, i) =>
@@ -929,7 +929,7 @@ export default function ReaderPage({
               scrollTop();
             }}
             aria-label="Kembali ke atas"
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-accent bg-accent text-white transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--r-ctl)] border border-accent bg-accent text-white transition-[background-color,border-color,transform] duration-200 hover:border-accent-strong hover:bg-accent-strong active:scale-95"
           >
             <IconUp className="h-5 w-5" />
           </button>
@@ -997,7 +997,7 @@ function PageMode({
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <div className="relative min-w-0 overflow-hidden rounded-lg bg-paper-3 min-[420px]:rounded-xl dark:bg-black">
+      <div className="relative min-w-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-black">
         {total === 0 ? (
           <ReaderPageError index={0} message="Chapter ini tidak memiliki gambar yang bisa ditampilkan." />
         ) : isFailed ? (
@@ -1053,7 +1053,7 @@ function PageMode({
         <button
           onClick={() => go(-1)}
           disabled={total === 0 || cur === 0}
-          className="min-h-11 flex-1 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg disabled:opacity-40 sm:min-h-0 dark:border-line-dark dark:text-fg-dark"
+          className="min-h-11 flex-1 rounded-[var(--r-ctl)] border border-line px-4 py-2 text-sm font-semibold text-fg disabled:opacity-40 sm:min-h-0 dark:border-line-dark dark:text-fg-dark"
         >
           ← Sebelumnya
         </button>
@@ -1063,7 +1063,7 @@ function PageMode({
         <button
           onClick={() => go(1)}
           disabled={total === 0 || cur === total - 1}
-          className="min-h-11 flex-1 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          className="min-h-11 flex-1 rounded-[var(--r-ctl)] bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
         >
           Berikutnya →
         </button>

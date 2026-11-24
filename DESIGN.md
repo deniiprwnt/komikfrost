@@ -1,210 +1,155 @@
 ---
-version: alpha
+version: beta
 name: KomikFrost
-description: Indonesian manga-reader aggregator. Editorial density, flat ink-teal accent, quiet surfaces.
+description: Indonesian manga-reader aggregator. Editorial, cover-first, quiet surfaces, one deep teal accent.
 colors:
-  primary: "#0F8F79"
-  primary-strong: "#0A7562"
-  primary-soft: "#DCF1EC"
-  primary-soft-dark: "#113831"
-  secondary: "#676C76"
-  tertiary: "#E0A53C"
-  neutral: "#EEF0F3"
-  ink: "#101217"
-  ink-2: "#191C23"
-  mark-manga: "#D84A41"
-  mark-manhwa: "#2F7FC4"
-  mark-manhua: "#C1892E"
+  primary: "#0C7168"
+  primary-strong: "#085A53"
+  primary-soft: "#D7EEEA"
+  primary-on-dark: "#66DCCB"
+  paper: "#F3F6F5"
+  paper-raised: "#FFFFFF"
+  paper-sunken: "#E8EEED"
+  line: "#DCE3E2"
+  ink: "#080E11"
+  ink-2: "#0E171B"
+  ink-3: "#152227"
+  line-dark: "#1F2E34"
+  fg: "#0C1413"
+  fg-dark: "#E9F0F0"
+  muted: "#56676A"
+  muted-dark: "#8FA3A8"
+  gold: "#A9710F"
+  gold-dark: "#E3B54F"
+  mark-manga: "#B94A43"
+  mark-manhwa: "#2C68A6"
+  mark-manhua: "#8F6112"
 typography:
-  display:
-    fontFamily: Bricolage Grotesque
-    fontSize: 1.25rem
-    fontWeight: 800
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  h2:
-    fontFamily: Bricolage Grotesque
-    fontSize: 1.125rem
-    fontWeight: 800
-    lineHeight: 1.25
-    letterSpacing: "-0.01em"
-  body-md:
-    fontFamily: Inter
+  section-title:
+    fontFamily: Archivo
+    fontSize: 1.3rem to 1.9rem (responsive)
+    fontWeight: 700
+    letterSpacing: "-0.03em"
+  body:
+    fontFamily: Figtree
     fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.5
   meta:
-    fontFamily: Inter
-    fontSize: 0.75rem
+    fontFamily: Figtree
+    fontSize: 0.6875rem to 0.75rem
     fontWeight: 400
-    lineHeight: 1.4
 rounded:
-  sm: 6px
-  md: 8px
-  lg: 16px
-  pill: 999px
-spacing:
-  sm: 8px
-  md: 12px
-  lg: 16px
-  section: 20px
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.pill}"
-    padding: 12px
-  button-primary-hover:
-    backgroundColor: "{colors.primary-strong}"
-  nav-active:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.pill}"
-    padding: 8px
-  badge-type:
-    rounded: "{rounded.sm}"
-    padding: 4px
-  badge-type-manga:
-    backgroundColor: "{colors.mark-manga}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  badge-type-manhwa:
-    backgroundColor: "{colors.mark-manhwa}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  badge-type-manhua:
-    backgroundColor: "{colors.mark-manhua}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  source-badge-shinigami:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  source-badge-komiku:
-    backgroundColor: "{colors.mark-manhwa}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  source-badge-komikcast:
-    backgroundColor: "{colors.mark-manga}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.sm}"
-    padding: 4px
-  section-title:
-    typography: "{typography.h2}"
-    textColor: "{colors.ink}"
-  section-link:
-    textColor: "{colors.primary}"
-    rounded: "{rounded.pill}"
-    padding: 8px
-  section-link-hover:
-    backgroundColor: "{colors.primary-soft}"
-  section-link-hover-dark:
-    backgroundColor: "{colors.primary-soft-dark}"
-  page:
-    backgroundColor: "{colors.neutral}"
-  surface-dark:
-    backgroundColor: "{colors.ink-2}"
-  rank-top:
-    backgroundColor: "{colors.ink-2}"
-    textColor: "{colors.tertiary}"
+  desktop: "2px to 8px scale, controls and covers 4-5px"
+  android: "controls 12px, pills 14px, covers 12px"
+  ios: "controls 14px, pills full, covers 14px"
 ---
 
 ## Overview
 
-KomikFrost is a personal Indonesian manga/manhwa/manhua reader aggregator:
-dense lists, daily rankings, chapter updates. Reading this as: an Operate
-surface for a returning reader who checks updates fast, in a quiet
-editorial language, dial ENERGY 2 / RHYTHM 2 / MOTION 1.
+KomikFrost is a personal Indonesian manga/manhwa/manhua reader aggregator.
+The covers are the content. Everything else (chrome, borders, labels) steps
+back so a returning reader can scan rankings and updates quickly.
 
-One screen, one job: ranking answers "what is hot", update lists answer
-"what is new", detail answers "what is this and where do I continue".
-Nothing exists to impress; everything exists to be scanned.
+The mascot (Yuki) is a fixed brand element. Its components and CSS
+(`.sb-sign*`, `.mg-*`, `.yk-*`, `.sx-*`, `.cover-ph*`) are not part of this
+system and are never restyled by it.
+
+## Files
+
+Styles load in this order from `app/layout.tsx`:
+
+1. `globals.css`: Tailwind tokens, base styles, mascot and status screens.
+2. `design.css`: structure (section heads, rank rows, cover tiles, flat
+   header, sidebar icons, dock).
+3. `theme.css`: refined light/dark palette and responsive sizing.
+4. `radius.css`: per-platform radius scale.
+
+`premium.css`, `modern.css` and `screens.css` are not imported anywhere and
+are leftovers from earlier experiments.
 
 ## Colors
 
-- **Primary ink-teal (#0F8F79):** the single interaction color. Solid and
-  flat, never gradient. Reason: one accent used sparingly stays an accent;
-  the same teal-to-dark gradient on twenty buttons is the generic template
-  tell this design rejects. Hover deepens to primary-strong (#0A7562).
-- **Gold (#E0A53C):** rank 1-3 only. Reason: marks editorial weight, not
-  decoration; ranks 4+ stay muted so the top three mean something.
-- **Type marks (manga #D84A41, manhwa #2F7FC4, manhua #C1892E):** one solid
-  color per reading origin. Reason: real information (country of origin),
-  learned once and scanned forever.
-- **Source badges reuse type colors:** Shinigami wears primary teal, Komiku
-  wears manhwa blue, Komikcast wears manga red. Reason: source attribution
-  is real aggregator information, color-coded with the existing vocabulary
-  instead of inventing new hues.
-- **Neutrals are cool, not cream:** ink/paper/line pairs for both themes.
-  The faint teal radial wash on the page background (9% light, 16% dark)
-  is the only ambient tint. Reason: brand presence without competing with
-  covers, which carry the page's real color.
+- **Primary teal (#0C7168):** the single interaction color, flat, never a
+  gradient. On dark surfaces, accent text uses #66DCCB and filled accents
+  keep #118079 so white text stays readable.
+- **Neutrals:** near-neutral with a faint green cast. Light uses #F3F6F5
+  paper with white raised surfaces; dark uses #080E11 ink, deliberately
+  unchanged because the PWA splash and `theme-color` depend on it.
+- **Gold:** rank 1-3 only. Ranks 4+ are muted so the top three mean something.
+- **Type marks:** manga red, manhwa blue, manhua amber. One color per
+  reading origin, learned once.
+- **Source badges** reuse the same hues instead of inventing new ones.
+
+`theme-color` meta values (`app/layout.tsx`, `components/theme.tsx`) must
+match the paper color: #F3F6F5 light, #080E11 dark.
 
 ## Typography
 
-- **Bricolage Grotesque, extrabold, tight:** section titles, logo wordmark,
-  rank numbers. Reason: the single distinctive voice; everything else stays
-  neutral Inter so titles own the hierarchy.
-- **Inter for body and meta:** titles 13-14px semibold, genre/time 11-12px
-  muted, chapter links 12-13px semibold in primary teal. Reason: chapter
-  links are the page's primary action cue, so they wear the action color;
-  secondary meta stays small and quiet.
-- **No uppercase labels with wide tracking, no monospace display type.**
-  Badges are uppercase only because source/type codes read as stamps.
+- **Archivo, weight 700, tight tracking** for section titles, the wordmark
+  and rank numbers.
+- **Figtree** for body and meta. Titles 13px semibold, meta 11-12px muted.
+- No uppercase labels with wide tracking; no monospace display type.
 
 ## Layout
 
-- **One outer section card per list surface:** rounded-lg border, quiet
-  fill, rows sit directly inside. Reason: a single container per job beats
-  nested cards; rows separated by hairlines, not boxes.
-- **Sections differ by content, not by template:** ranking rows carry rank
-  numbers and views; update rows carry landscape thumbs and timestamps;
-  history rows carry progress bars. Reason: RHYTHM 2, each section's anatomy
-  follows its question.
-- **Mobile is its own layout:** single-column rows, bottom tab bar for the
-  four primary destinations, search expands inline under the header. Touch
-  targets minimum 44px on section controls. Reason: the phone is where this
-  app is read; desktop reflow (two-column row grids) only activates when it
-  genuinely fits.
-
-## Elevation & Depth
-
-Flat surfaces, hairline borders, no page-wide shadow or blur. Elevation is
-reserved for elements that leave the page: floating action button,
-dropdown sheets, reader controls over artwork. The cover hover scrim
-(black gradient over the image only) exists so the eye confirms the tap
-target; it never decorates a solid surface.
+- **Cover first:** grid cards have no box. The cover (rounded, with a 1px
+  inner hairline) sits on the page, title and meta directly below.
+- **List surfaces are not wrapped in panels.** Ranking rows and list cards
+  are separated by hairlines, not nested boxes.
+- **Rank rows** carry a large tabular number (gold for 1-3), cover, title,
+  genre, views and latest chapter.
+- **Detail page:** cover and info side by side, synopsis and chapter list
+  without frames; the chapter list is sticky on desktop.
+- **Reader (`/baca`):** the page images carry the screen. Chrome is a thin
+  progress bar, a title block, small bordered control groups (mode, zoom),
+  chapter nav bars and a chapter dropdown, all flat with hairlines. Controls
+  use `--r-ctl`, the image column uses `--r-cover`, and nav bars are
+  concentric (`--r-ctl` plus their padding). Only the floating tap-nav, the
+  settings popover and the back-to-top button leave the page.
+- **Mobile** uses a floating dock for the main destinations; desktop uses a
+  sidebar that collapses to a rail.
 
 ## Shapes
 
-Three radii, each with a job: pill for actions and navigation (things you
-press), 8px for thumbs and small containers (things you look at), 16px for
-outer section cards (things that group). Badges use 6px stamps. A section
-title never needs a colored stripe beside it: the display face plus
-whitespace carries the hierarchy.
+Radius depends on `<html data-platform>`, set before first paint:
+
+- **Desktop:** tight. Tailwind's `rounded-sm` to `rounded-3xl` map to
+  2-8px; covers and controls are 4-5px.
+- **Android:** medium. Controls 12px, pills 14px, dock 20px.
+- **iOS:** soft. Controls 14px, pills fully round, dock 26px.
+
+Preview on desktop with `/?platform=ios`, `/?platform=android`,
+`/?platform=desktop`; `/?platform=auto` clears the choice. Elements that
+need a fixed shape use `--r-cover`, `--r-ctl`, `--r-pill`, `--r-dock`
+rather than hard-coded values.
+
+## Elevation
+
+Flat. Hairline borders, no page-wide shadow, blur or glow. Elevation is
+reserved for things that leave the page: the mobile dock, dropdown
+popovers and reader overlays.
 
 ## Components
 
-- `button-primary` is the only high-emphasis action on a screen. One per
-  decision point (Lanjutkan, Terbaru, Cari); everything secondary is an
-  outline or quiet text.
-- `nav-active` marks position with solid primary, no gradient.
-- `badge-type` is a flat stamp, top-right on covers only.
-- Section headers are typographic: display title plus a quiet "Lihat semua"
-  link. No eyebrow pill above the title, no decorative bar.
+- `section-title` + `section-head`: display title over a single hairline;
+  "Lihat semua" is a quiet accent link with a CSS arrow.
+- `cover-tile`: rounded cover with an inner hairline.
+- `rank-row` / `rank-num`: editorial ranking row.
+- Pills (pagination, filter dropdowns, period tabs, genre chips) use
+  `--r-pill`.
+- One high-emphasis accent button per decision point (Lanjut, Terbaru,
+  Cari); everything else is outline or quiet text.
 
 ## Do's and Don'ts
 
 - Do keep every badge that carries real data (type, source, chapter).
-  Don't add status pills (Baru, Hot, AI-style) that restate the headline.
-- Do write filter labels that say what they are ("Genre", "+ Genre").
-  Don't ship developer placeholders ("Genre 1", "Genre 2").
-- Do let long isekai titles truncate with dignity (two-line clamp on list
-  cards, one line in dense rows). Don't shrink type to fit the template.
-- Don't add hero spotlights, stats, testimonials, or marketing copy. The
-  covers and the update feed are the content; anything else is noise.
+  Don't add status pills that restate the headline.
+- Do use the radius tokens. Don't hard-code `rounded-full` or `10px` on
+  controls; they ignore the platform scale.
+- Do keep new global CSS outside Tailwind layers minimal: unlayered rules
+  such as `.border-line` override utilities like `hover:border-accent`.
+- Don't add hero spotlights, stats or marketing copy.
+- Don't touch the mascot files or classes.
+- Don't run `next build` while `next dev` is running in the same folder; it
+  corrupts `.next`.

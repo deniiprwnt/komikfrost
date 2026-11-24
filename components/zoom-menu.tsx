@@ -146,9 +146,9 @@ export function ZoomMenu({
           id={id}
           role="dialog"
           aria-label="Settings"
-          className={`${placement === "top" ? "zoom-pop-up bottom-full mb-2" : "zoom-pop-down top-full mt-2"} absolute inset-x-0 z-50 flex flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 shadow-[0_16px_36px_-14px_rgba(8,28,32,0.5)] dark:border-line-dark dark:bg-ink-2 dark:shadow-[0_16px_36px_-14px_rgba(0,0,0,0.9)]`}
+          className={`${placement === "top" ? "zoom-pop-up bottom-full mb-2" : "zoom-pop-down top-full mt-2"} absolute inset-x-0 z-50 flex flex-col gap-3 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 shadow-[0_16px_36px_-14px_rgba(8,28,32,0.5)] dark:border-line-dark dark:bg-ink-2 dark:shadow-[0_16px_36px_-14px_rgba(0,0,0,0.9)]`}
         >
-          <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted dark:text-muted-dark">
+          <p className="px-1 text-xs font-semibold text-muted dark:text-muted-dark">
             Settings
           </p>
 
@@ -209,7 +209,7 @@ export function ZoomMenu({
                 type="button"
                 onClick={() => onChange(p)}
                 aria-pressed={value === p}
-                className={`touch-manipulation rounded-full border px-3 py-1.5 text-xs font-semibold tabular-nums transition-colors ${
+                className={`touch-manipulation rounded-[var(--r-pill)] border px-3 py-1.5 text-xs font-semibold tabular-nums transition-colors ${
                   value === p
                     ? "border-accent/50 bg-accent-soft text-accent-strong dark:bg-accent/15 dark:text-accent-strong"
                     : "border-line text-muted hover:bg-paper-3 hover:text-fg dark:border-line-dark dark:text-muted-dark dark:hover:bg-ink-3 dark:hover:text-fg-dark"

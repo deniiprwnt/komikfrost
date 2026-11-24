@@ -180,7 +180,7 @@ export function TocMenu({
   };
 
   const sortBtn =
-    "touch-manipulation rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors";
+    "touch-manipulation rounded-[var(--r-pill)] border px-3 py-1.5 text-xs font-semibold transition-colors";
 
   return (
     <>
@@ -219,7 +219,7 @@ export function TocMenu({
               onClick={() => setOpenNotify(false)}
               title="Buka halaman detail komik"
               aria-label={`Daftar isi${total > 0 ? `, ${total} chapter` : ""} — buka halaman detail komik`}
-              className="group/toc flex h-9 min-w-0 touch-manipulation items-center gap-1.5 rounded-lg px-1 text-xs font-bold uppercase tracking-wider text-muted transition-colors hover:text-accent active:opacity-70 dark:text-muted-dark dark:hover:text-accent-strong"
+              className="group/toc flex h-9 min-w-0 touch-manipulation items-center gap-1.5 rounded-lg px-1 text-xs font-semibold text-muted transition-colors hover:text-accent active:opacity-70 dark:text-muted-dark dark:hover:text-accent-strong"
             >
               <span className="min-w-0 truncate">Daftar isi{total > 0 ? ` (${total})` : ""}</span>
               <span
@@ -329,7 +329,7 @@ export function TocMenu({
                             <span className="min-w-0 truncate">{c.title}</span>
                           </span>
                           {active ? (
-                            <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                            <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
                               Sekarang
                             </span>
                           ) : (
