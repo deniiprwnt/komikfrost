@@ -6,6 +6,7 @@ import { apiGet, peekApiCache } from "@/lib/client";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import { useUpdatedLabel } from "@/lib/relative-time";
+import { formatViews } from "@/lib/format-views";
 import { CoverImage } from "./cover-image";
 import type { MangaCard } from "@/lib/api/types";
 
@@ -460,7 +461,7 @@ export function RankRow({ item }: { item: MangaCard }) {
                   <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
                   <circle cx="12" cy="12" r="2.75" />
                 </svg>
-                {String(item.views).replace(/\s*views?$/i, "")}
+                {formatViews(item.views)}
               </span>
             )}
             {type && <TypeBadge type={type} wide className="ml-auto" />}

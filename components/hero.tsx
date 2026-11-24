@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { MangaCard } from "@/lib/api/types";
 import { CoverImage } from "@/components/cover-image";
+import { formatViews } from "@/lib/format-views";
 import { TypeBadge, chapterPathToRoute } from "@/components/cards";
 
 /**
@@ -22,7 +23,7 @@ export function HomeHero({ item }: { item: MangaCard }) {
             {item.type && <TypeBadge type={item.type} />}
             {item.genre && <span>{item.genre}</span>}
             {item.genre && item.views && <i aria-hidden="true" />}
-            {item.views && <span className="tabular-nums">{String(item.views).replace(/\s*views?$/i, "")} dibaca</span>}
+            {item.views && <span className="tabular-nums">{formatViews(item.views)} dibaca</span>}
           </div>
           {item.synopsis && <p className="hero__syn">{item.synopsis}</p>}
           <div className="hero__cta">
