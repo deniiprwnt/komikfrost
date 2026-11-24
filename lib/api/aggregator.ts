@@ -593,6 +593,35 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
       absorbed.add(k);
     }
   }
+  // Pass 2b: judul yang SAMA PERSIS bila spasinya dibuang ("Naru nda" vs
+  // "Narunda"). Sumber berbeda kadang memotong kata romaji di tempat berbeda.
+  // Konservatif: kunci padat minimal 8 karakter dan harus identik penuh.
+  {
+    const byCompact = new Map<string, string[]>();
+    for (const k of groups.keys()) {
+      if (absorbed.has(k)) continue;
+      const compact = k.replace(/^t:/, "").replace(/\s+/g, "");
+      if (compact.length < 8) continue;
+      const arr = byCompact.get(compact);
+      if (arr) arr.push(k);
+      else byCompact.set(compact, [k]);
+    }
+    for (const [, keys] of byCompact) {
+      if (keys.length < 2) continue;
+      const target = keys[0];
+      const tg = groups.get(target);
+      if (!tg) continue;
+      for (const k of keys.slice(1)) {
+        const g = groups.get(k);
+        if (!g) continue;
+        for (const s of SOURCE_PRIORITY) {
+          if (g.cards[s] && !tg.cards[s]) tg.cards[s] = g.cards[s]!;
+          else if (g.cards[s] && tg.cards[s]) tg.cards[s] = absorbFallbackCard(tg.cards[s]!, g.cards[s]!);
+        }
+        absorbed.add(k);
+      }
+    }
+  }
   // Pass 3: judul yang hanya beda EKOR sangat pendek akibat typo upstream
   // (mis. "...Albrecht" vs "...Albrechtrecht"). Konservatif: kunci pendek
   // minimal 9 huruf, sisa <= 3 huruf, dan judul panjang tidak berakhir
