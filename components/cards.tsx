@@ -316,7 +316,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
           className="h-full w-full object-cover"
         />
         {item.type && (
-          <div className="absolute left-1.5 top-1.5 z-10">
+          <div className="absolute left-1.5 top-1.5 z-10 flex">
             <TypeBadge type={item.type} flush />
           </div>
         )}
