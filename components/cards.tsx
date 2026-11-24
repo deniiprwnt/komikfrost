@@ -178,7 +178,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="cover-tile relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
+        className="cover-tile @container relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
       >
         <CoverImage
           src={item.thumbnail}
@@ -191,14 +191,22 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
             harus di atasnya agar tetap terlihat. Badge chapter melebihi tepi
             kiri/bawah 1px (terpotong overflow-hidden) agar tetap menempel saat
             gambar di-scale ketika hover. */}
-        {/* Tipe di atas, sumber di bawahnya, rata kiri. Ditumpuk (bukan
-            sebaris) supaya posisinya sama di semua kartu dan tidak pernah
-            terpotong, apa pun lebar kartunya (grid iPhone, rail Rekomendasi). */}
-        <div className="absolute left-1.5 top-1.5 z-10 flex max-w-[calc(100%-0.75rem)] flex-col items-start gap-1">
-          {item.type && <TypeBadge type={item.type} flush />}
+        {/* Tipe (kiri) + sumber (kanan), selalu satu baris. Di kartu sempit
+            ukuran badge mengecil mengikuti lebar cover (container query);
+            sumber tetap bisa memendek dengan elipsis sebagai pengaman. */}
+        <div className="absolute inset-x-1 top-1 z-10 flex flex-nowrap items-center justify-between gap-1 @[9rem]:inset-x-1.5 @[9rem]:top-1.5">
+          {item.type ? (
+            <TypeBadge
+              type={item.type}
+              flush
+              className="px-1! py-0.5! text-[9px]! @[9rem]:px-1.5! @[9rem]:py-1! @[9rem]:text-[10px]!"
+            />
+          ) : (
+            <span />
+          )}
           <SourceBadge
             shrink
-            className="max-w-full [&>span]:rounded-md [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[10px]"
+            className="ml-auto min-w-0 [&>span]:rounded-md [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[9px] @[9rem]:[&>span]:px-1.5 @[9rem]:[&>span]:py-1 @[9rem]:[&>span]:text-[10px]"
             sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
           />
         </div>
