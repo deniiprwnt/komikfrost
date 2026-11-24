@@ -31,6 +31,7 @@ import {
   resolveKiryuuDetailForSlug,
   type KiryuuBrief,
 } from "./kiryuu";
+import { formatDateId as formatDateIdWib } from "../chapter-date";
 import { chapterNum } from "./aggregator";
 
 /* ------------------------------------------------------------------ */
@@ -57,10 +58,9 @@ export function timeAgoId(iso?: string | null): string | undefined {
 
 export function fmtDateId(iso?: string | null): string | undefined {
   if (!iso) return undefined;
-  const t = new Date(iso);
-  if (Number.isNaN(t.getTime())) return undefined;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(t.getUTCDate())}/${p(t.getUTCMonth() + 1)}/${t.getUTCFullYear()}`;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return undefined;
+  return formatDateIdWib(t);
 }
 
 export function numToken(n: number): string {

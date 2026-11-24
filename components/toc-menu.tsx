@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { readKey, useReadChapters } from "@/lib/history";
 import { chapterPathToRoute } from "@/components/cards";
+import { ChapterDate } from "@/components/chapter-date";
 
 export type TocChapter = {
   title: string;
   /** URL chapter dari sumber, mis. "/slug-chapter-11-2/". */
   url: string;
   date?: string;
+  /** Epoch ms tanggal rilis (label "Hari ini"/"Kemarin"). */
+  dateTs?: number;
 };
 
 export type TocControl = {
@@ -330,10 +333,12 @@ export function TocMenu({
                               Sekarang
                             </span>
                           ) : (
-                            c.date && (
-                              <span className="shrink-0 text-[11px] tabular-nums text-muted dark:text-muted-dark">
-                                {c.date}
-                              </span>
+                            (c.date || typeof c.dateTs === "number") && (
+                              <ChapterDate
+                                date={c.date}
+                                dateTs={c.dateTs}
+                                className="shrink-0 text-[11px] tabular-nums text-muted dark:text-muted-dark"
+                              />
                             )
                           )}
                         </Link>

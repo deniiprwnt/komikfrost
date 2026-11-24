@@ -26,6 +26,7 @@ import { canonicalGenre } from "./genre-canonical";
 import { chapterNum } from "./aggregator";
 import { aliasKeys } from "./aggregator";
 import { KomikuError } from "./komiku";
+import { chapterDateFromIso } from "../chapter-date";
 
 const KIRYUU_BASE = "https://v7.kiryuu.to";
 const KIRYUU_WP = KIRYUU_BASE + "/wp-json/wp/v2";
@@ -634,10 +635,22 @@ export async function fetchKiryuuDetail(slug: string): Promise<MangaDetail> {
     if (!raw) return;
     const href = raw.startsWith("http") ? raw : KIRYUU_BASE + (raw.startsWith("/") ? raw : "/" + raw);
     const parsed = chapterSlugFromHref(href, clean);
-    if (!parsed || seenCh.has(parsed.token)) return;
+    if (!parsed) return;
+    // Tanggal rilis lengkap (ISO) ada di <time datetime> pada baris daftar chapter.
+    const iso = $(el).closest("[data-chapter-number]").find("time[datetime]").first().attr("datetime");
+    const when = chapterDateFromIso(iso);
+    if (seenCh.has(parsed.token)) {
+      // Tautan yang sama bisa muncul lebih dulu tanpa tanggal (mis. tombol "Chapter 1").
+      if (when) {
+        const ex = chapters.find((c) => c.chapterId === `/manga/${clean}/chapter-${parsed.token}/`);
+        if (ex && typeof ex.dateTs !== "number") Object.assign(ex, when);
+      }
+      return;
+    }
     seenCh.add(parsed.token);
     chapters.push({
       title: parsed.label,
+      ...(when ?? {}),
       url: `/manga/${clean}/chapter-${parsed.token}/`,
       // chapterId menyimpan path lengkap â†’ reader (chapter.ts) bisa langsung
       // memanggil fetchKiryuuChapter tanpa scrape detail kedua kali.

@@ -119,8 +119,13 @@ export interface ChapterItem {
   title: string;
   /** path chapter source utama mis. "/blue-lock-chapter-360/" */
   url: string;
-  /** tanggal rilis "14/09/2026" — absen bila tidak ada */
+  /** tanggal rilis "14/09/2026" (WIB) — absen bila tidak ada */
   date?: string;
+  /**
+   * Tanggal rilis absolut (epoch ms) untuk label "Hari ini"/"Kemarin" yang
+   * menua sendiri. Absten bila sumber hanya memberi teks tanggal.
+   */
+  dateTs?: number;
   /**
    * ID chapter native (hanya Shinigami: chapter_id) — opsional, non-breaking.
    * Dipakai reader untuk langsung fetch chapter/detail tanpa me-list ulang.

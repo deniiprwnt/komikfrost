@@ -8,6 +8,7 @@ import { usePageTitle } from "@/lib/page-title";
 import { readKey, useReadChapters } from "@/lib/history";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge, UpdateRow } from "@/components/cards";
+import { ChapterDate } from "@/components/chapter-date";
 import { ErrorState, EmptyState } from "@/components/states";
 import { CoverImage } from "@/components/cover-image";
 import { DetailSkeleton } from "@/components/skeletons";
@@ -368,7 +369,11 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
                   )}
                   <span className="min-w-0 truncate">{c.title}</span>
                 </span>
-                {c.date && <span className="shrink-0 text-[11px] tabular-nums text-muted sm:text-xs dark:text-muted-dark">{c.date}</span>}
+                <ChapterDate
+                  date={c.date}
+                  dateTs={c.dateTs}
+                  className="shrink-0 text-[11px] tabular-nums text-muted sm:text-xs dark:text-muted-dark"
+                />
               </Link>
             );
           })}

@@ -3,6 +3,7 @@ import { anchorTs, chapterNum, updatedAtMinutes } from "./aggregator";
 import { proxiedImage } from "./img-proxy";
 import { withDataVersion } from "./cache";
 import { blockText, cleanSynopsis } from "./text";
+import { parseDateId } from "../chapter-date";
 import type {
   ApiError,
   ChapterData,
@@ -711,7 +712,10 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     const url = toPath(a.attr("href"));
     const chTitle = a.find("span[itemprop='name'] b").text().trim() || a.text().trim();
     const date = $tr.find("td.tanggalseries").first().text().trim() || undefined;
-    if (url && chTitle) chapters.push({ title: chTitle, url, ...(date ? { date } : {}) });
+    const dateTs = parseDateId(date);
+    if (url && chTitle) {
+      chapters.push({ title: chTitle, url, ...(date ? { date } : {}), ...(dateTs ? { dateTs } : {}) });
+    }
   });
   // Urutkan berdasar NOMOR chapter (terbaru dulu), bukan urutan tabel/tanggal.
   // Tabel upstream kadang tidak urut setelah ada chapter baru disisipkan,

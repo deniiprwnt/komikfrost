@@ -27,6 +27,7 @@ import type {
 } from "./types";
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis, splitAltTitles } from "./text";
+import { chapterDateFromIso } from "../chapter-date";
 import { DATA_VERSION, withDataVersion } from "./cache";
 import { canonicalGenre, genreDisplayName } from "./genre-canonical";
 
@@ -169,15 +170,6 @@ export function timeAgoId(iso?: string): string | undefined {
   return "baru saja";
 }
 
-/** "2026-09-27T10:38:44+00:00" → "27/09/2026" (label tanggal chapter). */
-function fmtDateId(iso?: string): string | undefined {
-  if (!iso) return undefined;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return undefined;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
-
 /** Sinopsis mentah: `synopsis`, cadangan `description`/`sinopsis`. */
 function rawSynopsis(s: KcSeries): string | undefined {
   return s.synopsis || s.description || s.sinopsis || undefined;
@@ -227,7 +219,7 @@ function toChapterItem(r: KcChapterRow): ChapterItem {
   return {
     title: r.number_label || `Chapter ${r.number}`,
     url: `/${r.slug}/`,
-    ...(fmtDateId(r.published_at) ? { date: fmtDateId(r.published_at)! } : {}),
+    ...(chapterDateFromIso(r.published_at) ?? {}),
   };
 }
 

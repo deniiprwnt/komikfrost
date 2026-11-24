@@ -18,6 +18,7 @@
  */
 import { proxiedImage } from "./img-proxy";
 import { cleanSynopsis } from "./text";
+import { chapterDateFromIso } from "../chapter-date";
 import { KomikuError, parseChapterPath } from "./komiku";
 import type {
   ChapterData,
@@ -152,14 +153,6 @@ function chapterToken(raw: unknown, param?: unknown): string {
 
 const tokenLabel = (tok: string): string => `Chapter ${tok.replace(/-/g, ".")}`;
 const chapterUrl = (slug: string, tok: string): string => `/${slug}-chapter-${tok}/`;
-
-function fmtDate(iso: unknown): string | undefined {
-  const t = Date.parse(str(iso));
-  if (!Number.isFinite(t)) return undefined;
-  const d = new Date(t);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
 
 /** Label relatif ala Komiku ("5 menit lalu") â€” dihitung dari timestamp absolut. */
 function agoLabel(ts: number): string {
@@ -490,11 +483,11 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     const tok = chapterToken(c.numberRaw, c.param);
     if (!tok || seen.has(tok)) continue;
     seen.add(tok);
-    const date = fmtDate(c.postedAt);
+    const date = chapterDateFromIso(c.postedAt);
     chapters.push({
       title: tokenLabel(tok),
       url: chapterUrl(sSlug, tok),
-      ...(date ? { date } : {}),
+      ...(date ?? {}),
     });
   }
 

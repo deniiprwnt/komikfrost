@@ -9,6 +9,7 @@ import { getHistoryEntry, markChapterRead, saveHistory } from "@/lib/history";
 import { usePageTitle } from "@/lib/page-title";
 import type { ChapterData, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute } from "@/components/cards";
+import { chapterDateLabel } from "@/lib/chapter-date";
 import { ErrorState } from "@/components/states";
 import { ReaderPageImage, ReaderPageError } from "@/components/cover-image";
 import { Select } from "@/components/select";
@@ -824,7 +825,7 @@ export default function ReaderPage({
             className="flex-1"
             options={chapters.flatMap((c) => {
               const tok = chapterPathToRoute(c.url).split("/").pop() ?? "";
-              return tok ? [{ value: tok, label: c.title, hint: c.date || undefined }] : [];
+              return tok ? [{ value: tok, label: c.title, hint: chapterDateLabel(c.dateTs, c.date) }] : [];
             })}
           />
         </div>

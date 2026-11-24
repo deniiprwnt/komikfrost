@@ -1274,6 +1274,7 @@ export function mergeChapters(
         // yang dipakai, sehingga chapter tanpa tanggal Shinigami tetap kosong
         // walau Komiku/Komikcast punya).
         if (!ex.date && c.date) ex.date = c.date;
+        if (typeof ex.dateTs !== "number" && typeof c.dateTs === "number") ex.dateTs = c.dateTs;
         if (!ex.sources.some((r) => r.source === s)) {
           ex.sources.push({ source: s, url: c.url, ...(cid ? { chapterId: cid } : {}) });
         } else if (cid) {
@@ -1286,6 +1287,7 @@ export function mergeChapters(
           title: c.title,
           url,
           ...(c.date ? { date: c.date } : {}),
+          ...(typeof c.dateTs === "number" ? { dateTs: c.dateTs } : {}),
           sources: [{ source: s, url: c.url, ...(cid ? { chapterId: cid } : {}) }],
         });
       }
