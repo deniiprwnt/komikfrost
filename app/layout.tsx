@@ -11,6 +11,7 @@ import "./globals.css";
 import "./design.css";
 import "./theme.css";
 import "./radius.css";
+import "./mobile-ui.css";
 
 // Halaman bersifat statis (shell dari CDN) — data komik tetap live karena
 // semua halaman fetch client-side via apiGet/apiGetSWR setelah mount.

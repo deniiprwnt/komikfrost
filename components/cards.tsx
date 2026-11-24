@@ -184,7 +184,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="cover-tile @container relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
+        className="cover-tile cv-scrim @container relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
       >
         <CoverImage
           src={item.thumbnail}
@@ -200,24 +200,24 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         {/* Tipe (kiri) + sumber (kanan), selalu satu baris. Di kartu sempit
             ukuran badge mengecil mengikuti lebar cover (container query);
             sumber tetap bisa memendek dengan elipsis sebagai pengaman. */}
-        <div className="absolute inset-x-2 top-2 z-10 flex flex-wrap items-center justify-between gap-1">
+        <div className="absolute inset-x-2 top-2 z-10 flex items-center justify-between gap-1.5">
           {item.type ? (
             <TypeBadge
               type={item.type}
               flush
-              className="px-1! py-0.5! text-[9px]! @[9rem]:px-1.5! @[9rem]:py-1! @[9rem]:text-[10px]!"
+              className="cv-chip"
             />
           ) : (
             <span />
           )}
           <SourceBadge
             shrink
-            className="ml-auto min-w-0 [&>span]:rounded-md [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[9px] @[9rem]:[&>span]:px-1.5 @[9rem]:[&>span]:py-1 @[9rem]:[&>span]:text-[10px]"
+            className="cv-src ml-auto min-w-0"
             sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
           />
         </div>
         {item.latestChapter && (
-          <span className="absolute bottom-2 left-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-[var(--r-chip)] bg-accent px-1 py-0.5 text-[9px] font-semibold leading-tight text-white @[9rem]:px-1.5 @[9rem]:py-1 @[9rem]:text-[10px]">
+          <span className="cv-chip cv-chip--chapter absolute bottom-2 left-2 z-10 max-w-[calc(100%-1rem)] truncate">
             {item.latestChapter.label}
           </span>
         )}
