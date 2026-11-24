@@ -236,19 +236,15 @@ function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; s
     // halaman lain); pojok mengikuti lengkung kartu via overflow-hidden.
     // Flex + gap: tipe kiri, sumber kanan, sumber menyusut/elipsis bila
     // ruang habis (mis. MANHWA + KOMIKCAST).
-    <div className="absolute inset-x-2 top-2 z-10 flex flex-wrap items-center justify-between gap-1">
+    <div className="cv-badges absolute inset-x-2 top-2 z-10">
       {meta.type && (
         <div className="flex shrink-0">
-          <TypeBadge
-            type={meta.type}
-            flush
-            className="px-1! py-0.5! text-[9px]! @[9rem]:px-1.5! @[9rem]:py-1! @[9rem]:text-[10px]!"
-          />
+          <TypeBadge type={meta.type} flush />
         </div>
       )}
       <SourceBadge
         shrink
-        className="ml-auto min-w-0 [&>span]:rounded-md [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[9px] @[9rem]:[&>span]:px-1.5 @[9rem]:[&>span]:py-1 @[9rem]:[&>span]:text-[10px]"
+        className="ml-auto min-w-0"
         sources={meta.sources?.slice(0, 1)}
       />
     </div>

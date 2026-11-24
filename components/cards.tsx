@@ -200,7 +200,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         {/* Tipe (kiri) + sumber (kanan), selalu satu baris. Di kartu sempit
             ukuran badge mengecil mengikuti lebar cover (container query);
             sumber tetap bisa memendek dengan elipsis sebagai pengaman. */}
-        <div className="absolute inset-x-2 top-2 z-10 flex items-center justify-between gap-1.5">
+        <div className="cv-badges absolute inset-x-2 top-2 z-10">
           {item.type ? (
             <TypeBadge
               type={item.type}
