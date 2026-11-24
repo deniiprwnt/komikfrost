@@ -38,7 +38,7 @@ html.dark {
   --color-muted-dark: #8fa3a8;
 
   --color-accent: #118079;
-  --color-accent-strong: #66dccb;
+  --color-accent-strong: #6ccbbd;
   --color-accent-soft-dark: #10393a;
 
   --color-gold: #e3b54f;
@@ -173,6 +173,69 @@ body {
   .rank-row {
     min-height: 5.5rem;
   }
+}
+
+/* ---- Badge: tenang, satu aturan ------------------------------------------- */
+/* Tipe = teks bertinta tipis; di atas cover = chip gelap + titik warna tipe.   */
+/* Sumber = netral (tidak lagi memakai warna tipe, supaya satu warna = satu arti). */
+:root {
+  --tone-manga: #a23d37;
+  --tone-manhwa: #255a93;
+  --tone-manhua: #7a5210;
+  --tone-other: #56676a;
+  --dot-manga: #ee8d85;
+  --dot-manhwa: #7db3ea;
+  --dot-manhua: #e3b54f;
+}
+html.dark {
+  --tone-manga: #ee8d85;
+  --tone-manhwa: #7db3ea;
+  --tone-manhua: #e3b54f;
+  --tone-other: #8fa3a8;
+}
+.bdg {
+  --b-tone: var(--tone-other);
+  --b-dot: var(--tone-other);
+  background: color-mix(in srgb, var(--b-tone) 13%, transparent);
+  color: var(--b-tone);
+}
+.bdg-t-manga { --b-tone: var(--tone-manga); --b-dot: var(--dot-manga); }
+.bdg-t-manhwa { --b-tone: var(--tone-manhwa); --b-dot: var(--dot-manhwa); }
+.bdg-t-manhua { --b-tone: var(--tone-manhua); --b-dot: var(--dot-manhua); }
+.bdg-src {
+  background: color-mix(in srgb, var(--color-fg) 7%, transparent);
+  color: var(--tone-other);
+}
+html.dark .bdg-src {
+  background: color-mix(in srgb, var(--color-fg-dark) 10%, transparent);
+}
+.bdg-cover,
+.cover-tile .bdg-src,
+html.dark .cover-tile .bdg-src {
+  background: rgb(8 14 17 / 0.8);
+  color: #fff;
+}
+.bdg-cover::before {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--b-dot);
+  vertical-align: 0.05em;
+}
+
+/* Label grup sidebar: huruf biasa, tanpa kapital berjarak lebar. */
+.sb-section-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Tanpa glow: thumb scrollbar tidak berpendar. */
+:root,
+html.dark {
+  --sb-glow: transparent;
 }
 
 /* ---- Layar pendek (HP landscape) -------------------------------------------- */

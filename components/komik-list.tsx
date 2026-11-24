@@ -6,7 +6,7 @@ import { captureCoverMorph } from "@/lib/morph";
 import type { MangaCard } from "@/lib/api/types";
 import { useUpdatedLabel } from "@/lib/relative-time";
 import { CoverImage } from "./cover-image";
-import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
+import { chapterPathToRoute, sourceLabel, TypeBadge } from "./cards";
 
 /**
  * Kartu list ala Komiku: cover + badge tipe + judul + "Genre | waktu" +
@@ -55,15 +55,15 @@ export function KomikListCard({ item }: { item: MangaCard }) {
             {item.title}
           </Link>
         </div>
-        {(item.genre || updated) && (
+        {(item.genre || updated || item.latestSource || item.sources?.length) && (
           <div className="mt-1 flex min-w-0 items-center gap-1.5">
             {/* Daftar baris: genre dan waktu BERDAMPINGAN ("Isekai · 4 menit
                 lalu"). Lebar baris di sini panjang, jadi waktu yang didorong
                 ke ujung kanan menjauh dari genrenya dan sulit dibaca. */}
             <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-muted sm:text-xs dark:text-muted-dark">
-              {[item.genre, updated].filter(Boolean).join(" · ")}
+              {[item.genre, updated, sourceLabel(item.latestSource ?? item.sources?.[0])].filter(Boolean).join(" · ")}
             </p>
-            <SourceBadge wide sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)} />
+            
           </div>
         )}
         {(

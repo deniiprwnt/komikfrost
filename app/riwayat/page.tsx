@@ -59,7 +59,7 @@ export default function RiwayatPage() {
       </div>
 
       {confirmClear && entries.length > 0 && (
-        <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-mark-manga/30 bg-mark-manga/5 px-4 py-3 text-sm">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-danger/30 bg-danger/5 dark:border-danger-dark/35 dark:bg-danger-dark/10 px-4 py-3 text-sm">
           <p className="min-w-0 flex-1 text-mark-manga">
             Hapus seluruh riwayat baca di perangkat ini?
           </p>
@@ -75,7 +75,7 @@ export default function RiwayatPage() {
                 clear();
                 setConfirmClear(false);
               }}
-              className="rounded-lg bg-mark-manga px-4 py-1.5 text-xs font-semibold text-white"
+              className="rounded-lg bg-danger px-4 py-1.5 text-xs font-semibold text-white"
             >
               Ya, hapus
             </button>

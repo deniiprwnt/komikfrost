@@ -6,7 +6,7 @@ colors:
   primary: "#0C7168"
   primary-strong: "#085A53"
   primary-soft: "#D7EEEA"
-  primary-on-dark: "#66DCCB"
+  primary-on-dark: "#6CCBBD"
   paper: "#F3F6F5"
   paper-raised: "#FFFFFF"
   paper-sunken: "#E8EEED"
@@ -71,15 +71,23 @@ are leftovers from earlier experiments.
 ## Colors
 
 - **Primary teal (#0C7168):** the single interaction color, flat, never a
-  gradient. On dark surfaces, accent text uses #66DCCB and filled accents
-  keep #118079 so white text stays readable.
+  gradient. On dark surfaces, accent text uses #6CCBBD (softened from the
+  earlier neon #66DCCB) and filled accents keep #118079, hover #13827A, so
+  white text stays readable (4.6+).
 - **Neutrals:** near-neutral with a faint green cast. Light uses #F3F6F5
   paper with white raised surfaces; dark uses #080E11 ink, deliberately
   unchanged because the PWA splash and `theme-color` depend on it.
 - **Gold:** rank 1-3 only. Ranks 4+ are muted so the top three mean something.
 - **Type marks:** manga red, manhwa blue, manhua amber. One color per
   reading origin, learned once.
-- **Source badges** reuse the same hues instead of inventing new ones.
+- **Badges** (`.bdg` in `theme.css`): type is tinted text (`--tone-*`, with
+  lighter dark-mode values), source is neutral so one hue never carries two
+  meanings. On top of a cover (`flush`, or inside `.cover-tile`) both become a
+  dark chip, with a small dot in the type color. The accent-filled chapter
+  chip is the only saturated element on a cover.
+- **Destructive actions** use `danger`, never a type color (manga red).
+- Color tokens live in two places that must match: `@theme` in `globals.css`
+  and the `:root` overrides in `theme.css`.
 - **Contrast (WCAG AA, measured):** muted text 5.05+ on every light surface
   and 6.18+ on dark; white on every accent and mark fill 4.79+. Gold is
   3.82 on paper, so it stays on large rank numbers only. Ranks 4+ use muted

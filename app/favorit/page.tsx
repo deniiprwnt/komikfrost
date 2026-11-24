@@ -167,7 +167,7 @@ export default function FavoritPage() {
                 </Link>
                 {b.type && (
                   <div className="pointer-events-none absolute left-1.5 top-1.5 z-10">
-                    <TypeBadge type={b.type} />
+                    <TypeBadge type={b.type} flush />
                   </div>
                 )}
                 {updates[b.slug] && (
@@ -183,7 +183,7 @@ export default function FavoritPage() {
               <button
                 onClick={() => remove(b.slug)}
                 aria-label={`Hapus ${b.title} dari favorit`}
-                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/80 text-white transition-colors hover:bg-mark-manga"
+                className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/80 text-white transition-colors hover:bg-danger"
               >
                 <IconTrash className="h-4 w-4" />
               </button>

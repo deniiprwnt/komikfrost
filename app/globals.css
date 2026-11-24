@@ -25,32 +25,32 @@
   /* Palet teal-ink yang sama, dihaluskan: permukaan gelap sedikit
      diangkat, garis lebih tipis, aksen kurang jenuh. */
   --color-ink: #080e11;
-  --color-ink-2: #0e1a1f;
-  --color-ink-3: #15262c;
-  --color-line-dark: #20343b;
-  --color-paper: #eaf1f1;
+  --color-ink-2: #0e171b;
+  --color-ink-3: #152227;
+  --color-line-dark: #1f2e34;
+  --color-paper: #f3f6f5;
   --color-paper-2: #ffffff;
-  --color-paper-3: #dce9e9;
-  --color-line: #ccdcdd;
+  --color-paper-3: #e8eeed;
+  --color-line: #dce3e2;
 
-  --color-fg: #0d1518;
-  --color-fg-dark: #e7f1f1;
-  --color-muted: #4e656c;
-  --color-muted-dark: #92aab0;
+  --color-fg: #0c1413;
+  --color-fg-dark: #e9f0f0;
+  --color-muted: #56676a;
+  --color-muted-dark: #8fa3a8;
 
   /* Aksen teal: terang lebih dalam (kontras teks), gelap lebih lembut. */
-  --color-accent: #0b6b66;
-  --color-accent-strong: #064e4a;
-  --color-accent-soft: #cdebe7;
-  --color-accent-soft-dark: #12403d;
+  --color-accent: #0c7168;
+  --color-accent-strong: #085a53;
+  --color-accent-soft: #d7eeea;
+  --color-accent-soft-dark: #10393a;
 
   /* Penanda tipe bacaan — hue sama, saturasi diredam. */
-  --color-mark-manga: #bf4f48;
-  --color-mark-manhwa: #2f6fae;
-  --color-mark-manhua: #94650f;
+  --color-mark-manga: #b94a43;
+  --color-mark-manhwa: #2c68a6;
+  --color-mark-manhua: #8f6112;
 
   /* Emas hangat sebagai pasangan teal: peringkat 1–3. Lebih tua di terang agar terbaca. */
-  --color-gold: #b57a12;
+  --color-gold: #a9710f;
 
   --color-fresh: #1b7a40;
   --color-fresh-dark: #5fbd82;
@@ -69,7 +69,7 @@
    teal yang lebih terang lewat aturan di bawah. */
 html.dark {
   --color-accent: #118079;
-  --color-accent-strong: #6fe6d6;
+  --color-accent-strong: #6ccbbd;
   --color-gold: #ecbf5f;
 }
 :root {
@@ -115,7 +115,7 @@ html.dark {
    (untuk teks), jadi hover latar memakai aksen yang sedikit diangkat agar
    teks putih tetap terbaca. */
 .dark .hover\:bg-accent-strong:hover {
-  background-color: #1a9a92;
+  background-color: #13827a;
 }
 
 /* Tinggi header sticky (safe-area + padding mobile + bar 56px + garis).

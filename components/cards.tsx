@@ -38,9 +38,9 @@ export function chapterPathToRoute(komikuPath: string): string {
 const BADGE_SHEEN = "";
 
 const TYPE_STYLE: Record<string, string> = {
-  manga: "bg-mark-manga text-white",
-  manhwa: "bg-mark-manhwa text-white",
-  manhua: "bg-mark-manhua text-white",
+  manga: "bdg bdg-t-manga",
+  manhwa: "bdg bdg-t-manhwa",
+  manhua: "bdg bdg-t-manhua",
 };
 
 /** Tanda tipe komik — kecil, seperti cap kertas, satu warna per tipe. */
@@ -58,7 +58,7 @@ export function TypeBadge({
   wide?: boolean;
 }) {
   if (!type) return null;
-  const color = TYPE_STYLE[type.toLowerCase()] ?? "bg-muted text-white";
+  const color = `${TYPE_STYLE[type.toLowerCase()] ?? "bdg"}${flush ? " bdg-cover" : ""}`;
   const shape = flush
     ? "rounded-md px-1.5 py-1 text-[10px]"
     : wide
@@ -75,9 +75,9 @@ export function TypeBadge({
 
 /** Tanda sumber data — kecil seperti TypeBadge, satu warna per source. */
 const SOURCE_STYLE: Record<string, string> = {
-  shinigami: "bg-[#0e7c74] text-white dark:bg-[#118079]",
-  komiku: "bg-mark-manhwa text-white",
-  komikcast: "bg-mark-manga text-white",
+  shinigami: "bdg bdg-src",
+  komiku: "bdg bdg-src",
+  komikcast: "bdg bdg-src",
 };
 
 const SOURCE_SHORT: Record<string, string> = {
@@ -85,6 +85,12 @@ const SOURCE_SHORT: Record<string, string> = {
   komiku: "ManhwaIndo",
   komikcast: "Komikcast",
 };
+
+/** Nama sumber untuk teks biasa (baris meta). Kosong bila tak ada info. */
+export function sourceLabel(s?: string): string | undefined {
+  if (!s) return undefined;
+  return SOURCE_SHORT[s.toLowerCase()] ?? s;
+}
 
 /** Label asal data kartu (Kiryuu / Komiku / Komikcast). Diam bila tak ada info. */
 export function SourceBadge({
@@ -109,7 +115,7 @@ export function SourceBadge({
     >
       {sources.map((s) => {
         const key = s.toLowerCase();
-        const color = SOURCE_STYLE[key] ?? "bg-muted text-white";
+        const color = SOURCE_STYLE[key] ?? "bdg bdg-src";
         return (
           <span
             key={s}
