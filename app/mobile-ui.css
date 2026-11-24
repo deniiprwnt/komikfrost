@@ -36,6 +36,7 @@
 /* Yang boleh memendek (elipsis) hanya chip sumber di sisi kanan.              */
 .bdg-cover {
   flex: none;
+  width: max-content;
   max-width: none;
   overflow: visible;
   text-overflow: clip;
@@ -64,7 +65,8 @@
     gap: 0.25rem;
   }
   .bdg-cover,
-  .cover-tile .bdg-src {
+  .cover-tile .bdg-src,
+  .cv-chip {
     height: 1.125rem;
     padding: 0 0.3rem;
     font-size: 8.5px;
