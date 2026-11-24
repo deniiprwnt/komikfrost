@@ -40,6 +40,31 @@
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 4px 10px -4px rgb(0 0 0 / 0.5);
 }
 
+/* Chip tipe (Manga/Manhwa/Manhua) tidak boleh terpotong: lebar mengikuti teks. */
+/* Yang boleh memendek (elipsis) hanya chip sumber di sisi kanan.              */
+.bdg-cover,
+.bdg-t-manga,
+.bdg-t-manhwa,
+.bdg-t-manhua {
+  flex: none;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+.cv-src {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.cv-src > .bdg {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bdg-cover.cv-chip { padding: 0 0.5rem; }
+
 /* Scrim tipis di dasar cover supaya chip chapter selalu terbaca. */
 .cv-scrim::before {
   content: "";
