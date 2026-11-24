@@ -184,7 +184,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="cover-tile cv-scrim @container relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
+        className="cover-tile @container relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
       >
         <CoverImage
           src={item.thumbnail}
@@ -205,14 +205,13 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
             <TypeBadge
               type={item.type}
               flush
-              className="cv-chip"
             />
           ) : (
             <span />
           )}
           <SourceBadge
             shrink
-            className="cv-src ml-auto min-w-0"
+            className="ml-auto min-w-0"
             sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
           />
         </div>

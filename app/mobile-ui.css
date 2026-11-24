@@ -1,129 +1,119 @@
 /* ========================================================================== */
-/* mobile-ui.css â€” chip cover seragam + dock mobile modern + tombol naik.      */
-/* Dimuat PALING AKHIR (setelah radius.css) agar menimpa aturan lama.          */
+/* mobile-ui.css â€” chip cover seragam, dock mobile, tombol naik.               */
+/* Dimuat PALING AKHIR (setelah radius.css). Mengikuti DESIGN.md: datar, tanpa  */
+/* blur, tanpa glow, tanpa gradasi; semua radius lewat token platform.         */
 /* ========================================================================== */
 
-/* Radius chip/tombol kecil: pil di mobile, tetap tegas di desktop. */
-:root { --r-mini: 999px; }
-:root[data-platform="desktop"] { --r-mini: var(--r-pill); }
-
 /* ---- Chip di atas cover (tipe, sumber, chapter) ---------------------------- */
-/* Satu keluarga: tinggi, padding, font, dan radius sama. Ukuran mengecil di     */
-/* kartu sempit (container query pada .cover-tile).                             */
+/* Satu keluarga: tinggi, padding, font, dan radius sama. Radius = --r-chip     */
+/* (konsentris dengan lengkung cover). Ukuran naik sedikit di cover lebar.      */
 .bdg-cover,
-.cv-chip,
-.cv-src > .bdg {
+.cover-tile .bdg-src,
+.cv-chip {
   display: inline-block;
   box-sizing: border-box;
   height: 1.25rem;
-  padding: 0 0.45rem;
+  padding: 0 0.5rem;
   font-size: 9px;
   font-weight: 600;
   line-height: 1.25rem;
   letter-spacing: 0.01em;
-  border-radius: var(--r-mini);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  white-space: nowrap;
+  border-radius: var(--r-chip);
 }
 @container (min-width: 9rem) {
   .bdg-cover,
-  .cv-chip,
-  .cv-src > .bdg {
+  .cover-tile .bdg-src,
+  .cv-chip {
     height: 1.375rem;
-    padding: 0 0.6rem;
+    padding: 0 0.55rem;
     font-size: 10px;
     line-height: 1.375rem;
   }
 }
-.cv-chip--chapter {
-  background: var(--color-accent);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 4px 10px -4px rgb(0 0 0 / 0.5);
-}
 
 /* Chip tipe (Manga/Manhwa/Manhua) tidak boleh terpotong: lebar mengikuti teks. */
 /* Yang boleh memendek (elipsis) hanya chip sumber di sisi kanan.              */
-.bdg-cover,
-.bdg-t-manga,
-.bdg-t-manhwa,
-.bdg-t-manhua {
+.bdg-cover {
   flex: none;
   max-width: none;
   overflow: visible;
   text-overflow: clip;
-  white-space: nowrap;
 }
-.cv-src {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-.cv-src > .bdg {
+.cover-tile .bdg-src {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.bdg-cover.cv-chip { padding: 0 0.5rem; }
-
-/* Scrim tipis di dasar cover supaya chip chapter selalu terbaca. */
-.cv-scrim::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 42%;
-  background: linear-gradient(to top, rgb(0 0 0 / 0.38), transparent);
-  z-index: 2;
-  pointer-events: none;
 }
 
-/* ---- Dock mobile: kapsul kaca ---------------------------------------------- */
+/* Chip chapter: satu-satunya elemen jenuh di atas cover. */
+.cv-chip--chapter {
+  background: var(--color-accent);
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Dock mobile ------------------------------------------------------------ */
+/* Permukaan solid + garis tipis; satu-satunya bayangan adalah elevasi dock      */
+/* (dock memang melayang di atas halaman).                                       */
+.dock-wrap {
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
 .dock {
-  border-radius: 32px;
-  background: color-mix(in srgb, var(--color-paper-2) 72%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(1.7);
-  backdrop-filter: blur(22px) saturate(1.7);
-  border-color: color-mix(in srgb, var(--color-fg) 10%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.5),
-    0 18px 40px -18px rgb(8 28 32 / 0.5),
-    0 2px 6px -2px rgb(8 28 32 / 0.18);
+  background: var(--color-paper-2);
+  border-color: var(--color-line);
+  box-shadow: 0 8px 24px -14px rgb(8 28 32 / 0.4);
 }
 .dark .dock {
-  background: color-mix(in srgb, var(--color-ink-2) 70%, transparent);
-  border-color: rgb(255 255 255 / 0.09);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 20px 44px -16px rgb(0 0 0 / 0.85);
+  background: var(--color-ink-2);
+  border-color: var(--color-line-dark);
+  box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.85);
 }
-.dock-pill,
+
+/* Indikator aktif: tint aksen solid. Radius konsentris dengan dock (padding 6px). */
+.dock-pill {
+  border-radius: calc(var(--r-dock) - 6px);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
 .dark .dock-pill {
-  border-radius: 26px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-accent) 28%, transparent),
-    color-mix(in srgb, var(--color-accent) 14%, transparent)
-  );
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 32%, transparent),
-    0 8px 18px -8px color-mix(in srgb, var(--color-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
 }
 .dock-item,
 .dock-item:focus-visible {
-  border-radius: 26px;
+  border-radius: calc(var(--r-dock) - 6px);
 }
-/* Ikon tab aktif terisi lembut; label aktif lebih tebal. */
+
+/* Tab aktif: garis ikon sedikit lebih tebal + label tebal (tanpa isian ikon). */
 .dock-item[aria-current="page"] .dock-icon :is(path, circle) {
-  fill: currentColor;
-  fill-opacity: 0.16;
+  stroke-width: 1.9;
 }
 .dock-item[aria-current="page"] > span:last-child {
   font-weight: 700;
 }
 
-/* ---- Tombol kembali ke atas: selaras dengan chip/dock -------------------- */
-.fab-in {
-  border-radius: var(--r-mini);
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.16),
-    0 10px 22px -10px color-mix(in srgb, var(--color-accent) 80%, black);
+/* Layar sangat sempit (iPhone SE lama, split view): ikon & label sedikit kecil. */
+@media (max-width: 359px) {
+  .dock-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .dock-item > span {
+    font-size: 9px;
+  }
+}
+
+/* HP landscape: dock lebih pendek, label disembunyikan (aria-label tetap ada). */
+@media (max-height: 480px) and (orientation: landscape) {
+  .dock {
+    max-width: 22rem;
+  }
+  .dock-item {
+    height: 2.75rem;
+  }
+  .dock-item > span {
+    display: none;
+  }
 }

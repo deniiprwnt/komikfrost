@@ -472,7 +472,7 @@ export function BackToTop() {
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Kembali ke atas"
-      className="fab-in group/fab fixed bottom-[calc(5.25rem+max(env(safe-area-inset-bottom,0px)_-_var(--dock-lift,26px),0px))] right-4 z-40 flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
+      className="fab-in group/fab fixed bottom-[calc(5.5rem+max(env(safe-area-inset-bottom,0px)_-_var(--dock-lift,26px),0px))] right-4 z-40 flex h-10 w-10 touch-manipulation items-center justify-center rounded-[var(--r-ctl)] bg-accent text-white transition-[transform,background-color] hover:bg-accent-strong active:scale-90 md:bottom-8 md:right-8"
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 transition-transform duration-300 group-hover/fab:-translate-y-0.5">
         <path
