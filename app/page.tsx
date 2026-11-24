@@ -236,14 +236,19 @@ function HistoryBadges({ slug, type, sources }: { slug: string; type?: string; s
     // halaman lain); pojok mengikuti lengkung kartu via overflow-hidden.
     // Flex + gap: tipe kiri, sumber kanan, sumber menyusut/elipsis bila
     // ruang habis (mis. MANHWA + KOMIKCAST).
-    <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-nowrap items-center justify-between gap-1">
+    <div className="absolute inset-x-1 top-1 z-10 flex flex-nowrap items-center justify-between gap-1 @[9rem]:inset-x-1.5 @[9rem]:top-1.5">
       {meta.type && (
         <div className="flex shrink-0">
-          <TypeBadge type={meta.type} flush />
+          <TypeBadge
+            type={meta.type}
+            flush
+            className="px-1! py-0.5! text-[9px]! @[9rem]:px-1.5! @[9rem]:py-1! @[9rem]:text-[10px]!"
+          />
         </div>
       )}
       <SourceBadge
-        className="ml-auto [&>span]:rounded-md [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[10px]"
+        shrink
+        className="ml-auto min-w-0 [&>span]:rounded-md [&>span]:px-1 [&>span]:py-0.5 [&>span]:text-[9px] @[9rem]:[&>span]:px-1.5 @[9rem]:[&>span]:py-1 @[9rem]:[&>span]:text-[10px]"
         sources={meta.sources?.slice(0, 1)}
       />
     </div>
@@ -379,12 +384,12 @@ export default function HomePage() {
           <SectionHead title="Lanjut membaca" href="/riwayat" />
           <div className="rail-scroll rail-snap -mx-3 -mt-2 flex gap-3 overflow-x-auto px-3 pb-1 pt-2 sm:mx-0 sm:px-0">
             {history.slice(0, 10).map((h) => (
-              <div key={h.slug} className="flex w-[112px] shrink-0 sm:w-[132px] lg:w-[148px]">
+              <div key={h.slug} className="flex w-[140px] shrink-0 sm:w-[156px] lg:w-[168px]">
                 <Link
                   href={h.route}
                   className="cv-auto group flex h-full min-w-0 flex-1 flex-col gap-2"
                 >
-                  <div className="cover-tile relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3">
+                  <div className="cover-tile @container relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3">
                     <CoverImage
                       src={h.cover}
                       alt={h.title}
