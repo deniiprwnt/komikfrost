@@ -33,10 +33,14 @@ export function chapterPathToRoute(komikuPath: string): string {
   return `/baca/${m[1]}/${tok}`;
 }
 
+/* Gradien tonal halus (warna tipe â†’ versi lebih gelap) + kilau tipis di tepi atas.
+   Class ditulis utuh agar terdeteksi Tailwind. */
+const BADGE_SHEEN = "";
+
 const TYPE_STYLE: Record<string, string> = {
-  manga: "bg-mark-manga",
-  manhwa: "bg-mark-manhwa",
-  manhua: "bg-mark-manhua",
+  manga: "bg-mark-manga text-white",
+  manhwa: "bg-mark-manhwa text-white",
+  manhua: "bg-mark-manhua text-white",
 };
 
 /** Tanda tipe komik — kecil, seperti cap kertas, satu warna per tipe. */
@@ -54,15 +58,15 @@ export function TypeBadge({
   wide?: boolean;
 }) {
   if (!type) return null;
-  const color = TYPE_STYLE[type.toLowerCase()] ?? "bg-muted";
+  const color = TYPE_STYLE[type.toLowerCase()] ?? "bg-muted text-white";
   const shape = flush
-    ? "rounded-none px-2 py-1 text-[9px]"
+    ? "rounded-md px-1.5 py-1 text-[10px]"
     : wide
-      ? "min-w-[3.75rem] rounded-sm px-2.5 py-1 text-center text-[10px] sm:min-w-[4rem]"
-      : "rounded-sm px-1.5 py-0.5 text-[10px]";
+      ? "min-w-[3.75rem] rounded-md px-2.5 py-1 text-center text-[10px] sm:min-w-[4rem]"
+      : "rounded-md px-1.5 py-0.5 text-[10px]";
   return (
     <span
-      className={`inline-block max-w-full shrink-0 truncate font-extrabold uppercase leading-tight tracking-wide text-white ${shape} ${color} ${className}`}
+      className={`inline-block max-w-full shrink-0 truncate font-semibold capitalize leading-tight tracking-[0.01em] ${BADGE_SHEEN} ${shape} ${color} ${className}`}
     >
       {type}
     </span>
@@ -71,9 +75,9 @@ export function TypeBadge({
 
 /** Tanda sumber data — kecil seperti TypeBadge, satu warna per source. */
 const SOURCE_STYLE: Record<string, string> = {
-  shinigami: "bg-[#0e7c74] dark:bg-[#118079]",
-  komiku: "bg-mark-manhwa",
-  komikcast: "bg-mark-manga",
+  shinigami: "bg-[#0e7c74] text-white dark:bg-[#118079]",
+  komiku: "bg-mark-manhwa text-white",
+  komikcast: "bg-mark-manga text-white",
 };
 
 const SOURCE_SHORT: Record<string, string> = {
@@ -105,11 +109,11 @@ export function SourceBadge({
     >
       {sources.map((s) => {
         const key = s.toLowerCase();
-        const color = SOURCE_STYLE[key] ?? "bg-muted";
+        const color = SOURCE_STYLE[key] ?? "bg-muted text-white";
         return (
           <span
             key={s}
-            className={`inline-block truncate rounded-sm text-[10px] font-extrabold uppercase leading-tight tracking-wide text-white ${
+            className={`inline-block truncate rounded-md text-[10px] font-semibold capitalize leading-tight tracking-[0.01em] ${BADGE_SHEEN} ${
               shrink ? "min-w-0" : "shrink-0"
             } ${wide ? "min-w-[3.75rem] px-2.5 py-1 text-center sm:min-w-[4rem]" : "px-1.5 py-0.5"} ${color}`}
           >
@@ -187,17 +191,17 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
             harus di atasnya agar tetap terlihat. Badge chapter melebihi tepi
             kiri/bawah 1px (terpotong overflow-hidden) agar tetap menempel saat
             gambar di-scale ketika hover. */}
-        {item.type && (
-          <div className="absolute left-0 top-0 z-10">
-            <TypeBadge type={item.type} flush />
-          </div>
-        )}
-        <SourceBadge
-          className="absolute right-0 top-0 z-10 max-w-[55%] [&>span]:rounded-none [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[9px]"
-          sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
-        />
+        {/* Tipe (kiri) + sumber (kanan) satu baris: tipe tidak menyusut, sumber
+            memendek dengan elipsis sehingga keduanya tidak pernah bertabrakan. */}
+        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-nowrap items-center justify-between gap-1">
+          {item.type ? <TypeBadge type={item.type} flush /> : <span />}
+          <SourceBadge
+            className="ml-auto [&>span]:rounded-md [&>span]:px-1.5 [&>span]:py-1 [&>span]:text-[10px]"
+            sources={item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1)}
+          />
+        </div>
         {item.latestChapter && (
-          <span className="absolute -bottom-px -left-px z-10 max-w-full truncate bg-accent pb-[5px] pl-[9px] pr-2 pt-1 text-[11px] font-semibold leading-none tracking-[0.01em] text-white">
+          <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-accent px-2 py-1 text-[10px] font-semibold leading-tight text-white">
             {item.latestChapter.label}
           </span>
         )}
@@ -296,7 +300,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
           className="h-full w-full object-cover"
         />
         {item.type && (
-          <div className="absolute left-0 top-0 z-10">
+          <div className="absolute left-1.5 top-1.5 z-10">
             <TypeBadge type={item.type} flush />
           </div>
         )}

@@ -35,7 +35,7 @@ export function KomikListCard({ item }: { item: MangaCard }) {
           className="h-full w-full object-cover"
         />
         {item.type && (
-          <div className="absolute left-0 top-0 z-10">
+          <div className="absolute left-1.5 top-1.5 z-10">
             <TypeBadge type={item.type} flush />
           </div>
         )}
