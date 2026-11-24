@@ -1,0 +1,186 @@
+/* ========================================================================== */
+/* theme.css â€” palet "ink & teal" yang dihaluskan + penyesuaian responsif.      */
+/* Dimuat SETELAH design.css. Hanya menimpa token warna dan ukuran; tidak      */
+/* menyentuh maskot (.sb-sign*, .mg-*, .yk-*, .sx-*, .bs*, .cover-ph*).         */
+/* Prinsip: netral nyaris tanpa rona, satu aksen teal yang dalam, emas hanya    */
+/* untuk peringkat 1-3. Tanpa gradasi, tanpa glow.                              */
+/* ========================================================================== */
+
+/* ---- Terang ---------------------------------------------------------------- */
+:root {
+  --color-paper: #f3f6f5;
+  --color-paper-2: #ffffff;
+  --color-paper-3: #e8eeed;
+  --color-line: #dce3e2;
+
+  --color-fg: #0c1413;
+  --color-muted: #56676a;
+
+  --color-accent: #0c7168;
+  --color-accent-strong: #085a53;
+  --color-accent-soft: #d7eeea;
+
+  --color-gold: #a9710f;
+
+  --color-mark-manga: #b94a43;
+  --color-mark-manhwa: #2c68a6;
+  --color-mark-manhua: #8f6112;
+}
+
+/* ---- Gelap ----------------------------------------------------------------- */
+/* --color-ink (#080e11) sengaja tetap: dipakai splash PWA & meta theme-color. */
+html.dark {
+  --color-ink-2: #0e171b;
+  --color-ink-3: #152227;
+  --color-line-dark: #1f2e34;
+
+  --color-fg-dark: #e9f0f0;
+  --color-muted-dark: #8fa3a8;
+
+  --color-accent: #118079;
+  --color-accent-strong: #66dccb;
+  --color-accent-soft-dark: #10393a;
+
+  --color-gold: #e3b54f;
+}
+
+/* Latar halaman menempel pada token baru. */
+html {
+  background-color: var(--color-paper);
+}
+body {
+  background-color: var(--color-paper);
+}
+
+/* ---- Permukaan -------------------------------------------------------------- */
+/* Pil/aksi aktif: isi solid, teks putih. Kontras dijaga di kedua tema. */
+.bg-accent {
+  color: #fff;
+}
+
+/* Pilihan genre / filter aktif: tint tipis, bukan blok warna. */
+.bg-accent-soft\/40,
+.bg-accent-soft\/50 {
+  background-color: color-mix(in srgb, var(--color-accent) 9%, transparent);
+}
+.dark .dark\:bg-accent-soft-dark\/40,
+.dark .dark\:bg-accent-soft-dark\/60 {
+  background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+/* Peringkat: 1-3 emas, sisanya senyap. */
+.rank-num {
+  color: color-mix(in srgb, var(--color-muted) 70%, transparent);
+}
+.rank-num.text-gold {
+  color: var(--color-gold);
+}
+
+/* Cover: bayangan dalam disesuaikan agar tepi tetap rapi di tema baru. */
+.cover-tile::after {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-fg) 9%, transparent);
+}
+.dark .cover-tile::after {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-fg-dark) 10%, transparent);
+}
+
+/* Hover baris peringkat: tint netral. */
+@media (hover: hover) {
+  .rank-row:hover {
+    background: color-mix(in srgb, var(--color-fg) 4%, transparent);
+  }
+  .dark .rank-row:hover {
+    background: color-mix(in srgb, var(--color-fg-dark) 5%, transparent);
+  }
+}
+.rank-row:active {
+  background: color-mix(in srgb, var(--color-fg) 6%, transparent);
+}
+.dark .rank-row:active {
+  background: color-mix(in srgb, var(--color-fg-dark) 8%, transparent);
+}
+
+/* Fokus keyboard: cincin aksen tipis. */
+:focus-visible {
+  outline-color: var(--color-accent);
+}
+.dark :focus-visible {
+  outline-color: var(--color-accent-strong);
+}
+
+/* ====================================================================== */
+/* Responsif                                                               */
+/* ====================================================================== */
+
+/* ---- HP kecil (< 640px) ---------------------------------------------------- */
+@media (max-width: 639px) {
+  .section-title {
+    font-size: 1.3rem;
+  }
+  .section-head {
+    padding-bottom: 0.6rem;
+  }
+  .rank-num {
+    width: 1.6rem;
+    font-size: 1.25rem;
+  }
+  .rank-row {
+    margin-inline: -0.25rem;
+    padding-inline: 0.25rem;
+  }
+  .rank-row::after {
+    left: 0.25rem;
+    right: 0.25rem;
+  }
+}
+
+/* ---- Tablet (640px - 1023px) ------------------------------------------------ */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .rank-num {
+    width: 2rem;
+    font-size: 1.4rem;
+  }
+}
+
+/* ---- Desktop (>= 1024px) ---------------------------------------------------- */
+@media (min-width: 1024px) {
+  .rank-row {
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+  .rank-row::after {
+    left: 0.75rem;
+    right: 0.75rem;
+  }
+}
+
+/* ---- Monitor lebar (>= 1280px) ---------------------------------------------- */
+@media (min-width: 1280px) {
+  .rank-num {
+    width: 2.5rem;
+    font-size: 1.75rem;
+  }
+  .section-title {
+    font-size: 1.9rem;
+  }
+}
+
+/* ---- Layar sentuh: target >= 44px ------------------------------------------ */
+@media (pointer: coarse) {
+  .section-link {
+    min-height: 2.75rem;
+  }
+  .rank-row {
+    min-height: 5.5rem;
+  }
+}
+
+/* ---- Layar pendek (HP landscape) -------------------------------------------- */
+@media (max-height: 480px) and (orientation: landscape) {
+  .section-title {
+    font-size: 1.2rem;
+  }
+  .rank-row {
+    min-height: 0;
+  }
+}

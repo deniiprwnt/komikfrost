@@ -1,0 +1,73 @@
+/* ========================================================================== */
+/* radius.css â€” skala sudut per platform. <html data-platform> di-set sebelum  */
+/* paint (app/layout.tsx). Dimuat terakhir; hanya mengatur radius.             */
+/*   desktop : kecil & tegas (tidak terlalu bulat)                            */
+/*   android : sedang, bertingkat                                             */
+/*   ios     : lembut, tombol/chip berbentuk pil                              */
+/* Maskot (.sb-sign*, .mg-*, .yk-*, .sx-*, .cover-ph*) tidak disentuh.        */
+/* ========================================================================== */
+
+:root {
+  --r-cover: 8px;
+  --r-ctl: 8px;
+  --r-pill: 8px;
+  --r-dock: 14px;
+}
+:root[data-platform="android"] {
+  --r-cover: 12px;
+  --r-ctl: 12px;
+  --r-pill: 14px;
+  --r-dock: 20px;
+}
+:root[data-platform="ios"] {
+  --r-cover: 14px;
+  --r-ctl: 14px;
+  --r-pill: 999px;
+  --r-dock: 26px;
+}
+
+/* Layar sangat kecil: cover kecil butuh sudut sedikit lebih rapat agar     */
+/* proporsinya tetap sama dengan ukuran kartu.                              */
+@media (max-width: 479px) {
+  :root { --r-cover: 7px; }
+  :root[data-platform="android"] { --r-cover: 10px; }
+  :root[data-platform="ios"] { --r-cover: 12px; }
+}
+
+/* Monitor lebar: sudut tetap tegas, tidak ikut membesar. */
+@media (min-width: 1280px) {
+  :root:not([data-platform="ios"]):not([data-platform="android"]) {
+    --r-cover: 9px;
+  }
+}
+
+/* ---- Desktop: sudut tegas & rapat ---------------------------------------- */
+/* Menimpa skala bawaan (@theme) hanya untuk desktop, jadi semua utilitas     */
+/* rounded-* (kartu, tombol, input, badge, popover) ikut mengecil.            */
+:root[data-platform="desktop"] {
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
+  --radius-card: 5px;
+  --radius-btn: 4px;
+  --r-cover: 4px;
+  --r-ctl: 4px;
+  --r-pill: 4px;
+  --r-dock: 8px;
+}
+@media (min-width: 1280px) {
+  :root[data-platform="desktop"] {
+    --r-cover: 5px;
+  }
+}
+
+/* ---- Penerapan ---------------------------------------------------------- */
+.rank-row { border-radius: var(--r-ctl); }
+.hdr-search .search-field,
+.hdr-btn { border-radius: var(--r-ctl); }
+.dock { border-radius: var(--r-dock); }
+.dock-pill { border-radius: calc(var(--r-dock) - 4px); }
+.cover-tile { border-radius: var(--r-cover); }

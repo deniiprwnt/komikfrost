@@ -69,7 +69,7 @@ export default function FavoritPage() {
             if (!latestTok) continue;
             // Sudah terlihat = pernah buka detail saat chapter ini terbaru,
             // ATAU sedang membaca chapter ini (riwayat). Tanpa keduanya
-            // (bookmark lama yang belum pernah dibuka) → jangan badge,
+            // (bookmark lama yang belum pernah dibuka) jangan badge,
             // jadikan kunjungan detail berikutnya sebagai baseline.
             const seen = new Set(
               [
@@ -100,7 +100,7 @@ export default function FavoritPage() {
   const updateCount = bookmarks.filter((b) => updates[b.slug]).length;
 
   return (
-    <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
+    <section className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <SectionHead title="Favorit" />
@@ -119,9 +119,9 @@ export default function FavoritPage() {
         <div className="flex shrink-0 items-center gap-1.5">
           <Link
             href="/riwayat"
-            className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+            className="section-link py-1 text-[13px] font-semibold"
           >
-            Riwayat →
+            Riwayat
           </Link>
         </div>
       </div>
@@ -150,9 +150,9 @@ export default function FavoritPage() {
           {filtered.map((b) => (
             <article
               key={b.slug}
-              className="cv-auto group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 hover:border-accent/60 dark:border-line-dark dark:bg-ink-2"
+              className="cv-auto group relative flex h-full min-w-0 flex-col gap-2"
             >
-              <div className="relative aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3">
+              <div className="cover-tile relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3">
                 <Link
                   href={`/komik/${b.slug}`}
                   aria-label={b.title}
@@ -187,7 +187,7 @@ export default function FavoritPage() {
               >
                 <IconTrash className="h-4 w-4" />
               </button>
-              <div className="flex min-w-0 flex-1 flex-col p-2 sm:p-2.5">
+              <div className="flex min-w-0 flex-1 flex-col px-0.5">
                 <Link
                   href={`/komik/${b.slug}`}
                   className="truncate text-xs font-semibold leading-snug text-fg hover:text-accent sm:text-[13px] dark:text-fg-dark"

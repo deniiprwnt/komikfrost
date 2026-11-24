@@ -19,13 +19,13 @@ export function KomikListCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto group flex min-w-0 gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-colors duration-200 hover:border-accent/50 sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2"
+      className="cv-auto group flex min-w-0 gap-3 border-b border-line py-4 sm:gap-4 dark:border-line-dark"
     >
       <Link
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         onClick={(e) => captureCoverMorph(item.slug, e.currentTarget.closest("article"))}
-        className="relative h-[132px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-paper-3 sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px] dark:bg-ink-3"
+        className="cover-tile relative h-[132px] w-[96px] shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px] dark:bg-ink-3"
       >
         <CoverImage
           src={item.thumbnail}
@@ -109,7 +109,7 @@ export function KomikListSkeleton({ count = 8 }: { count?: number }) {
   return (
     <div className="flex flex-col gap-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2">
+        <div key={i} className="flex gap-3 border-b border-line py-4 sm:gap-4 dark:border-line-dark">
           <div className="shimmer h-[132px] w-[96px] shrink-0 rounded-lg sm:h-[112px] sm:w-[168px] lg:h-[120px] lg:w-[150px] 2xl:h-[128px] 2xl:w-[192px]" />
           <div className="min-w-0 flex-1 space-y-2 py-1">
             <div className="shimmer h-4 w-11/12 rounded-md" />

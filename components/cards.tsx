@@ -172,13 +172,13 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-auto group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 transition-colors duration-200 hover:border-accent/50 dark:border-line-dark dark:bg-ink-2"
+      className="cv-auto group flex h-full w-full min-w-0 flex-col gap-2"
     >
       <Link
         href={`/komik/${item.slug}`}
         aria-label={item.title}
         {...coverMorphProps(item.slug)}
-        className="relative block aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3"
+        className="cover-tile relative block aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3"
       >
         <CoverImage
           src={item.thumbnail}
@@ -210,11 +210,11 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           tinggi blok teks berbeda, sehingga baris genre/waktu tiap kartu
           tampil di ketinggian berbeda. Dengan meta didorong ke dasar,
           semua baris genre/waktu sejajar mendatar antar kartu. */}
-      <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 pt-2.5">
+      <div className="flex min-w-0 flex-1 flex-col px-0.5">
         <Link
           href={`/komik/${item.slug}`}
           title={item.title}
-          className="mb-2 line-clamp-2 break-words text-[13px] font-semibold leading-[1.35] tracking-[-0.005em] text-fg hover:text-accent dark:text-fg-dark"
+          className="mb-1.5 line-clamp-2 break-words text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-fg hover:text-accent dark:text-fg-dark"
         >
           {item.title}
         </Link>
@@ -223,7 +223,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           // Dulu keduanya satu teks "genre · waktu" sehingga posisi
           // "X menit lalu" bergeser mengikuti panjang genre dan kolom
           // waktu antar kartu tidak pernah sejajar.
-          <p className="mt-auto flex min-w-0 items-baseline gap-1.5 border-t border-line pt-1.5 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">
+          <p className="mt-auto flex min-w-0 items-baseline gap-1.5 text-[11px] leading-tight text-muted dark:text-muted-dark">
             <span className="min-w-0 flex-1 truncate">{genre}</span>
             {updated && (
               <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums">{updated}</span>
@@ -392,11 +392,11 @@ export function RankRow({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
-      className="cv-row group relative flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 transition-[border-color,background-color,transform] duration-200 hover:border-accent/50 hover:bg-paper-3/50 active:scale-[0.99] sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2 dark:hover:bg-ink-3/70"
+      className="cv-row rank-row group relative flex min-w-0 items-center gap-3 py-3 sm:gap-4"
     >
       {hasRank && (
         <span
-          className={`w-6 shrink-0 text-center font-display text-lg font-extrabold tabular-nums sm:w-7 sm:text-xl ${
+          className={`rank-num ${
             RANK_TINT[(item.rank as number) - 1] ?? "text-muted/70 dark:text-muted-dark/70"
           }`}
         >

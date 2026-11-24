@@ -8,6 +8,9 @@ import { Pwa } from "@/components/pwa";
 import { NoZoom } from "@/components/no-zoom";
 import { BackToTop, Footer, Header, Main, MobileTabBar, Sidebar } from "@/components/layout";
 import "./globals.css";
+import "./design.css";
+import "./theme.css";
+import "./radius.css";
 
 // Halaman bersifat statis (shell dari CDN) — data komik tetap live karena
 // semua halaman fetch client-side via apiGet/apiGetSWR setelah mount.
@@ -98,7 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var p=!!(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone);if(p)document.documentElement.classList.add("booting");var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",p||t!=="light"?"#080e11":"#eaf1f1")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
+              'try{var p=!!(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone);if(p)document.documentElement.classList.add("booting");var t=localStorage.getItem("bk-theme");document.documentElement.classList.toggle("dark",t!=="light");var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",p||t!=="light"?"#080e11":"#f3f6f5")}catch(e){document.documentElement.classList.add("dark")}try{var r=localStorage.getItem("bk-sidebar")==="1"}catch(e){var r=false}document.documentElement.dataset.sidebar=(r||innerWidth<1200||location.pathname.indexOf("/baca/")===0)?"rail":"full";',
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: PLATFORM_SCRIPT }} />

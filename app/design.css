@@ -1,0 +1,208 @@
+/* ========================================================================== */
+/* design.css â€” lapisan desain "editorial tenang".                            */
+/* Dimuat SETELAH globals.css (lihat app/layout.tsx), jadi hanya menimpa yang  */
+/* perlu. Prinsip: cover adalah visual utama, chrome mundur; hierarki dari     */
+/* ukuran, jarak, dan garis tipis. Tanpa blur kaca, tanpa glow, tanpa gradasi. */
+/*                                                                            */
+/* TIDAK menyentuh maskot: .sb-sign*, .sb-promo*, .mg-*, .yk-*, .sx-*, .bs*,   */
+/* .cover-ph* dibiarkan persis seperti di globals.css.                         */
+/* ========================================================================== */
+
+/* ---- Tipografi ------------------------------------------------------------ */
+/* Judul section: Archivo normal-width, berat 700, rapat. Bukan lagi condensed  */
+/* 800 yang berteriak. Hanya di dalam <main> agar layar status tidak berubah.   */
+main .display-cond {
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+}
+.section-title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+  font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.section-head {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.dark .section-head {
+  border-bottom-color: var(--color-line-dark);
+}
+/* Garis aksen di bawah judul dihapus: judul + jarak sudah cukup. */
+.bar-grow {
+  display: none;
+}
+.section-link {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/* ---- Cover ---------------------------------------------------------------- */
+/* Garis dalam 1px menjaga tepi cover tetap rapi di atas latar apa pun. */
+.cover-tile {
+  isolation: isolate;
+}
+.cover-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  pointer-events: none;
+}
+.dark .cover-tile::after {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* ---- Peringkat: baris editorial -------------------------------------------- */
+.rank-row {
+  margin-inline: -0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: 12px;
+  transition: background-color 200ms var(--ease-out);
+}
+/* Pemisah baris: garis tipis (pseudo, supaya tidak melengkung di sudut). */
+.rank-row::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0;
+  height: 1px;
+  background: var(--color-line);
+  pointer-events: none;
+}
+.dark .rank-row::after {
+  background: var(--color-line-dark);
+}
+@media (hover: hover) {
+  .rank-row:hover {
+    background: color-mix(in srgb, var(--color-paper-3) 55%, transparent);
+  }
+  .dark .rank-row:hover {
+    background: color-mix(in srgb, var(--color-ink-2) 100%, transparent);
+  }
+}
+.rank-num {
+  flex: none;
+  width: 2rem;
+  text-align: left;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-stretch: 100%;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Header: solid, satu garis tipis --------------------------------------- */
+@media (min-width: 768px) {
+  [data-app-header] {
+    background: var(--color-paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .dark [data-app-header] {
+    background: var(--color-ink);
+    border-bottom-color: var(--color-line-dark);
+  }
+  [data-app-header]::after {
+    display: none;
+  }
+}
+.hdr-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.hdr-search .search-field {
+  border-radius: 10px;
+  background: var(--color-paper-2);
+  box-shadow: none;
+}
+.dark .hdr-search .search-field {
+  background: var(--color-ink-2);
+}
+.hdr-search:focus-within .search-field {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+.hdr-btn {
+  border-radius: 10px;
+  background: var(--color-paper-2);
+}
+.dark .hdr-btn {
+  background: var(--color-ink-2);
+}
+@media (hover: hover) {
+  .hdr-btn:hover {
+    box-shadow: none;
+  }
+}
+
+/* ---- Sidebar: ikon polos tanpa kotak (kartu maskot TIDAK diubah) ----------- */
+.sb-ico,
+.dark .sb-ico {
+  width: 1.75rem;
+  height: 1.75rem;
+  background: transparent;
+  border-radius: 0;
+}
+@media (hover: hover) {
+  .sb-item:hover .sb-ico,
+  .dark .sb-item:hover .sb-ico {
+    background: transparent;
+    color: inherit;
+    transform: none;
+  }
+}
+.sb-active {
+  background-color: var(--color-paper-3);
+  box-shadow: none;
+}
+.dark .sb-active {
+  background-color: var(--color-ink-3);
+}
+.sb-item[aria-current="page"] .sb-ico {
+  background: transparent;
+  color: var(--color-accent);
+}
+.dark .sb-item[aria-current="page"] .sb-ico {
+  background: transparent;
+  color: var(--color-accent-strong);
+}
+.sb-section-label {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* ---- Dock mobile ------------------------------------------------------------ */
+.dock {
+  border-radius: 18px;
+  box-shadow: 0 8px 24px -16px rgb(0 0 0 / 0.4);
+}
+.dock-pill {
+  border-radius: 14px;
+  background: var(--color-paper-3);
+}
+.dark .dock-pill {
+  background: var(--color-ink-3);
+}
+
+/* ---- Gerak: halus, tanpa blur ----------------------------------------------- */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.page-in {
+  animation: page-in 340ms var(--ease-out) backwards;
+}

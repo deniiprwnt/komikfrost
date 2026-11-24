@@ -58,7 +58,7 @@ export default function GenreListPage() {
     .filter(Boolean);
 
   return (
-    <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-paper-2 p-3 sm:gap-4 sm:p-4 dark:border-line-dark dark:bg-ink-2">
+    <section className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title="Daftar Genre" />
       <div className="relative w-full min-w-0 sm:max-w-xs">
         <input

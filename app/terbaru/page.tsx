@@ -397,7 +397,7 @@ function TerbaruContent() {
 
   return (
     <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
-      <section className="min-w-0 rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 dark:border-line-dark dark:bg-ink-2">
+      <section className="min-w-0">
         <div ref={listTopRef} className="scroll-mt-[calc(var(--header-h)+0.5rem)]">
           <SectionHead title="Komik Terbaru" />
         </div>
@@ -454,7 +454,7 @@ function TerbaruContent() {
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="stagger mt-3 flex min-w-0 flex-col gap-3 sm:mt-4">
+          <div className="stagger mt-3 flex min-w-0 flex-col sm:mt-4">
             {items.map((item) => (
               <KomikListCard key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
             ))}

@@ -398,7 +398,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        className={`touch-target flex h-10 min-w-0 touch-manipulation items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm font-medium transition-[color,border-color,background-color] sm:h-9 sm:text-[13px] ${
+        className={`touch-target flex h-10 min-w-0 touch-manipulation items-center justify-between gap-2 rounded-[var(--r-pill)] border px-4 text-left text-sm font-medium transition-[color,border-color,background-color] sm:h-9 sm:text-[13px] ${
           open
             ? "border-accent bg-paper-2 text-fg dark:bg-ink-2 dark:text-fg-dark"
             : isActiveFilter

@@ -305,12 +305,12 @@ function CariContent() {
           <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">
             Ditemukan {total ?? items.length} judul
           </p>
-          <div className="stagger flex min-w-0 flex-col gap-3">
+          <div className="stagger flex min-w-0 flex-col">
             {items.map((item, idx) => (
               <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
                 {item.exactMatch === false &&
                   (idx === 0 || items[idx - 1]?.exactMatch !== false) && (
-                    <p className="px-1 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">
+                    <p className="px-1 pb-1 pt-3 text-xs font-semibold text-muted dark:text-muted-dark">
                       Hasil mirip (tidak ada judul yang memuat semua kata kunci)
                     </p>
                   )}

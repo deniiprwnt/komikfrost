@@ -16,10 +16,10 @@ import { KomikListSkeleton } from "@/components/komik-list";
 
 /* Daftar tidak lagi dibungkus panel: konten duduk langsung di atas halaman. */
 const SURFACE =
-  "rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 dark:border-line-dark dark:bg-ink-2";
+  "";
 /** Riwayat & Favorit tetap berupa kartu panel. */
 const PANEL =
-  "rounded-2xl border border-line bg-paper-2 p-3 sm:p-4 dark:border-line-dark dark:bg-ink-2";
+  "";
 
 /* ------------------------------------------------------------------ */
 /* Potongan dasar                                                       */
@@ -28,14 +28,14 @@ const PANEL =
 /** Cermin <MangaGridCard>: cover 3:4 + judul 2 baris + baris genre/waktu. */
 export function GridCardSkeleton() {
   return (
-    <div className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2">
-      <div className="shimmer aspect-[3/4] w-full shrink-0" />
-      <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 pt-2.5">
-        <div className="mb-2 space-y-1.5">
+    <div className="flex h-full w-full min-w-0 flex-col gap-2">
+      <div className="shimmer aspect-[3/4] w-full shrink-0 rounded-[var(--r-cover)]" />
+      <div className="flex min-w-0 flex-1 flex-col px-0.5">
+        <div className="mb-1.5 space-y-1.5">
           <div className="shimmer h-3 w-full rounded-md" />
           <div className="shimmer h-3 w-2/3 rounded-md" />
         </div>
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-1.5 dark:border-line-dark">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <div className="shimmer h-2.5 w-1/3 rounded-md" />
           <div className="shimmer h-2.5 w-1/4 rounded-md" />
         </div>
@@ -47,8 +47,8 @@ export function GridCardSkeleton() {
 /** Cermin <RankRow>: nomor + cover 60×80 (72×96) + judul/genre/chip chapter. */
 export function RankRowSkeleton() {
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-paper-2 p-2.5 sm:gap-3.5 sm:p-3 dark:border-line-dark dark:bg-ink-2">
-      <div className="shimmer h-5 w-6 shrink-0 rounded-md sm:w-7" />
+    <div className="rank-row relative flex min-w-0 items-center gap-3 py-3 sm:gap-4">
+      <div className="shimmer h-5 w-8 shrink-0 rounded-md" />
       <div className="shimmer h-[80px] w-[60px] shrink-0 rounded-lg sm:h-[96px] sm:w-[72px]" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="shimmer h-4 w-5/6 rounded-md" />
@@ -121,10 +121,9 @@ export function HomeSkeleton() {
   return (
     <div className="flex min-w-0 flex-col gap-10 sm:gap-14 lg:gap-16" aria-busy="true">
       <section className="min-w-0">
-        <div className="mb-1 flex items-end justify-between gap-3 border-b border-line pb-2 dark:border-line-dark">
-          <h1 className="display-cond relative min-w-0 flex-1 truncate text-2xl text-fg sm:text-3xl lg:text-4xl dark:text-fg-dark">
+        <div className="section-head mb-1 flex items-end justify-between gap-3">
+          <h1 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
             Peringkat harian
-            <span aria-hidden className="bar-grow absolute -bottom-[9px] left-0 h-[3px] w-10 bg-accent" />
           </h1>
         </div>
         <div className="mt-3">
@@ -139,8 +138,7 @@ export function HomeSkeleton() {
 
       <section className="grid min-w-0 gap-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start">
-          <h2 className="display-cond text-3xl text-fg sm:text-4xl dark:text-fg-dark">Rekomendasi</h2>
-          <span aria-hidden className="mt-2 block h-[3px] w-10 bg-accent" />
+          <h2 className="section-title text-fg dark:text-fg-dark">Rekomendasi</h2>
           <p className="mt-3 hidden text-sm leading-relaxed text-muted lg:block dark:text-muted-dark">
             Pilihan acak, berganti setiap kamu membuka beranda.
           </p>
@@ -256,7 +254,7 @@ export function FavoritSkeleton({ count = 10 }: { count?: number }) {
             key={i}
             className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2"
           >
-            <div className="shimmer aspect-[3/4] w-full shrink-0" />
+            <div className="shimmer aspect-[3/4] w-full shrink-0 rounded-[var(--r-cover)]" />
             <div className="p-2 sm:p-2.5">
               <div className="shimmer h-3.5 w-5/6 rounded-md" />
             </div>

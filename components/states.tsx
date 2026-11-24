@@ -79,17 +79,16 @@ export function SectionHead({
   linkLabel?: string;
 }) {
   return (
-    <div className="mb-4 flex min-w-0 items-end justify-between gap-3 border-b border-line pb-2 dark:border-line-dark">
-      <h2 className="display-cond relative min-w-0 flex-1 truncate text-2xl text-fg sm:text-3xl lg:text-4xl dark:text-fg-dark">
+    <div className="section-head mb-4 flex min-w-0 items-end justify-between gap-3">
+      <h2 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
         {title}
-        <span aria-hidden className="bar-grow absolute -bottom-[9px] left-0 h-[3px] w-10 bg-accent" />
       </h2>
       {href && (
         <Link
           href={href}
-          className="shrink-0 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+          className="section-link shrink-0 py-1 text-[13px] font-semibold"
         >
-          {linkLabel} →
+          {linkLabel}
         </Link>
       )}
     </div>
