@@ -174,7 +174,7 @@ export default function FavoritPage() {
                   <Link
                     href={chapterPathToRoute(updates[b.slug].url)}
                     title={`Baca ${updates[b.slug].label} sekarang`}
-                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-fresh px-2 py-0.5 text-[10px] font-bold text-white"
+                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-[var(--r-chip)] bg-fresh px-2 py-0.5 text-[10px] font-bold text-white"
                   >
                     BARU · {updates[b.slug].label}
                   </Link>

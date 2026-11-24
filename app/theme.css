@@ -216,7 +216,7 @@ html.dark {
 }
 .bdg {
   /* Sudut tipis di semua platform: chip 9-10px tidak boleh terlihat seperti pil. */
-  border-radius: 4px;
+  border-radius: var(--r-chip);
   --b-tone: var(--tone-other);
   --b-dot: var(--tone-other);
   background: color-mix(in srgb, var(--b-tone) 13%, transparent);
@@ -253,6 +253,13 @@ html.dark .cover-tile .bdg-src {
 .sb-section-label {
   text-transform: none;
   letter-spacing: 0;
+}
+
+/* Sudut chip (badge tipe/sumber, chip chapter): mengikuti lengkung cover dikurangi */
+/* jarak tepi (konsentris), dibatasi 3-6px. Tanpa ini rounded-md = 10px di iPhone   */
+/* membuat chip kecil berbentuk pil.                                              */
+:root {
+  --r-chip: clamp(3px, calc(var(--r-cover) - 8px), 6px);
 }
 
 /* Tanpa glow: thumb scrollbar tidak berpendar. */

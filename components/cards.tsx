@@ -217,7 +217,7 @@ export function MangaGridCard({ item }: { item: MangaCard }) {
           />
         </div>
         {item.latestChapter && (
-          <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-accent px-1 py-0.5 text-[9px] font-semibold leading-tight text-white @[9rem]:px-1.5 @[9rem]:py-1 @[9rem]:text-[10px]">
+          <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-[var(--r-chip)] bg-accent px-1 py-0.5 text-[9px] font-semibold leading-tight text-white @[9rem]:px-1.5 @[9rem]:py-1 @[9rem]:text-[10px]">
             {item.latestChapter.label}
           </span>
         )}
@@ -346,7 +346,7 @@ export function UpdateRow({ item }: { item: MangaCard }) {
         {item.latestChapter && (
           <Link
             href={chapterPathToRoute(item.latestChapter.url)}
-            className="-ml-1.5 mt-auto w-fit max-w-full touch-manipulation truncate rounded-md px-1.5 py-1 text-xs font-semibold leading-tight text-accent transition-[background-color,color,transform] duration-200 hover:bg-accent-soft hover:text-accent-strong active:scale-95 active:bg-accent-soft dark:text-white dark:hover:bg-accent/20 dark:active:bg-accent/20"
+            className="-ml-1.5 mt-auto w-fit max-w-full touch-manipulation truncate rounded-[var(--r-chip)] px-1.5 py-1 text-xs font-semibold leading-tight text-accent transition-[background-color,color,transform] duration-200 hover:bg-accent-soft hover:text-accent-strong active:scale-95 active:bg-accent-soft dark:text-white dark:hover:bg-accent/20 dark:active:bg-accent/20"
           >
             {item.latestChapter.label}
           </Link>
@@ -470,7 +470,7 @@ export function RankRow({ item }: { item: MangaCard }) {
         {item.latestChapter && (
           <Link
             href={chapterPathToRoute(item.latestChapter.url)}
-            className="relative z-10 mt-1 inline-flex w-fit max-w-full items-center rounded-md bg-accent-soft px-2 py-1 text-[11px] font-semibold leading-tight text-accent-strong transition-colors hover:bg-accent hover:text-white sm:text-xs dark:bg-accent-soft-dark dark:text-white"
+            className="relative z-10 mt-1 inline-flex w-fit max-w-full items-center rounded-[var(--r-chip)] bg-accent-soft px-2 py-1 text-[11px] font-semibold leading-tight text-accent-strong transition-colors hover:bg-accent hover:text-white sm:text-xs dark:bg-accent-soft-dark dark:text-white"
           >
             <span className="truncate">{item.latestChapter.label}</span>
             <span aria-hidden="true" className="ml-1 opacity-70">›</span>
