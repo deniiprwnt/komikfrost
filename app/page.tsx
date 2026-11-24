@@ -319,7 +319,7 @@ export default function HomePage() {
     <div className="flex min-w-0 flex-col gap-10 sm:gap-14 lg:gap-16">
       {/* Peringkat harian: daftar 1–10, dua kolom di layar lebar (urut ke bawah per kolom) */}
       <section className="min-w-0">
-        <div className="section-head mb-1 flex items-end justify-between gap-3">
+        <div className="section-head mb-1 flex items-center justify-between gap-3">
           <h1 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
             Peringkat harian
             

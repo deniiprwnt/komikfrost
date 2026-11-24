@@ -79,7 +79,7 @@ export function SectionHead({
   linkLabel?: string;
 }) {
   return (
-    <div className="section-head mb-4 flex min-w-0 items-end justify-between gap-3">
+    <div className="section-head mb-4 flex min-w-0 items-center justify-between gap-3">
       <h2 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
         {title}
       </h2>
