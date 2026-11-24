@@ -206,3 +206,30 @@ main .display-cond {
 .page-in {
   animation: page-in 340ms var(--ease-out) backwards;
 }
+
+/* ---- Beranda: interaksi halus ----------------------------------------------- */
+/* Hover kartu: garis dalam cover berpindah ke aksen. Tanpa bayangan, glow,    */
+/* atau gerak tambahan (zoom gambar sudah ada di komponen kartu).               */
+.cover-tile::after {
+  transition: box-shadow 200ms var(--ease-out);
+}
+@media (hover: hover) {
+  .group:hover .cover-tile::after {
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-accent) 70%, transparent);
+  }
+}
+
+/* Judul kartu 2 baris: hindari satu kata yatim di baris terakhir. */
+.line-clamp-2 {
+  text-wrap: pretty;
+}
+
+/* Rail geser di HP: tepi layar memudar sebagai petunjuk masih bisa digeser.    */
+/* Lebar fade = padding rail (12px), jadi di posisi awal/akhir kartu tidak ikut */
+/* memudar.                                                                      */
+@media (max-width: 639px) {
+  .rail-scroll {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  }
+}

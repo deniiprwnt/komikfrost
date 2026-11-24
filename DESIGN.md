@@ -140,6 +140,10 @@ popovers and reader overlays.
   `--r-pill`.
 - One high-emphasis accent button per decision point (Lanjut, Terbaru,
   Cari); everything else is outline or quiet text.
+- Card hover: the cover's inner hairline turns accent (1.5px). No lift,
+  shadow or glow.
+- Phone rails (`.rail-scroll`, under 640px) fade at the screen edge via a
+  12px mask, matching the rail padding so first and last cards stay intact.
 
 ## Do's and Don'ts
 
