@@ -80,6 +80,14 @@
   }
 }
 
+/* Kartu di grid dirender penuh sejak awal: content-visibility:auto membuat   */
+/* container query chip (WebKit/iOS) terlambat dihitung sehingga chip sempat   */
+/* tampil tidak responsif beberapa detik setelah aplikasi dibuka.             */
+.stagger > * > .cv-auto,
+.grid-cards > .cv-auto {
+  content-visibility: visible;
+}
+
 /* Chip chapter: satu-satunya elemen jenuh di atas cover. */
 .cv-chip--chapter {
   background: var(--color-accent);
