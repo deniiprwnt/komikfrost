@@ -149,9 +149,9 @@ export function Sidebar() {
                 Komik terbaru dalam Bahasa Indonesia, langsung di satu tempat.
               </p>
               <div className="sb-promo__chips">
-                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manga)" }}>Manga</span>
-                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhwa)" }}>Manhwa</span>
-                <span className="sb-chip" style={{ ["--c" as string]: "var(--color-mark-manhua)" }}>Manhua</span>
+                <span className="sb-chip bdg bdg-t-manga">Manga</span>
+                <span className="sb-chip bdg bdg-t-manhwa">Manhwa</span>
+                <span className="sb-chip bdg bdg-t-manhua">Manhua</span>
               </div>
             </div>
           </div>
