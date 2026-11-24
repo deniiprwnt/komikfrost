@@ -8,7 +8,7 @@
  * - Navigasi: network-first, jatuh ke /offline.html bila jaringan mati.
  */
 
-const VERSION = "v14";
+const VERSION = "v15";
 const STATIC_CACHE = `kf-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
