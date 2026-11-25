@@ -81,7 +81,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // langsung menampilkan daftar yang sama, bukan skeleton.
   const [boot] = useState<LatestPayload | null>(() => {
     if (parsePage(sp?.get("page")) !== 1) return null;
-    const qs = new URLSearchParams({ genre: slug, page: "1", orderby, limit: "16" });
+    const qs = new URLSearchParams({ genre: slug, page: "1", orderby, limit: "18" });
     if (tipe) qs.set("tipe", tipe);
     const path = `/api/latest?${qs}`;
     return peekApiCacheStale<LatestPayload>(path) ?? readApiSnapshot<LatestPayload>(path);
@@ -141,7 +141,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
         genre: slug,
         page: String(p),
         orderby,
-        limit: "16",
+        limit: "18",
       });
       if (tipe) qs.set("tipe", tipe);
       return qs;

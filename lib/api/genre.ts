@@ -85,7 +85,7 @@ export async function getMangaByGenre(
           hasNextPage: false,
         },
       shinigami: async () =>
-        (await tryEachSlug(slugs, (s) => fetchKiryuuByGenre(s, page, 15))) ?? {
+        (await tryEachSlug(slugs, (s) => fetchKiryuuByGenre(s, page, 18))) ?? {
           items: [] as MangaCard[],
           hasNextPage: false,
         },
@@ -120,7 +120,7 @@ export async function getMangaByGenre(
   // halaman berikut muncul lalu menampilkan halaman kosong. Bila tidak ada
   // sumber yang punya halaman berikut, semua kartu dikembalikan (tanpa potong).
   const more = Boolean(ku?.hasNextPage || sh?.hasNextPage);
-  const items = more ? merged.slice(0, 15) : merged;
+  const items = more ? merged.slice(0, 18) : merged;
   // Label genre/sinopsis kartu memakai aturan yang sama dengan beranda &
   // pencarian (completeCardsBounded); hasil resolusi di-cache bersama daftar lain.
   // Batas 6 dtk (route maxDuration 30): cukup untuk resolusi 15 kartu secara

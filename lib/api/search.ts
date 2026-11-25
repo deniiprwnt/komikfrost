@@ -11,7 +11,7 @@ import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
 
 /** Ukuran halaman per halaman UI: 16 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 18;
 const SHINI_PAGE_SIZE = PAGE_SIZE;
 
 /**

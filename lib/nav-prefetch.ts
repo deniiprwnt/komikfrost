@@ -17,7 +17,7 @@ const NAV_API: Record<string, string[]> = {
     "/api/latest?page=1&orderby=modified&limit=16",
     "/api/recommended",
   ],
-  "/terbaru": ["/api/latest?page=1&orderby=modified&limit=16"],
+  "/terbaru": ["/api/latest?page=1&orderby=modified&limit=18"],
   "/populer": ["/api/popular?period=harian"],
   "/genre": ["/api/genres"],
 };

@@ -67,7 +67,7 @@ function latestApiPath(sp: URLSearchParams | null, page: number): string {
   const qs = new URLSearchParams({
     page: String(page),
     orderby: parseOrderby(sp?.get("orderby") ?? null),
-    limit: "16",
+    limit: "18",
   });
   const tipe = initParam(sp, "tipe");
   const status = initParam(sp, "status");
@@ -171,7 +171,7 @@ function TerbaruContent() {
 
   const buildQs = useCallback(
     (p: number) => {
-      const qs = new URLSearchParams({ page: String(p), orderby, limit: "16" });
+      const qs = new URLSearchParams({ page: String(p), orderby, limit: "18" });
       if (tipe) qs.set("tipe", tipe);
       if (status) qs.set("status", status);
       if (genre1) qs.set("genre", genre1);
