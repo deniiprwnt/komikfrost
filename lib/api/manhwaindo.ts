@@ -145,6 +145,10 @@ function normalizeType(raw: unknown): KomikType | undefined {
 
 /** Token URL chapter: "62.384388" â†’ "62-384388"; param bawaan situs dipakai bila ada. */
 function chapterToken(raw: unknown, param?: unknown): string {
+  // Entri palsu dari situs (mis. numberRaw = judul komik, param = slug) tanpa
+  // satu angka pun bukan chapter: abaikan agar tak jadi "chapter terbaru".
+  const r = str(raw);
+  if (r && !/\d/.test(r)) return "";
   const p = str(param).toLowerCase().replace(/[^a-z0-9-]/g, "");
   if (p) return p;
   const m = str(raw).match(/\d+(?:[.,]\d+)*/);
@@ -242,7 +246,9 @@ function toCard(it: Row, extra: { altMatch?: boolean } = {}): MangaCard | null {
   for (const v of [proxiedImage(cover), cover]) if (v && !thumbs.includes(v)) thumbs.push(v);
   const type = normalizeType(it.type);
   const genre = Array.isArray(it.genres) ? str(it.genres[0]) : "";
-  const latest: Row | undefined = Array.isArray(it.latest) ? it.latest[0] : undefined;
+  const latest: Row | undefined = Array.isArray(it.latest)
+    ? (it.latest as Row[]).find((x) => chapterToken(x?.numberRaw, x?.param))
+    : undefined;
   const tok = latest ? chapterToken(latest.numberRaw, latest.param) : "";
   const ts = latest ? Date.parse(str(latest.postedAt)) : NaN;
   const altRaw = extra.altMatch ? str(it.altMatch) : "";
@@ -477,7 +483,8 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
   let all: Row[] = head;
   if (total > head.length && head.length > 0) {
     try {
-      const tok = chapterToken(head[0].numberRaw);
+      const topRow = head.find((h) => chapterToken(h.numberRaw, h.param));
+      const tok = topRow ? chapterToken(topRow.numberRaw) : "";
       if (tok) {
         const rr = await fetchData(`${path}/chapter-${tok}/__data.json`, { revalidate: 120 });
         const list: Row[] = Array.isArray(rr.node?.chapters) ? rr.node!.chapters : [];
