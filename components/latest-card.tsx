@@ -46,6 +46,17 @@ function guessPrevious(latest?: ChapterRef): ChapInfo | undefined {
   return { label: `${lm[1]}${n - 1}`, href: `${rm[1]}${n - 1}` };
 }
 
+/** Chapter sebelumnya yang sudah dibawa daftar (tanpa menunggu detail komik). */
+function prevFromRef(latest?: ChapterRef): ChapInfo | undefined {
+  const p = latest?.prev;
+  if (!p) return undefined;
+  return {
+    label: p.label,
+    href: chapterPathToRoute(p.url),
+    ...(typeof p.ts === "number" ? { ts: p.ts } : {}),
+  };
+}
+
 /**
  * Chapter terbaru + sebelumnya dari daftar chapter detail komik.
  * - Kartu punya chapter terbaru: dipakai apa adanya (waktunya dicari di detail),
@@ -154,11 +165,21 @@ function useChapters(item: MangaCard, visible: boolean): Resolved {
   }, [key, visible]);
 
   const base: ChapInfo | undefined = latestRef
-    ? { label: latestRef.label, href: chapterPathToRoute(latestRef.url) }
+    ? {
+        label: latestRef.label,
+        href: chapterPathToRoute(latestRef.url),
+        ...(typeof latestRef.ts === "number" ? { ts: latestRef.ts } : {}),
+      }
     : undefined;
+  const refPrev = prevFromRef(latestRef);
+  // Waktu dari daftar dipakai sebagai cadangan bila detail tak punya tanggalnya.
+  const withTs = (x: ChapInfo | undefined, fb: ChapInfo | undefined): ChapInfo | undefined =>
+    x && typeof x.ts !== "number" && fb && fb.href === x.href && typeof fb.ts === "number"
+      ? { ...x, ts: fb.ts }
+      : x;
   return {
-    latest: detail ? (detail.latest ?? base) : base,
-    prev: detail ? detail.prev : guessPrevious(latestRef),
+    latest: detail ? withTs(detail.latest, base) ?? base : base,
+    prev: detail ? withTs(detail.prev, refPrev) ?? refPrev : (refPrev ?? guessPrevious(latestRef)),
   };
 }
 

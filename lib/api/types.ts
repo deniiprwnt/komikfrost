@@ -72,6 +72,10 @@ export interface MangaCard {
 /** Referensi singkat chapter (label + path URL Komiku). */
 export interface ChapterRef {
   label: string;
+  /** Waktu rilis chapter (epoch ms) bila sudah diketahui dari daftar. */
+  ts?: number;
+  /** Chapter tepat di bawahnya (untuk baris kedua kartu daftar), bila diketahui. */
+  prev?: ChapterRef;
   /** path absolut Komiku, mis. "/blue-lock-chapter-360/" */
   url: string;
 }

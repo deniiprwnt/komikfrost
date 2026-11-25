@@ -326,11 +326,70 @@ async function fetchKiryuuFirstBySlug(mangaSlug: string): Promise<ChapterRef | n
   }
 }
 
+interface KiryuuRefs {
+  first?: ChapterRef;
+  latest?: ChapterRef;
+  prev?: ChapterRef;
+  latestSlug?: string;
+  prevSlug?: string;
+}
+
+/** Chapter tepat di bawah yang terbaru (untuk baris kedua kartu). */
+function prevRefOf(
+  mangaSlug: string,
+  list: KiryuuChapterLite[],
+  latest: ChapterRef | null,
+): { prev: ChapterRef; slug: string } | null {
+  const c = list[1];
+  if (!c) return null;
+  const r = chapterRefFrom(mangaSlug, c);
+  return r && r.label !== latest?.label ? { prev: r, slug: c.slug } : null;
+}
+
+/**
+ * Tanggal rilis chapter lewat WP REST `chapter?slug=a,b,c` (SATU request untuk
+ * semua kartu). API daftar chapter tema tidak membawa tanggal, jadi dulu waktu
+ * di kartu baru muncul setelah detail tiap komik di-scrape satu per satu.
+ * Dibatasi waktu agar daftar tidak ikut lambat; gagal = tanpa tanggal.
+ */
+async function attachChapterDates(found: Map<string, KiryuuRefs>): Promise<void> {
+  const slugs = new Set<string>();
+  for (const r of found.values()) {
+    if (r.latest && r.latestSlug) slugs.add(r.latestSlug);
+    if (r.prev && r.prevSlug) slugs.add(r.prevSlug);
+  }
+  if (!slugs.size) return;
+  try {
+    const arr = await Promise.race([
+      fetchWp<Array<{ slug?: string; date_gmt?: string }>>(
+        `${KIRYUU_WP}/chapter?slug=${[...slugs].map(encodeURIComponent).join(",")}&per_page=100&_fields=slug,date_gmt`,
+        600,
+      ),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2_000)),
+    ]);
+    if (!Array.isArray(arr)) return;
+    const ts = new Map<string, number>();
+    for (const c of arr) {
+      // `date_gmt` = UTC tanpa sufiks zona; tanpa "Z" JS membacanya sebagai waktu lokal.
+      const t = c?.slug && c.date_gmt ? Date.parse(`${c.date_gmt}Z`) : NaN;
+      if (c?.slug && Number.isFinite(t)) ts.set(c.slug, t);
+    }
+    for (const r of found.values()) {
+      const lt = r.latestSlug ? ts.get(r.latestSlug) : undefined;
+      if (r.latest && lt !== undefined) r.latest = { ...r.latest, ts: lt };
+      const pt = r.prevSlug ? ts.get(r.prevSlug) : undefined;
+      if (r.prev && pt !== undefined) r.prev = { ...r.prev, ts: pt };
+    }
+  } catch {
+    // Tanggal hanya pelengkap; kartu tetap tampil tanpa waktu.
+  }
+}
+
 async function fetchKiryuuChapterRefs(
   wpId: number,
   mangaSlug: string,
   withFirst: boolean,
-): Promise<{ first?: ChapterRef; latest?: ChapterRef }> {
+): Promise<KiryuuRefs> {
   try {
     if (!withFirst) {
       const arr = await fetchWp<KiryuuChapterLite[]>(
@@ -339,7 +398,13 @@ async function fetchKiryuuChapterRefs(
       );
       const list = Array.isArray(arr) ? sortByChapterDesc(mangaSlug, arr) : [];
       const latest = list[0] ? chapterRefFrom(mangaSlug, list[0]) : null;
-      return latest ? { latest } : {};
+      if (!latest) return {};
+      const p = prevRefOf(mangaSlug, list, latest);
+      return {
+        latest,
+        latestSlug: list[0].slug,
+        ...(p ? { prev: p.prev, prevSlug: p.slug } : {}),
+      };
     }
     const res = await fetchWp<{ data?: KiryuuChapterLite[]; pages?: number } | KiryuuChapterLite[]>(
       `${KIRYUU_BASE}/wp-json/kiru/v2/chapter?parent_id=${wpId}`,
@@ -354,7 +419,12 @@ async function fetchKiryuuChapterRefs(
     const first = complete
       ? chapterRefFrom(mangaSlug, list[list.length - 1])
       : await fetchKiryuuFirstBySlug(mangaSlug);
-    return { ...(first ? { first } : {}), ...(latest ? { latest } : {}) };
+    const p = prevRefOf(mangaSlug, list, latest);
+    return {
+      ...(first ? { first } : {}),
+      ...(latest ? { latest, latestSlug: list[0].slug } : {}),
+      ...(p ? { prev: p.prev, prevSlug: p.slug } : {}),
+    };
   } catch {
     // Chapter hanya pelengkap kartu; kegagalan upstream tidak boleh
     // menggagalkan daftar utama.
@@ -377,7 +447,7 @@ async function attachKiryuuChapters(
       (withFirst ? !it.firstChapter || !it.latestChapter : !it.latestChapter),
   );
   if (!todo.length) return items;
-  const found = new Map<string, { first?: ChapterRef; latest?: ChapterRef }>();
+  const found = new Map<string, KiryuuRefs>();
   const deadline = Date.now() + CHAPTER_BUDGET_MS;
   for (let i = 0; i < todo.length; i += CHAPTER_CONCURRENCY) {
     if (Date.now() >= deadline) break;
@@ -390,13 +460,14 @@ async function attachKiryuuChapters(
     });
   }
   if (!found.size) return items;
+  await attachChapterDates(found);
   return items.map((it) => {
     const refs = found.get(it.slug);
     if (!refs) return it;
     return {
       ...it,
       ...(refs.first ? { firstChapter: refs.first } : {}),
-      ...(refs.latest ? { latestChapter: refs.latest } : {}),
+      ...(refs.latest ? { latestChapter: refs.prev ? { ...refs.latest, prev: refs.prev } : refs.latest } : {}),
     };
   });
 }

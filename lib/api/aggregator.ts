@@ -1054,6 +1054,12 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
  * URL Komiku (native path) dibiarkan apa adanya.
  */
 export function rewriteShiniUrl<T extends ChapterRef>(ref: T, displaySlug: string): T {
+  // Chapter sebelumnya (baris kedua kartu) memakai slug asal yang sama, jadi
+  // ikut ditulis ulang agar tautannya tidak menunjuk slug sumber.
+  if (ref.prev) {
+    const prev = rewriteShiniUrl(ref.prev, displaySlug);
+    if (prev !== ref.prev) ref = { ...ref, prev };
+  }
   // UUID lama (Shinigami). Tidak dipakai lagi, dibiarkan untuk kompatibilitas.
   const m = ref.url.match(/^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-chapter-(.+?)\/?$/i);
   if (m) return { ...ref, url: `/${displaySlug}-chapter-${m[1]}/` };
