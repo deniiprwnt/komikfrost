@@ -28,55 +28,89 @@ function useSimilar(detail: MangaDetail | null) {
   // Dependensi primitif, BUKAN objek `detail` - dulu setiap kali load()
   // sukses (`detail` = objek baru) efek jalan ulang dan memicu 1 request
   // /api/genre walau slug/genre tidak berubah.
-  const firstGenre = detail?.genres[0]?.slug;
-  const secondGenre = detail?.genres[1]?.slug;
+  // Semua genre komik (maks 4) jadi satu kunci string agar dependensi tetap primitif.
+  const genreKey = (detail?.genres ?? [])
+    .slice(0, 4)
+    .map((g) => g.slug)
+    .filter(Boolean)
+    .join(",");
   const rawType = detail?.type?.toLowerCase();
   const tipe = rawType === "manga" || rawType === "manhwa" || rawType === "manhua" ? rawType : undefined;
   const currentSlug = detail?.slug;
   useEffect(() => {
-    if (!firstGenre || !currentSlug) {
+    const genres = genreKey ? genreKey.split(",") : [];
+    if (genres.length === 0 || !currentSlug) {
       setItems(null);
       return;
     }
-    // Cache memori / snapshot disk tampil seketika; data segar menyusul.
-    // Kecocokan ketat: tipe sama + genre 1 + genre 2, urut populer.
-    // Longgar (cadangan): tipe sama + genre 1 saja.
-    const buildPath = (withSecond: boolean): string => {
+    // /api/latest hanya menerima 2 filter genre, jadi tiap PASANGAN genre
+    // diminta sendiri (4 genre = 6 pasangan). Kandidat yang muncul di lebih
+    // banyak pasangan berarti cocok dengan lebih banyak genre -> skor tinggi.
+    const combos: string[][] = [];
+    if (genres.length === 1) combos.push([genres[0]]);
+    for (let i = 0; i < genres.length; i++) {
+      for (let j = i + 1; j < genres.length; j++) combos.push([genres[i], genres[j]]);
+    }
+    const buildPath = (combo: string[]): string => {
       const qs = new URLSearchParams({
         page: "1",
         orderby: "popular",
         limit: "18",
-        genre: firstGenre,
+        genre: combo[0],
       });
-      if (withSecond && secondGenre) qs.set("genre2", secondGenre);
+      if (combo[1]) qs.set("genre2", combo[1]);
       if (tipe) qs.set("tipe", tipe);
       return `/api/latest?${qs}`;
     };
-    const strictPath = buildPath(true);
-    const loosePath = buildPath(false);
-    const MIN_STRICT = 6;
-    const pick = (list: MangaCard[] | undefined): MangaCard[] =>
-      (list ?? []).filter((it) => it.slug !== currentSlug);
+    const paths = combos.map(buildPath);
+    const MIN_RESULTS = 6;
+    const rank = (lists: MangaCard[][]): MangaCard[] => {
+      const board = new Map<string, { item: MangaCard; score: number; pos: number }>();
+      for (const list of lists) {
+        list.forEach((item, idx) => {
+          if (item.slug === currentSlug) return;
+          const e = board.get(item.slug);
+          if (e) {
+            e.score += 1;
+            e.pos = Math.min(e.pos, idx);
+          } else {
+            board.set(item.slug, { item, score: 1, pos: idx });
+          }
+        });
+      }
+      return [...board.values()]
+        .sort((a, b) => b.score - a.score || a.pos - b.pos)
+        .map((e) => e.item);
+    };
     // Cache memori / snapshot disk tampil seketika; data segar menyusul.
-    const warm =
-      peekApiCacheStale<GenrePayload>(strictPath) ?? readApiSnapshot<GenrePayload>(strictPath);
-    setItems(warm?.items?.length ? pick(warm.items).slice(0, 12) : null);
+    const warmLists = paths
+      .map((p) => peekApiCacheStale<GenrePayload>(p) ?? readApiSnapshot<GenrePayload>(p))
+      .filter((w): w is GenrePayload => Boolean(w?.items?.length))
+      .map((w) => w.items);
+    setItems(warmLists.length ? rank(warmLists).slice(0, 12) : null);
     // Pindah slug membatalkan request lama (data komik lain).
     const ctrl = new AbortController();
     (async () => {
-      const strict = pick((await apiGet<GenrePayload>(strictPath, { signal: ctrl.signal })).items);
-      let result = strict;
-      if (strict.length < MIN_STRICT && secondGenre) {
-        const loose = pick((await apiGet<GenrePayload>(loosePath, { signal: ctrl.signal })).items);
-        const seen = new Set(strict.map((it) => it.slug));
-        result = [...strict, ...loose.filter((it) => !seen.has(it.slug))];
+      const settled = await Promise.allSettled(
+        paths.map((p) => apiGet<GenrePayload>(p, { signal: ctrl.signal })),
+      );
+      const lists = settled.flatMap((r) => (r.status === "fulfilled" ? [r.value.items ?? []] : []));
+      let result = rank(lists);
+      // Cadangan: terlalu sedikit yang cocok -> tambah dari genre pertama saja.
+      if (result.length < MIN_RESULTS && genres.length > 1) {
+        const loose = await apiGet<GenrePayload>(buildPath([genres[0]]), { signal: ctrl.signal });
+        const seen = new Set(result.map((it) => it.slug));
+        result = [
+          ...result,
+          ...(loose.items ?? []).filter((it) => it.slug !== currentSlug && !seen.has(it.slug)),
+        ];
       }
       if (!ctrl.signal.aborted) setItems(result.slice(0, 12));
     })().catch(() => {
       if (!ctrl.signal.aborted) setItems([]);
     });
     return () => ctrl.abort();
-  }, [firstGenre, secondGenre, tipe, currentSlug]);
+  }, [genreKey, tipe, currentSlug]);
   return items;
 }
 
