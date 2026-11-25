@@ -74,10 +74,10 @@ export function LatestGridSkeleton() {
   return (
     <div
       aria-hidden="true"
-      className="grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 lg:gap-y-6 xl:grid-cols-8"
+      className="grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 lg:gap-y-6 2xl:grid-cols-8"
     >
       {Array.from({ length: 16 }, (_, i) => (
-        <div key={i} className={`min-w-0 ${i >= 12 ? "hidden xl:flex" : "flex"}`}>
+        <div key={i} className={`min-w-0 ${i >= 12 ? "hidden 2xl:flex" : "flex"}`}>
           <GridCardSkeleton />
         </div>
       ))}
@@ -191,7 +191,7 @@ export function GenreGridSkeleton() {
       aria-hidden="true"
       className="grid min-w-0 grid-cols-2 gap-1.5 min-[420px]:gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
     >
-      {Array.from({ length: 24 }, (_, i) => (
+      {Array.from({ length: 60 }, (_, i) => (
         <div key={i} className="shimmer h-12 rounded-[var(--r-ctl)]" />
       ))}
     </div>
