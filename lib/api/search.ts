@@ -10,8 +10,9 @@ import { completeCardsBounded } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
 
-/** Ukuran halaman per halaman UI: 15 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
-const SHINI_PAGE_SIZE = 15;
+/** Ukuran halaman per halaman UI: 16 kartu (Komiku ±15-20/halaman upstream, Shinigami page_size 15). */
+const PAGE_SIZE = 16;
+const SHINI_PAGE_SIZE = PAGE_SIZE;
 
 /**
  * Skor relevansi judul terhadap kata kunci (0..1).
@@ -61,7 +62,7 @@ function rankByRelevance(cards: MergedMangaCard[], keyword: string): MergedManga
  * (satu judul = satu item), lalu urutkan berdasar relevansi kata kunci.
  * Tiap source di-fetch sesuai halaman UI:
  * Komiku ±15-20/halaman (pola /page/N/), Shinigami 15/halaman (?page=).
- * Tampil 15 kartu per halaman UI (gabungan dipotong di sini).
+ * Tampil 16 kartu per halaman UI (gabungan dipotong di sini).
  * hasNextPage = salah satu source masih punya halaman berikut.
  * Hasil yang sinopsisnya kosong (judul murni Komiku — HTML search
  * Komiku tidak memuat sinopsis) di-enrich dari halaman detailnya:
@@ -106,7 +107,7 @@ export async function searchManga(
   // Jumlah hasil gabungan SEBELUM dipotong ke ukuran halaman â€” UI memakai
   // ini untuk menampilkan "N hasil" (dulu jumlah tidak pernah dikirim).
   const total = ranked.length;
-  const items = more ? ranked.slice(0, 15) : ranked;
+  const items = more ? ranked.slice(0, PAGE_SIZE) : ranked;
   // Lengkapi genre/sinopsis dengan ATURAN YANG SAMA seperti beranda & detail
   // (completeCards): genre = genres[0] sumber prioritas tertinggi (bukan
   // Tema), sinopsis dipilih berdasarkan kualitas dengan fallback lintas

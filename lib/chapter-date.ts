@@ -67,3 +67,31 @@ export function chapterDateLabel(
   if (day === dayKey(now - 86_400_000)) return "Kemarin";
   return formatDateId(dateTs);
 }
+
+/**
+ * Label umur rilis chapter berbasis HARI (WIB):
+ * hari ini â†’ "5 menit" / "3 jam" (bila sumber memberi jam, bila hanya
+ * tanggal â†’ "Hari ini"), kemarin â†’ "Kemarin", lalu "2 hari", "1 minggu",
+ * "1 bulan", "1 tahun" (tanpa kata "lalu").
+ */
+export function chapterAgoLabel(ts: number, now: number = Date.now()): string {
+  const days = Math.max(
+    0,
+    Math.round(
+      (Date.parse(`${dayKey(now)}T00:00:00Z`) - Date.parse(`${dayKey(ts)}T00:00:00Z`)) / 86_400_000,
+    ),
+  );
+  if (days === 0) {
+    // Sumber yang hanya memberi tanggal (Komiku) = tepat awal hari WIB.
+    if ((ts + WIB_OFFSET_MS) % 86_400_000 === 0) return "Hari ini";
+    const mins = Math.max(0, Math.floor((now - ts) / 60_000));
+    if (mins < 1) return "baru saja";
+    if (mins < 60) return `${mins} menit`;
+    return `${Math.floor(mins / 60)} jam`;
+  }
+  if (days === 1) return "Kemarin";
+  if (days < 7) return `${days} hari`;
+  if (days < 30) return `${Math.floor(days / 7)} minggu`;
+  if (days < 365) return `${Math.floor(days / 30)} bulan`;
+  return `${Math.floor(days / 365)} tahun`;
+}

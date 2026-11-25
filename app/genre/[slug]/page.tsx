@@ -6,7 +6,7 @@ import { apiGet, peekApiCacheStale, readApiSnapshot, titleKey } from "@/lib/clie
 import { usePageTitle } from "@/lib/page-title";
 import { canonicalGenre } from "@/lib/api/genre-canonical";
 import type { MangaCard } from "@/lib/api/types";
-import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
+import { LatestCard, LatestCardsSkeleton } from "@/components/latest-card";
 import { GenreDetailRouteSkeleton } from "@/components/route-skeletons";
 import { Pagination } from "@/components/pagination";
 import { Select } from "@/components/select";
@@ -81,7 +81,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
   // langsung menampilkan daftar yang sama, bukan skeleton.
   const [boot] = useState<LatestPayload | null>(() => {
     if (parsePage(sp?.get("page")) !== 1) return null;
-    const qs = new URLSearchParams({ genre: slug, page: "1", orderby });
+    const qs = new URLSearchParams({ genre: slug, page: "1", orderby, limit: "16" });
     if (tipe) qs.set("tipe", tipe);
     const path = `/api/latest?${qs}`;
     return peekApiCacheStale<LatestPayload>(path) ?? readApiSnapshot<LatestPayload>(path);
@@ -141,6 +141,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
         genre: slug,
         page: String(p),
         orderby,
+        limit: "16",
       });
       if (tipe) qs.set("tipe", tipe);
       return qs;
@@ -293,16 +294,18 @@ function GenreDetailContent({ slug }: { slug: string }) {
         />
       </div>
 
-      {loading && <KomikListSkeleton count={8} />}
+      {loading && <LatestCardsSkeleton count={10} />}
       {error && <ErrorState message={error} onRetry={() => run(page)} />}
       {!loading && !error && items.length === 0 && (
         <EmptyState message={`Tidak ada komik genre "${title}" dari sumber data.`} />
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="stagger flex min-w-0 flex-col">
+          <div className="stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {items.map((item) => (
-              <KomikListCard key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
+              <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`} className="flex min-w-0">
+                <LatestCard item={item} />
+              </div>
             ))}
           </div>
           <Pagination page={page} hasNext={hasNext} pending={loading} onChange={goTo} />

@@ -7,7 +7,7 @@ import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { cardSig } from "@/lib/relative-time";
 import type { GenreRef, MangaCard } from "@/lib/api/types";
-import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
+import { LatestCard, LatestCardsSkeleton } from "@/components/latest-card";
 import { Pagination } from "@/components/pagination";
 import { Select } from "@/components/select";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -67,6 +67,7 @@ function latestApiPath(sp: URLSearchParams | null, page: number): string {
   const qs = new URLSearchParams({
     page: String(page),
     orderby: parseOrderby(sp?.get("orderby") ?? null),
+    limit: "16",
   });
   const tipe = initParam(sp, "tipe");
   const status = initParam(sp, "status");
@@ -170,7 +171,7 @@ function TerbaruContent() {
 
   const buildQs = useCallback(
     (p: number) => {
-      const qs = new URLSearchParams({ page: String(p), orderby });
+      const qs = new URLSearchParams({ page: String(p), orderby, limit: "16" });
       if (tipe) qs.set("tipe", tipe);
       if (status) qs.set("status", status);
       if (genre1) qs.set("genre", genre1);
@@ -445,7 +446,7 @@ function TerbaruContent() {
 
       {loading && (
         <div className="mt-3 sm:mt-4">
-          <KomikListSkeleton count={8} />
+          <LatestCardsSkeleton count={10} />
         </div>
       )}
       {error && <ErrorState message={error} onRetry={() => loadPage(page)} />}
@@ -454,9 +455,11 @@ function TerbaruContent() {
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="stagger mt-3 flex min-w-0 flex-col sm:mt-4">
+          <div className="stagger lc-grid mt-3 grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:mt-4 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {items.map((item) => (
-              <KomikListCard key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
+              <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`} className="flex min-w-0">
+                <LatestCard item={item} />
+              </div>
             ))}
           </div>
           <div className="mt-3 sm:mt-4">

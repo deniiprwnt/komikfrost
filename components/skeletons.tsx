@@ -12,7 +12,7 @@
  * Yang butuh hook (useParams / useSearchParams) ada di route-skeletons.tsx.
  */
 import { SectionHead } from "@/components/states";
-import { KomikListSkeleton } from "@/components/komik-list";
+import { LatestCardsSkeleton } from "@/components/latest-card";
 
 /* Daftar tidak lagi dibungkus panel: konten duduk langsung di atas halaman. */
 const SURFACE =
@@ -159,7 +159,7 @@ export function TerbaruSkeleton() {
         <SectionHead title="Komik Terbaru" />
         <FilterRowSkeleton count={5} />
         <div className="mt-3 sm:mt-4">
-          <KomikListSkeleton count={8} />
+          <LatestCardsSkeleton count={10} />
         </div>
       </section>
     </div>
@@ -215,7 +215,7 @@ export function GenreDetailSkeleton({ title }: { title: string }) {
     <div aria-busy="true" className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title={`Genre: ${title}`} />
       <FilterRowSkeleton count={2} />
-      <KomikListSkeleton count={8} />
+      <LatestCardsSkeleton count={10} />
     </div>
   );
 }
@@ -229,7 +229,7 @@ export function CariSkeleton({ withResults = false }: { withResults?: boolean })
       {withResults && (
         <>
           <div aria-hidden="true" className="shimmer h-5 w-48 rounded-md" />
-          <KomikListSkeleton count={8} />
+          <LatestCardsSkeleton count={10} />
         </>
       )}
     </div>

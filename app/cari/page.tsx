@@ -7,7 +7,8 @@ import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { CariRouteSkeleton } from "@/components/route-skeletons";
-import { KomikListCard, KomikListSkeleton } from "@/components/komik-list";
+import { Fragment } from "react";
+import { LatestCard, LatestCardsSkeleton } from "@/components/latest-card";
 import { Pagination } from "@/components/pagination";
 import { SearchSuggest } from "@/components/search-suggest";
 
@@ -286,7 +287,7 @@ function CariContent() {
         )}
       </div>
       {!q && <EmptyState message="Ketik judul komik pada kolom pencarian di atas." />}
-      {q && loading && !items?.length && <KomikListSkeleton count={8} />}
+      {q && loading && !items?.length && <LatestCardsSkeleton count={10} />}
       {error && <ErrorState message={error} onRetry={() => loadPage(q, page)} />}
       {!error && items && q && items.length === 0 && (
         <div className="flex min-w-0 flex-col items-center gap-2 py-10 text-center">
@@ -305,17 +306,19 @@ function CariContent() {
           <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">
             Ditemukan {total ?? items.length} judul
           </p>
-          <div className="stagger flex min-w-0 flex-col">
+          <div className="stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {items.map((item, idx) => (
-              <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
+              <Fragment key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
                 {item.exactMatch === false &&
                   (idx === 0 || items[idx - 1]?.exactMatch !== false) && (
-                    <p className="px-1 pb-1 pt-3 text-xs font-semibold text-muted dark:text-muted-dark">
+                    <p className="col-span-full px-1 pt-2 text-xs font-semibold text-muted dark:text-muted-dark">
                       Hasil mirip (tidak ada judul yang memuat semua kata kunci)
                     </p>
                   )}
-                <KomikListCard item={item} />
-              </div>
+                <div className="flex min-w-0">
+                  <LatestCard item={item} />
+                </div>
+              </Fragment>
             ))}
           </div>
           <div className="mt-3 sm:mt-4">

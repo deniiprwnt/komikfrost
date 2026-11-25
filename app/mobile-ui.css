@@ -88,7 +88,28 @@
   content-visibility: visible;
 }
 
+/* Grid kartu 2 kolom (HP): jumlah ganjil â†’ kartu terakhir disembunyikan agar  */
+/* baris terakhir tidak pincang. Dihitung per <div> (of-type) supaya judul      */
+/* "Hasil mirip" (<p>) di halaman Cari tidak ikut dihitung.                    */
+@media (max-width: 559px) {
+  .lc-grid > div:nth-of-type(odd):last-of-type {
+    display: none;
+  }
+}
+
 /* Chip chapter: satu-satunya elemen jenuh di atas cover. */
+/* Kartu grid /terbaru: cover menempel penuh di atas kartu; sudut atas dipotong */
+/* oleh kartu (overflow-hidden), jadi radius dan garis dalam cover dimatikan.    */
+.lc-card {
+  border-radius: calc(var(--r-cover) + 4px);
+}
+.lc-card .cover-tile {
+  border-radius: 0;
+}
+.lc-card .cover-tile::after {
+  box-shadow: none;
+}
+
 .cv-chip--chapter {
   background: var(--color-accent);
   color: #fff;
