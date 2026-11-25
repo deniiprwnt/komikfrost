@@ -1013,6 +1013,10 @@ async function buildRecommended(): Promise<MangaCard[]> {
   // (tipe/genre sumber pemenang). Hanya bagian yang tampil (urutan acak awal)
   // yang diperkaya; batas waktu menjaga beranda tetap cepat.
   await completeCardsBounded(shuffled, 2500);
+  // Kartu tanpa chapter terbaru (mis. Kiryuu bila endpoint chapter-nya lambat/gagal)
+  // dicarikan dari sumber lain, sama seperti Update terbaru. Urutan acak = urutan tampil,
+  // jadi kartu paling depan terisi lebih dulu bila batas waktu habis.
+  await fillMissingChapters(shuffled, 3000);
   return shuffled;
 }
 
