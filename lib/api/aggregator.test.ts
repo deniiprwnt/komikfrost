@@ -123,3 +123,37 @@ import { dedupeKeys, filterUnseenCards } from "./aggregator.ts";
   assert.equal(merged[0].synopsis, "Seorang pria mengulang hidupnya untuk ketiga kalinya dan berusaha mengubah takdir yang pernah menghancurkannya.");
 }
 console.log("aggregator.test (audit fallback): OK");
+
+/* ---- Disaster-Class Hero: tiga judul terjemahan berbeda, 3 sumber â†’ 1 kartu ---- */
+{
+  const { coverIdentity } = await import("./aggregator.ts");
+  const mk = (slug: string, title: string, thumb: string) => ({
+    slug, title, thumbnail: thumb, type: "Manhwa",
+    latestChapter: { label: "Chapter 198", url: `/${slug}-chapter-198/` },
+  });
+  const ki = mk("return-of-the-disaster-class-hero", "Return of the Disaster-Class Hero", "https://v7.kiryuu.to/a.jpg");
+  const mi = mk("resurrection-of-the-catastrophic-hero", "Resurrection of the Catastrophic Hero", "https://img2.bacamanga.io/f2/5e/abc.webp");
+  const kc = mk("a-disaster-class-hero-has-returned", "A Disaster-Class Hero Has Returned", "https://komikcast.top/p.jpg");
+  const other = mk("butler", "The Butler of the Swordmaster Family Was the Hero Emperor", "https://v7.kiryuu.to/b.jpg");
+  // Tanpa hash: Kiryuu + Komikcast tergabung lewat kata judul; ManhwaIndo belum.
+  const noHash = mergeCards({ shinigami: [ki, other] as never, komiku: [mi] as never, komikcast: [kc] as never });
+  assert.equal(noHash.length, 3);
+  // Dengan hash sampul: Kiryuu â‰ˆ ManhwaIndo (jarak 2) â†’ semuanya satu kartu.
+  const coverHash = new Map<string, string>([
+    [coverIdentity(ki.thumbnail), "b6ca5a3c0ff01234"],
+    [coverIdentity(mi.thumbnail), "b6ca5a3c0ff01237"], // beda 2 bit
+    [coverIdentity(other.thumbnail), "f0f00f0faaaa5555"],
+  ]);
+  const merged = mergeCards(
+    { shinigami: [ki, other] as never, komiku: [mi] as never, komikcast: [kc] as never },
+    { coverHash },
+  );
+  assert.equal(merged.length, 2, "Disaster-Class Hero harus 1 kartu, Butler tetap terpisah");
+  const hero = merged.find((c) => c.sources.length === 3);
+  assert.ok(hero, "kartu gabungan harus memuat ketiga sumber");
+  assert.equal(hero!.slug, "resurrection-of-the-catastrophic-hero", "slug tampilan = ManhwaIndo (prioritas)");
+  // Pengaman: satu sumber yang sama tidak pernah digabung lewat bukti ini.
+  const same = mergeCards({ shinigami: [ki, { ...mi, slug: "x" }] as never }, { coverHash });
+  assert.equal(same.length, 2);
+}
+console.log("aggregator.test (judul terjemahan lintas sumber): OK");

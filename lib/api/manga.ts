@@ -58,6 +58,7 @@ import {
   type MergedMangaDetail,
 } from "./aggregator";
 import { createKeyedCache, createTtlCache } from "./cache";
+import { mergeCardsDeep } from "./cover-hash";
 import { isMeaningfulSynopsis, pickBestSynopsis, splitAltTitles, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
 import type { ChapterRef, ComicSourceId, GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
@@ -606,7 +607,7 @@ export async function getLatest(page = 1): Promise<MangaCard[]> {
   for (const c of shiniCards) for (const k of dedupeKeys(c)) seen.add(k);
   const komikuCards = filterUnseenCards(komikuRes.data.komiku ?? [], seen);
   const kcCards = filterUnseenCards(kcRes.data.komikcast ?? [], seen);
-  const merged = mergeCards({
+  const merged = await mergeCardsDeep({
     komiku: komikuCards,
     shinigami: shiniCards,
     komikcast: kcCards,
@@ -795,7 +796,7 @@ async function buildLatestPaged(
   const komikuCards = filterUnseenCards(komikuPaged?.items ?? [], seen);
   const kcPaged = kcRes.data.komikcast;
   const kcCards = filterUnseenCards(kcPaged?.items ?? [], seen);
-  const merged = mergeCards({
+  const merged = await mergeCardsDeep({
     komiku: komikuCards,
     shinigami: shiniCards,
     komikcast: kcCards,
@@ -900,7 +901,7 @@ export async function getPopular(period: RankPeriod = "harian"): Promise<MangaCa
   for (const c of sh) for (const k of dedupeKeys(c)) seen.add(k);
   const ku = filterUnseenCards(data.komiku ?? [], seen);
   const kc = filterUnseenCards(data.komikcast ?? [], seen);
-  const merged = mergeCards({ komiku: ku, shinigami: sh, komikcast: kc });
+  const merged = await mergeCardsDeep({ komiku: ku, shinigami: sh, komikcast: kc });
   // "37,061 views" → 37061; tanpa angka (kartu murni Shinigami) → -1 (belakang).
   const viewsNum = (m: { views?: string }): number => {
     const digits = (m.views ?? "").replace(/[^0-9]/g, "");
@@ -1026,7 +1027,7 @@ async function buildRecommended(): Promise<MangaCard[]> {
   for (const c of sh) for (const k of dedupeKeys(c)) seen.add(k);
   const ku = filterUnseenCards(data.komiku ?? [], seen);
   const kc = filterUnseenCards(data.komikcast ?? [], seen);
-  const merged = mergeCards({
+  const merged = await mergeCardsDeep({
     komiku: ku,
     shinigami: sh,
     komikcast: kc,

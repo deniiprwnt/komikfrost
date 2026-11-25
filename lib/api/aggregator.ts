@@ -519,7 +519,36 @@ function absorbFallbackCard(winner: MangaCard, loser: MangaCard): MangaCard {
   return out;
 }
 
-export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): MergedMangaCard[] {
+/** Jarak Hamming maksimum dua dHash 64-bit agar sampul dianggap gambar yang sama. */
+export const COVER_HASH_MAX_DIST = 8;
+
+/** Jarak Hamming dua dHash 64-bit (string heksadesimal 16 karakter). */
+export function hashDistance(a: string, b: string): number {
+  if (a.length !== b.length) return 64;
+  let n = 0;
+  for (let i = 0; i < a.length; i++) {
+    let x = parseInt(a[i], 16) ^ parseInt(b[i], 16);
+    while (x) {
+      n += x & 1;
+      x >>= 1;
+    }
+  }
+  return n;
+}
+
+export interface MergeCardsOpts {
+  /**
+   * Hash visual (dHash 64-bit) sampul, dikunci `coverIdentity(url)`. Diisi
+   * oleh `mergeCardsDeep` (lib/api/cover-hash.ts). Tanpa ini Pass 3d hanya
+   * memakai bukti kata judul.
+   */
+  coverHash?: ReadonlyMap<string, string>;
+}
+
+export function mergeCards(
+  lists: Partial<Record<ComicSourceId, MangaCard[]>>,
+  opts: MergeCardsOpts = {},
+): MergedMangaCard[] {
   const groups = new Map<
     string,
     { cards: Partial<Record<ComicSourceId, MangaCard>>; pin?: MangaCard }
@@ -865,6 +894,126 @@ export function mergeCards(lists: Partial<Record<ComicSourceId, MangaCard[]>>): 
           }
           absorbed.add(lk);
         }
+      }
+    }
+  }
+  // Pass 3d: judul yang SAMA dari sumber BERBEDA dengan terjemahan judul yang
+  // berbeda total DAN file sampul berbeda (mis. Kiryuu "Return of the
+  // Disaster-Class Hero", ManhwaIndo "Resurrection of the Catastrophic Hero",
+  // Komikcast "A Disaster-Class Hero Has Returned"). Syarat dasar: sumber kedua
+  // grup TIDAK beririsan (satu sumber tidak memuat judul yang sama dua kali
+  // dengan nama lain), tipe tidak bertentangan, dan nomor chapter terbaru
+  // >= 3. Bukti (salah satu):
+  //  a) SAMPUL MIRIP SECARA VISUAL: jarak dHash <= COVER_HASH_MAX_DIST dan
+  //     chapter terbaru selisih <= 3 (sumber bisa tertinggal sedikit);
+  //  b) KATA JUDUL: chapter terbaru IDENTIK dan >= 3 kata bermakna sama
+  //     (setelah stem ringan "returned" -> "return") yang mencakup >= 60%
+  //     kata judul yang lebih pendek.
+  {
+    const STOP = new Set([
+      "the", "and", "for", "with", "his", "her", "that", "this", "from", "has", "have",
+      "was", "are", "its", "who", "into", "not", "but", "you", "your", "all",
+    ]);
+    const stem = (w: string): string => {
+      const s = w.replace(/(?:ed|es|s)$/, "");
+      return s.length >= 4 ? s : w;
+    };
+    const MIN_CH = 3 * CHAPTER_SUB_BASE;
+    const live = [...groups.keys()].filter((k) => !absorbed.has(k));
+    interface Info {
+      hi: number;
+      type?: KomikType;
+      toks: Set<string>;
+      hashes: string[];
+    }
+    const info = new Map<string, Info>();
+    const compSrc = new Map<string, Set<ComicSourceId>>();
+    for (const k of live) {
+      const g = groups.get(k)!;
+      const it: Info = { hi: -Infinity, toks: new Set(), hashes: [] };
+      const srcs = new Set<ComicSourceId>();
+      for (const s of SOURCE_PRIORITY) {
+        const c = g.cards[s];
+        if (!c) continue;
+        srcs.add(s);
+        const n = chapterNum(c.latestChapter?.label);
+        if (Number.isFinite(n)) it.hi = Math.max(it.hi, n);
+        it.type ??= normalizeKomikType(c.type);
+        for (const w of dedupeKey(c.title ?? "").split(" ")) {
+          if (w.length >= 3 && !STOP.has(w)) it.toks.add(stem(w));
+        }
+        if (opts.coverHash) {
+          for (const th of [c.thumbnail, ...(c.thumbnailCandidates ?? [])]) {
+            if (!th || isPlaceholderCover(th)) continue;
+            const h = opts.coverHash.get(coverIdentity(th));
+            if (h !== undefined && !it.hashes.includes(h)) it.hashes.push(h);
+          }
+        }
+      }
+      info.set(k, it);
+      compSrc.set(k, srcs);
+    }
+    const parent = new Map<string, string>(live.map((k) => [k, k]));
+    const find = (k: string): string => {
+      let r = k;
+      while (parent.get(r) !== r) r = parent.get(r)!;
+      return r;
+    };
+    const sameCover = (a: Info, b: Info): boolean =>
+      a.hashes.some((x) => b.hashes.some((y) => hashDistance(x, y) <= COVER_HASH_MAX_DIST));
+    const sameWords = (a: Info, b: Info): boolean => {
+      let shared = 0;
+      for (const w of a.toks) if (b.toks.has(w)) shared++;
+      return shared >= 3 && shared >= Math.ceil(Math.min(a.toks.size, b.toks.size) * 0.6);
+    };
+    for (let i = 0; i < live.length; i++) {
+      const ia = info.get(live[i])!;
+      if (!(ia.hi >= MIN_CH)) continue;
+      for (let j = i + 1; j < live.length; j++) {
+        const ib = info.get(live[j])!;
+        if (!(ib.hi >= MIN_CH)) continue;
+        if (ia.type && ib.type && ia.type !== ib.type) continue;
+        const diff = Math.abs(ia.hi - ib.hi);
+        if (diff > 3 * CHAPTER_SUB_BASE) continue;
+        const ra = find(live[i]);
+        const rb = find(live[j]);
+        if (ra === rb) continue;
+        const sa = compSrc.get(ra)!;
+        const sb = compSrc.get(rb)!;
+        if ([...sa].some((s) => sb.has(s))) continue;
+        const ok = sameCover(ia, ib) || (diff === 0 && sameWords(ia, ib));
+        if (!ok) continue;
+        parent.set(rb, ra);
+        compSrc.set(ra, new Set([...sa, ...sb]));
+      }
+    }
+    const comps = new Map<string, string[]>();
+    for (const k of live) {
+      const r = find(k);
+      const arr = comps.get(r);
+      if (arr) arr.push(k);
+      else comps.set(r, [k]);
+    }
+    for (const [, ks] of comps) {
+      if (ks.length < 2) continue;
+      // Penyerap = grup dengan sumber berprioritas tertinggi (judul/slug
+      // tampilan ikut aturan prioritas biasa).
+      const rankOf = (k: string): number => {
+        const g = groups.get(k)!;
+        const i = SOURCE_PRIORITY.findIndex((s) => g.cards[s]);
+        return i < 0 ? SOURCE_PRIORITY.length : i;
+      };
+      const ordered = [...ks].sort((a, b) => rankOf(a) - rankOf(b) || a.localeCompare(b));
+      const tg = groups.get(ordered[0])!;
+      for (const k of ordered.slice(1)) {
+        const g = groups.get(k)!;
+        for (const s of SOURCE_PRIORITY) {
+          const o = g.cards[s];
+          if (!o) continue;
+          const cur = tg.cards[s];
+          tg.cards[s] = cur ? absorbFallbackCard(cur, o) : o;
+        }
+        absorbed.add(k);
       }
     }
   }

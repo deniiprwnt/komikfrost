@@ -13,7 +13,8 @@
  */
 import { fetchGenres, fetchMangaByGenre } from "./manhwaindo";
 import { fetchKiryuuGenres, fetchKiryuuByGenre, fetchKiryuuLatest } from "./kiryuu";
-import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
+import { fetchAllSettled, normalizeTitle } from "./aggregator";
+import { mergeCardsDeep } from "./cover-hash";
 import { canonicalGenre, normalizeGenreList, upstreamGenreSlugs } from "./genre-canonical";
 import { completeCardsBounded } from "./manga";
 import type { GenreRef, PagedResult, MangaCard } from "./types";
@@ -95,7 +96,7 @@ export async function getMangaByGenre(
   const ku = data.komiku;
   const sh = data.shinigami;
   // 15 kartu per halaman UI, gabungan dua source dipotong di sini.
-  const mergedAll = mergeCards({ komiku: ku?.items ?? [], shinigami: sh?.items ?? [] });
+  const mergedAll = await mergeCardsDeep({ komiku: ku?.items ?? [], shinigami: sh?.items ?? [] });
   // mergeCards menaruh kartu Manhwaindo lebih dulu, sehingga kartu yang hanya
   // ada di Kiryuu selalu terpotong batas halaman. Selang-seling (2 lainnya :
   // 1 khusus Kiryuu) supaya daftar benar-benar berisi beberapa sumber.

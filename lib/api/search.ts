@@ -5,7 +5,8 @@
 import { searchMangaRemote } from "./manhwaindo";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchKiryuuRemote } from "./kiryuu";
-import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
+import { fetchAllSettled, normalizeTitle } from "./aggregator";
+import { mergeCardsDeep } from "./cover-hash";
 import { completeCardsBounded } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
 import type { MergedMangaCard } from "./aggregator";
@@ -87,7 +88,7 @@ export async function searchManga(
     },
     "search",
   );
-  const merged = mergeCards({
+  const merged = await mergeCardsDeep({
     komiku: data.komiku?.items ?? [],
     shinigami: data.shinigami?.items ?? [],
     komikcast: data.komikcast?.items ?? [],
