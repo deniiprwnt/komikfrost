@@ -152,6 +152,19 @@ function chapterToken(raw: unknown, param?: unknown): string {
 }
 
 const tokenLabel = (tok: string): string => `Chapter ${tok.replace(/-/g, ".")}`;
+
+/**
+ * Label chapter yang selalu berupa nomor. `param` situs kadang berisi slug
+ * ("regressor-instruction-manual"), bukan nomor; token seperti itu tetap sah
+ * untuk URL, tapi tidak boleh jadi label ("Chapter regressor.instruction...").
+ */
+function chapterLabelOf(tok: string, raw?: unknown): string {
+  if (/^\d+(?:-\d+)*$/.test(tok)) return tokenLabel(tok);
+  const m = str(raw).match(/\d+(?:[.,]\d+)*/);
+  if (m) return `Chapter ${m[0].replace(/,/g, ".")}`;
+  const t = tok.match(/(\d+(?:-\d+)*)$/);
+  return t ? tokenLabel(t[1]) : "Chapter";
+}
 const chapterUrl = (slug: string, tok: string): string => `/${slug}-chapter-${tok}/`;
 
 /** Label relatif ala Komiku ("5 menit lalu") â€” dihitung dari timestamp absolut. */
@@ -242,7 +255,7 @@ function toCard(it: Row, extra: { altMatch?: boolean } = {}): MangaCard | null {
     ...(type ? { type } : {}),
     ...(genre ? { genre } : {}),
     ...(Number.isFinite(ts) ? { updatedAt: agoLabel(ts), updatedAtTs: ts } : {}),
-    ...(tok ? { latestChapter: { label: tokenLabel(tok), url: chapterUrl(slug, tok) } } : {}),
+    ...(tok ? { latestChapter: { label: chapterLabelOf(tok, latest?.numberRaw), url: chapterUrl(slug, tok) } } : {}),
   };
 }
 
@@ -485,7 +498,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
     seen.add(tok);
     const date = chapterDateFromIso(c.postedAt);
     chapters.push({
-      title: tokenLabel(tok),
+      title: chapterLabelOf(tok, c.numberRaw),
       url: chapterUrl(sSlug, tok),
       ...(date ?? {}),
     });
@@ -516,7 +529,7 @@ export async function fetchMangaDetail(slug: string): Promise<MangaDetail> {
 
   const firstTok = n.firstChapter ? chapterToken(n.firstChapter.numberRaw, n.firstChapter.param) : "";
   const firstChapter: ChapterRef | undefined = firstTok
-    ? { label: tokenLabel(firstTok), url: chapterUrl(sSlug, firstTok) }
+    ? { label: chapterLabelOf(firstTok, n.firstChapter?.numberRaw), url: chapterUrl(sSlug, firstTok) }
     : chapters[chapters.length - 1]
       ? { label: chapters[chapters.length - 1].title, url: chapters[chapters.length - 1].url }
       : undefined;
@@ -576,7 +589,7 @@ export async function fetchChapter(
   }
   const mangaSlug = str(n.series?.slug) || parsed.mangaSlug;
   const curTok = chapterToken(n.chapter?.numberRaw, n.chapter?.param) || parsed.chapter;
-  const chapterLabel = tokenLabel(curTok);
+  const chapterLabel = chapterLabelOf(curTok, n.chapter?.numberRaw);
   const seriesTitle = str(n.series?.title);
   const nb = (x: Row | null | undefined): string | undefined => {
     const tok = x ? chapterToken(x.numberRaw, x.param) : "";
