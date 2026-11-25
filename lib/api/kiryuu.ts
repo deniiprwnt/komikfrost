@@ -486,7 +486,7 @@ export async function fetchKiryuuLatest(
     const arr = await fetchWp<WpManga[]>(url, 60, opts.fresh === true);
     const cards = Array.isArray(arr) ? arr : [];
     // Kartu "terbaru" hanya perlu label chapter terbaru → v1 (kecil).
-    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards), true);
+    const items = await attachKiryuuChapters(cards.map(toCard), wpIdMap(cards), false);
     return { items, hasNextPage: items.length >= pageSize };
   } catch (e) {
     if ((e as KomikuError).status === 400) return { items: [], hasNextPage: false };
