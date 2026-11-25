@@ -16,9 +16,9 @@
   --color-fg: #0c1413;
   --color-muted: #56676a;
 
-  --color-accent: #6553c9;
-  --color-accent-strong: #5442a8;
-  --color-accent-soft: #ece9f8;
+  --color-accent: #5b47d6;
+  --color-accent-strong: #4733b8;
+  --color-accent-soft: #e6e2fa;
 
   --color-gold: #a9710f;
 
@@ -37,8 +37,8 @@ html.dark {
   --color-fg-dark: #e9f0f0;
   --color-muted-dark: #8fa3a8;
 
-  --color-accent: #7060d0;
-  --color-accent-strong: #a89fe6;
+  --color-accent: #6a57e0;
+  --color-accent-strong: #b3a8ff;
   --color-accent-soft-dark: #211e3e;
 
   --color-gold: #e3b54f;

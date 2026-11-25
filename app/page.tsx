@@ -380,7 +380,7 @@ export default function HomePage() {
           <SectionHead title="Lanjut membaca" href="/riwayat" />
           <div className="rail-scroll rail-snap -mx-3 -mt-2 flex gap-3 overflow-x-auto px-3 pb-1 pt-2 sm:mx-0 sm:px-0">
             {history.slice(0, 10).map((h) => (
-              <div key={h.slug} className="flex w-[calc((100%-0.75rem)/2)] shrink-0 sm:w-[156px] lg:w-[168px]">
+              <div key={h.slug} className="flex w-[132px] shrink-0 sm:w-[156px] lg:w-[168px]">
                 <Link
                   href={h.route}
                   className="cv-auto group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 transition-colors hover:border-accent/50 dark:border-line-dark dark:bg-ink-2"

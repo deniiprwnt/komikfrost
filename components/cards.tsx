@@ -34,9 +34,8 @@ export function chapterPathToRoute(komikuPath: string): string {
   return `/baca/${m[1]}/${tok}`;
 }
 
-/* Gradien tonal halus (warna tipe â†’ versi lebih gelap) + kilau tipis di tepi atas.
-   Class ditulis utuh agar terdeteksi Tailwind. */
-const BADGE_SHEEN = "";
+/* (Dulu: gradien tonal halus, warna tipe â†’ versi lebih gelap) + kilau tipis di tepi atas.
+   Kini badge datar; lihat .bdg di theme.css.) */
 
 const TYPE_STYLE: Record<string, string> = {
   manga: "bdg bdg-t-manga",
@@ -67,7 +66,7 @@ export function TypeBadge({
       : "rounded-md px-1.5 py-0.5 text-[10px]";
   return (
     <span
-      className={`inline-block max-w-full shrink-0 truncate font-semibold capitalize leading-tight tracking-[0.01em] ${BADGE_SHEEN} ${shape} ${color} ${className}`}
+      className={`inline-block max-w-full shrink-0 truncate font-semibold capitalize leading-tight tracking-[0.01em] ${shape} ${color} ${className}`}
     >
       {type}
     </span>
@@ -120,7 +119,7 @@ export function SourceBadge({
         return (
           <span
             key={s}
-            className={`inline-block truncate rounded-md text-[10px] font-semibold capitalize leading-tight tracking-[0.01em] ${BADGE_SHEEN} ${
+            className={`inline-block truncate rounded-md text-[10px] font-semibold capitalize leading-tight tracking-[0.01em] ${
               shrink ? "min-w-0" : "shrink-0"
             } ${wide ? "min-w-[3.75rem] px-2.5 py-1 text-center sm:min-w-[4rem]" : "px-1.5 py-0.5"} ${color}`}
           >

@@ -74,6 +74,13 @@ nav[aria-label="Navigasi halaman"] button {
 nav[aria-label="Navigasi halaman"] button[aria-current="page"] {
   font-weight: 700;
 }
+/* Layar sentuh: target minimal 44px agar angka halaman mudah ditekan. */
+@media (pointer: coarse) {
+  nav[aria-label="Navigasi halaman"] button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
 
 /* ---- Popover filter (Select) -------------------------------------------------- */
 /* Sudut konsentris dengan kontrol (radius kontrol + padding daftar) dan satu    */
