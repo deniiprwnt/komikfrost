@@ -84,6 +84,24 @@ const CANON_NAMES = [
   "Video Games",
   "Villainess",
   "War",
+  // Genre nyata dari Manhwaindo/Kiryuu yang dulu terbuang karena belum
+  // terdaftar di sini.
+  "Yuri",
+  "Yaoi",
+  "Wuxia",
+  "Xianxia",
+  "Xuanhuan",
+  "Crime",
+  "Regression",
+  "Philosophical",
+  "Magical Girls",
+  "Post-Apocalyptic",
+  "Crossdressing",
+  "Reverse Harem",
+  "Parody",
+  "Mythology",
+  "Childhood Friends",
+  "Gyaru",
 ] as const;
 
 /** "Sci-Fi" â†’ "sci-fi", "Slice of Life" â†’ "slice-of-life". */
@@ -240,6 +258,44 @@ const ALIASES: Record<string, string> = {
   beladiri: "Martial Arts",
   "beladiri campuran": "Martial Arts",
   "ilmu bela diri": "Martial Arts",
+  // Varian bentuk jamak/ejaan lain yang sebelumnya tidak punya alias.
+  ghosts: "Ghost",
+  zombies: "Zombie",
+  vampires: "Vampire",
+  "super power": "Superpower",
+  superpower: "Superpower",
+  game: "Video Games",
+  games: "Video Games",
+  "video games": "Video Games",
+  office: "Office Workers",
+  fight: "Action",
+  martial: "Martial Arts",
+  fantas: "Fantasy",
+  traged: "Tragedy",
+  genderswap: "Gender Bender",
+  "gender swap": "Gender Bender",
+  bodyswap: "Gender Bender",
+  // Penanda demografis ala "Shoujo(G)" = genre dasarnya.
+  "shoujo g": "Shoujo",
+  shoujog: "Shoujo",
+  "shounen b": "Shounen",
+  shounenb: "Shounen",
+  "josei w": "Josei",
+  joseiw: "Josei",
+  "seinen m": "Seinen",
+  seinenm: "Seinen",
+  // Girls'/Boys' Love = Yuri/Yaoi.
+  "girls love": "Yuri",
+  "boys love": "Yaoi",
+  "post apocalyptic": "Post-Apocalyptic",
+  "magical girl": "Magical Girls",
+  "childhood friend": "Childhood Friends",
+  "reverse harem": "Reverse Harem",
+  // Genre yang sama di sumber berbeda digabung ke satu bentuk kanonis.
+  "shoujo ai": "Yuri",
+  "shounen ai": "Yaoi",
+  transmigration: "Reincarnation",
+  murim: "Wuxia",
 };
 
 const CANON_BY_KEY = new Map(CANONICAL_GENRES.map((g) => [keyOf(g.name), g]));
