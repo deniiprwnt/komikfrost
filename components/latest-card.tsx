@@ -313,16 +313,19 @@ export function LatestGrid({
   items,
   hasNext,
   className = "",
+  compact = false,
 }: {
   items: MangaCard[];
   hasNext: boolean;
   className?: string;
+  /** Untuk kolom sempit (detail komik): kartu lebih lebar, kolom lebih sedikit. */
+  compact?: boolean;
 }) {
-  const cols = useGridCols();
+  const cols = useGridCols(compact);
   const shown = fitToRows(items, cols, hasNext);
   return (
     <div
-      className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 ${className}`}
+      className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 ${compact ? "2xl:grid-cols-4" : "lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"} ${className}`}
     >
       {shown.map((item, idx) => (
         <Fragment key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>

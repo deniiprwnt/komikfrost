@@ -7,7 +7,8 @@ import { consumeCoverMorph, flyCover, prefersReducedMotion } from "@/lib/morph";
 import { usePageTitle } from "@/lib/page-title";
 import { readKey, useReadChapters } from "@/lib/history";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
-import { chapterPathToRoute, TypeBadge, UpdateRow } from "@/components/cards";
+import { chapterPathToRoute, TypeBadge } from "@/components/cards";
+import { LatestGrid } from "@/components/latest-card";
 import { ChapterDate } from "@/components/chapter-date";
 import { ErrorState, EmptyState } from "@/components/states";
 import { CoverImage } from "@/components/cover-image";
@@ -388,23 +389,19 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           dibungkus kartu + baris horizontal seperti section beranda.
           Gagal fetch = section hilang diam-diam, detail tetap utuh. */}
       {similar !== null && similar.length > 0 && detail.genres[0] && (
-        <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
-          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-            <h2 className="display-cond min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
+        <section className="min-w-0 lg:col-start-1">
+          <div className="section-head flex min-w-0 items-center justify-between gap-2">
+            <h2 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
               Serupa: {detail.genres[0].name}
             </h2>
             <Link
               href={`/genre/${detail.genres[0].slug}`}
-              className="shrink-0 rounded-[var(--r-ctl)] border border-line px-3.5 py-2 text-xs font-semibold text-accent hover:border-accent sm:py-1.5 dark:border-line-dark"
+              className="section-link shrink-0 text-[13px]"
             >
-              Lihat semua →
+              Lihat semua
             </Link>
           </div>
-          <div className="grid gap-x-6 2xl:grid-cols-2">
-            {similar.map((item) => (
-              <UpdateRow key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
-            ))}
-          </div>
+          <LatestGrid items={similar} hasNext={true} compact className="mt-3 sm:mt-4" />
         </section>
       )}
     </article>
