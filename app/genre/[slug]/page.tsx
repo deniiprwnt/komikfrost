@@ -272,7 +272,7 @@ function GenreDetailContent({ slug }: { slug: string }) {
   usePageTitle(`Genre: ${title}`);
 
   return (
-    <div ref={listTopRef} className="flex min-w-0 scroll-mt-[calc(var(--header-h)+0.5rem)] flex-col gap-3 sm:gap-4">
+    <div ref={listTopRef} className="panel flex min-w-0 scroll-mt-[calc(var(--header-h)+0.5rem)] flex-col gap-3 p-3 sm:gap-4 sm:p-4">
       <SectionHead title={`Genre: ${title}`} />
       {!loading && !error && items.length > 0 && (
         <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">

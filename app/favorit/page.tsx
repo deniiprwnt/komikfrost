@@ -100,7 +100,7 @@ export default function FavoritPage() {
   const updateCount = bookmarks.filter((b) => updates[b.slug]).length;
 
   return (
-    <section className="flex min-w-0 flex-col gap-3 sm:gap-4">
+    <section className="panel flex min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <SectionHead title="Favorit" />
