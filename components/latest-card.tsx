@@ -344,11 +344,19 @@ export function LatestGrid({
 }
 
 /** Skeleton kartu grid. Kolom grid harus sama dengan di app/terbaru/page.tsx. */
-export function LatestCardsSkeleton({ count = 10 }: { count?: number }) {
+export function LatestCardsSkeleton({
+  count = 10,
+  compact = false,
+}: {
+  count?: number;
+  compact?: boolean;
+}) {
   return (
     <div
       aria-hidden="true"
-      className="grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+      className={`grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 ${
+        compact ? "2xl:grid-cols-4" : "lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+      }`}
     >
       {Array.from({ length: count }, (_, i) => (
         <div

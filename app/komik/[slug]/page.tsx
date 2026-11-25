@@ -8,7 +8,7 @@ import { usePageTitle } from "@/lib/page-title";
 import { readKey, useReadChapters } from "@/lib/history";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
 import { chapterPathToRoute, TypeBadge } from "@/components/cards";
-import { LatestGrid } from "@/components/latest-card";
+import { LatestCardsSkeleton, LatestGrid } from "@/components/latest-card";
 import { ChapterDate } from "@/components/chapter-date";
 import { ErrorState, EmptyState } from "@/components/states";
 import { CoverImage } from "@/components/cover-image";
@@ -31,8 +31,19 @@ function useSimilar(detail: MangaDetail | null) {
   const firstGenre = detail?.genres[0]?.slug;
   const currentSlug = detail?.slug;
   useEffect(() => {
-    setItems(null);
-    if (!firstGenre || !currentSlug) return;
+    if (!firstGenre || !currentSlug) {
+      setItems(null);
+      return;
+    }
+    // Cache memori / snapshot disk tampil seketika; data segar menyusul.
+    const genrePath = `/api/genre/${encodeURIComponent(firstGenre)}`;
+    const warm =
+      peekApiCacheStale<GenrePayload>(genrePath) ?? readApiSnapshot<GenrePayload>(genrePath);
+    setItems(
+      warm?.items?.length
+        ? warm.items.filter((it) => it.slug !== currentSlug).slice(0, 12)
+        : null,
+    );
     // Pindah slug membatalkan request genre lama (data komik lain).
     const ctrl = new AbortController();
     apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(firstGenre)}`, {
@@ -388,7 +399,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       {/* Komik Serupa — 12 judul se-genre utama (tanpa judul saat ini),
           dibungkus kartu + baris horizontal seperti section beranda.
           Gagal fetch = section hilang diam-diam, detail tetap utuh. */}
-      {similar !== null && similar.length > 0 && detail.genres[0] && (
+      {detail.genres[0] && (similar === null || similar.length > 0) && (
         <section className="min-w-0 lg:col-start-1">
           <div className="section-head flex min-w-0 items-center justify-between gap-2">
             <h2 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
@@ -401,7 +412,13 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               Lihat semua
             </Link>
           </div>
-          <LatestGrid items={similar} hasNext={true} compact className="mt-3 sm:mt-4" />
+          {similar === null ? (
+            <div className="mt-3 sm:mt-4">
+              <LatestCardsSkeleton compact count={6} />
+            </div>
+          ) : (
+            <LatestGrid items={similar} hasNext={true} compact className="mt-3 sm:mt-4" />
+          )}
         </section>
       )}
     </article>
