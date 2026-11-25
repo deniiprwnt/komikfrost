@@ -169,6 +169,8 @@ export interface ChapterData {
   nextUrl?: string;
   /** path halaman detail komik, mis. "/manga/blue-lock/" */
   mangaUrl: string;
+  /** Source yang benar-benar menyajikan chapter ini (untuk badge riwayat). */
+  source?: ComicSourceId;
 }
 
 /** Hasil list berhalaman dari fragment api.komiku.org. */

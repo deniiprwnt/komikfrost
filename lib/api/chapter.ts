@@ -174,7 +174,7 @@ async function getChapterMerged(
           : src === "komikcast"
             ? await fetchKomikcastChapter(komikcastUrl)
             : await fetchChapter(komikuUrl, { nav: false });
-      return withMergedNav(data, merged, token);
+      return withMergedNav({ ...data, source: src }, merged, token);
     } catch (e) {
       lastErr = e;
     }

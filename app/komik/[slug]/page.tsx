@@ -22,6 +22,23 @@ interface GenrePayload {
   hasNextPage: boolean;
 }
 
+/** Seling kartu antar sumber (round-robin) agar satu sumber tidak mendominasi. */
+function mixSources(list: MangaCard[]): MangaCard[] {
+  const groups = new Map<string, MangaCard[]>();
+  for (const it of list) {
+    const k = it.latestSource ?? it.sources?.[0] ?? "?";
+    const g = groups.get(k);
+    if (g) g.push(it);
+    else groups.set(k, [it]);
+  }
+  const queues = [...groups.values()];
+  const out: MangaCard[] = [];
+  for (let i = 0; out.length < list.length; i++) {
+    for (const q of queues) if (q[i]) out.push(q[i]);
+  }
+  return out;
+}
+
 /** Komik Serupa (se-genre): 1 request ringan, gagal diam-diam tanpa merusak detail. */
 function useSimilar(detail: MangaDetail | null) {
   const [items, setItems] = useState<MangaCard[] | null>(null);
@@ -55,7 +72,7 @@ function useSimilar(detail: MangaDetail | null) {
       const qs = new URLSearchParams({
         page: "1",
         orderby: "popular",
-        limit: "18",
+        limit: "40",
         genre: combo[0],
       });
       if (combo[1]) qs.set("genre2", combo[1]);
@@ -64,7 +81,8 @@ function useSimilar(detail: MangaDetail | null) {
     };
     const paths = combos.map(buildPath);
     const MIN_RESULTS = 6;
-    const rank = (lists: MangaCard[][]): MangaCard[] => {
+    const rank = (lists: MangaCard[][]): MangaCard[] => mixSources(rankRaw(lists));
+    const rankRaw = (lists: MangaCard[][]): MangaCard[] => {
       const board = new Map<string, { item: MangaCard; score: number; pos: number }>();
       for (const list of lists) {
         list.forEach((item, idx) => {
