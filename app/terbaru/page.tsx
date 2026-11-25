@@ -7,7 +7,7 @@ import { usePageTitle } from "@/lib/page-title";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { cardSig } from "@/lib/relative-time";
 import type { GenreRef, MangaCard } from "@/lib/api/types";
-import { LatestCard, LatestCardsSkeleton } from "@/components/latest-card";
+import { LatestCardsSkeleton, LatestGrid } from "@/components/latest-card";
 import { Pagination } from "@/components/pagination";
 import { Select } from "@/components/select";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
@@ -455,13 +455,7 @@ function TerbaruContent() {
       )}
       {!loading && !error && items.length > 0 && (
         <>
-          <div className="stagger lc-grid mt-3 grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:mt-4 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-            {items.map((item) => (
-              <div key={`${item.slug}#${item.latestChapter?.url ?? ""}`} className="flex min-w-0">
-                <LatestCard item={item} />
-              </div>
-            ))}
-          </div>
+          <LatestGrid items={items} hasNext={hasNext} className="mt-3 sm:mt-4" />
           <div className="mt-3 sm:mt-4">
             <Pagination page={page} hasNext={hasNext} pending={loading} onChange={goTo} />
           </div>

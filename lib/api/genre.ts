@@ -27,7 +27,22 @@ export async function getGenres(): Promise<GenreRef[]> {
     },
     "genres",
   );
-  return normalizeGenreList([...(data.komiku ?? []), ...(data.shinigami ?? [])]);
+  // Normalisasi per sumber, lalu jumlah per genre = angka TERBESAR antar sumber.
+  // Menjumlahkan sumber menghitung ganda judul yang ada di keduanya (kelebihan
+  // hitung); angka terbesar mendekati jumlah judul unik. Komikcast tidak punya
+  // endpoint genre/jumlah, jadi tidak ikut.
+  const merged = new Map<string, GenreRef>();
+  for (const list of [data.komiku ?? [], data.shinigami ?? []]) {
+    for (const g of normalizeGenreList(list)) {
+      const ex = merged.get(g.slug);
+      if (!ex) {
+        merged.set(g.slug, { ...g });
+        continue;
+      }
+      if (typeof g.count === "number") ex.count = Math.max(ex.count ?? 0, g.count);
+    }
+  }
+  return [...merged.values()].sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
 
 /** Coba tiap varian slug upstream sampai salah satu mengembalikan item. */

@@ -7,8 +7,7 @@ import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { CariRouteSkeleton } from "@/components/route-skeletons";
-import { Fragment } from "react";
-import { LatestCard, LatestCardsSkeleton } from "@/components/latest-card";
+import { LatestCardsSkeleton, LatestGrid } from "@/components/latest-card";
 import { Pagination } from "@/components/pagination";
 import { SearchSuggest } from "@/components/search-suggest";
 
@@ -306,21 +305,7 @@ function CariContent() {
           <p className="-mt-1 text-xs text-muted sm:text-sm dark:text-muted-dark">
             Ditemukan {total ?? items.length} judul
           </p>
-          <div className="stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-            {items.map((item, idx) => (
-              <Fragment key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
-                {item.exactMatch === false &&
-                  (idx === 0 || items[idx - 1]?.exactMatch !== false) && (
-                    <p className="col-span-full px-1 pt-2 text-xs font-semibold text-muted dark:text-muted-dark">
-                      Hasil mirip (tidak ada judul yang memuat semua kata kunci)
-                    </p>
-                  )}
-                <div className="flex min-w-0">
-                  <LatestCard item={item} />
-                </div>
-              </Fragment>
-            ))}
-          </div>
+          <LatestGrid items={items} hasNext={hasNext} />
           <div className="mt-3 sm:mt-4">
             <Pagination page={page} hasNext={hasNext} pending={loading} onChange={goTo} />
           </div>

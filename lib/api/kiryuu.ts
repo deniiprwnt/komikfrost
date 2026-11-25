@@ -141,18 +141,19 @@ interface WpManga {
 
 function decodeEntities(s: string): string {
   return s
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8216;/g, "'")
-    .replace(/&#8220;/g, '"')
-    .replace(/&#8221;/g, '"')
-    .replace(/&#8211;/g, "â€“")
-    .replace(/&#8212;/g, "â€”")
-    .replace(/&amp;/g, "&")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    // Apostrof/kutip melengkung disamakan ke bentuk lurus (perilaku lama) agar
+    // judul tetap cocok dengan sumber lain saat dedupe/merge.
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/&hellip;/g, "…")
+    .replace(/&ndash;/g, "–")
+    .replace(/&mdash;/g, "—")
     .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&hellip;/g, "â€¦");
+    .replace(/&amp;/g, "&");
 }
 
 function normalizeType(raw?: string | null): KomikType | undefined {
@@ -489,7 +490,7 @@ export async function fetchKiryuuTop(pageSize = 10): Promise<MangaCard[]> {
 export async function fetchKiryuuGenres(): Promise<GenreRef[]> {
   const url = `${KIRYUU_WP}/genre?per_page=100&orderby=count&order=desc`;
   try {
-    const arr = await fetchWp<WpTerm[]>(url, 3600);
+    const arr = await fetchWp<WpTerm[]>(url, 300);
     if (!Array.isArray(arr)) return [];
     const out: GenreRef[] = [];
     const seen = new Set<string>();

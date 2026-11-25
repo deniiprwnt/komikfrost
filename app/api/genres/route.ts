@@ -6,5 +6,5 @@ export async function GET(req: NextRequest) {
   // Daftar genre jarang berubah — simpan 1 jam.
   const blocked = await guard(req);
   if (blocked) return blocked;
-  return handle(() => getGenres(), { revalidate: 3600, scope: "private" });
+  return handle(() => getGenres(), { revalidate: 300, scope: "private" });
 }

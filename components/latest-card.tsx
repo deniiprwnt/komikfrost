@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/client";
 import { chapterAgoLabel, parseDateId } from "@/lib/chapter-date";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
+import { fitToRows, useGridCols } from "@/lib/use-grid-cols";
 import { captureCoverMorph } from "@/lib/morph";
 import { useNowTick, useUpdatedLabel } from "@/lib/relative-time";
 import type { ChapterRef, MangaCard, MangaDetail } from "@/lib/api/types";
@@ -246,7 +247,9 @@ export function LatestCard({ item }: { item: MangaCard }) {
         </div>
 
         {(latest || prev) && (
-          <div className="mt-auto flex min-w-0 flex-col gap-1.5 px-2.5 pb-2.5 pt-2.5">
+          <div
+            className={`${latest && prev ? "mt-auto" : "mt-0"} flex min-w-0 flex-col gap-1.5 px-2.5 pb-2.5 pt-2.5`}
+          >
             {latest && (
               <Link
                 href={latest.href}
@@ -277,6 +280,42 @@ export function LatestCard({ item }: { item: MangaCard }) {
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * Grid kartu untuk /terbaru, /genre dan /cari. Jumlah kartu dipangkas ke
+ * kelipatan jumlah kolom aktif (selama masih ada halaman berikutnya) agar
+ * baris terakhir tidak menyisakan kartu yatim di desktop.
+ */
+export function LatestGrid({
+  items,
+  hasNext,
+  className = "",
+}: {
+  items: MangaCard[];
+  hasNext: boolean;
+  className?: string;
+}) {
+  const cols = useGridCols();
+  const shown = fitToRows(items, cols, hasNext);
+  return (
+    <div
+      className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 ${className}`}
+    >
+      {shown.map((item, idx) => (
+        <Fragment key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
+          {item.exactMatch === false && (idx === 0 || shown[idx - 1]?.exactMatch !== false) && (
+            <p className="col-span-full px-1 pt-2 text-xs font-semibold text-muted dark:text-muted-dark">
+              Hasil mirip (tidak ada judul yang memuat semua kata kunci)
+            </p>
+          )}
+          <div className="flex min-w-0">
+            <LatestCard item={item} />
+          </div>
+        </Fragment>
+      ))}
+    </div>
   );
 }
 

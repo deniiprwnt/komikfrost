@@ -430,7 +430,7 @@ export async function fetchHome(): Promise<HomeData> {
 /* ------------------------------------------------------------------ */
 
 export async function fetchGenres(): Promise<GenreRef[]> {
-  const r = await fetchData("/genre/__data.json", { revalidate: 3600 });
+  const r = await fetchData("/genre/__data.json", { revalidate: 300 });
   const out: GenreRef[] = [];
   for (const g of Array.isArray(r.node?.genres) ? (r.node!.genres as Row[]) : []) {
     const name = str(g.name);

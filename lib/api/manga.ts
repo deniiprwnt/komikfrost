@@ -60,7 +60,7 @@ import {
 import { createKeyedCache, createTtlCache } from "./cache";
 import { isMeaningfulSynopsis, pickBestSynopsis, splitAltTitles, synopsisQuality } from "./text";
 import { canonicalGenre, genreDisplayName, upstreamGenreSlugs } from "./genre-canonical";
-import type { ComicSourceId, GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
+import type { ChapterRef, ComicSourceId, GenreRef, MangaCard, MangaDetail, PagedResult } from "./types";
 
 /** Batas waktu kerja tambahan agar respons tidak tertahan upstream.
  *  Timer dibersihkan saat kerja asli selesai - versi lama memakai
@@ -442,6 +442,72 @@ function sanitizeCardLabels(c: MergedMangaCard): void {
   else delete (c as { type?: string }).type;
 }
 
+/* Kartu yang sumber daftarnya tidak punya data chapter (mis. Kiryuu saat ini:
+   endpoint chapter kosong) dicarikan chapter terbaru dari sumber lain lewat
+   pencocokan judul/alias. Cache singkat agar auto-refresh tidak menembak ulang. */
+type FoundChapter = { ref: ChapterRef; source: ComicSourceId };
+const chapterFillCache = new Map<string, { at: number; v: FoundChapter | null }>();
+const CHAPTER_FILL_TTL = 3 * 60_000;
+
+async function lookupLatestByTitle(title: string, altTitle?: string): Promise<FoundChapter | null> {
+  const key = aliasId([title, altTitle ?? ""]);
+  const hit = chapterFillCache.get(key);
+  if (hit && Date.now() - hit.at < CHAPTER_FILL_TTL) return hit.v;
+  const want = new Set(aliasKeys(title, altTitle));
+  let found: FoundChapter | null = null;
+  try {
+    for (const q of [title, altTitle].filter((x): x is string => Boolean(x))) {
+      const { items } = await searchMangaRemote(q, 1);
+      const m = items.find(
+        (k) => k.latestChapter && aliasKeys(k.title, k.altTitle).some((x) => want.has(x)),
+      );
+      if (m?.latestChapter) {
+        found = { ref: m.latestChapter, source: "komiku" };
+        break;
+      }
+    }
+  } catch {
+    // sumber ini gagal -> coba Komikcast
+  }
+  if (!found) {
+    try {
+      const kc = await kcBriefForTitles(title, altTitle);
+      if (kc) {
+        const d = await fetchKomikcastDetail(kc.slug);
+        if (d.latestChapter) found = { ref: d.latestChapter, source: "komikcast" };
+      }
+    } catch {
+      // tidak ditemukan / gangguan sementara
+    }
+  }
+  chapterFillCache.set(key, { at: Date.now(), v: found });
+  if (chapterFillCache.size > 500) {
+    const oldest = chapterFillCache.keys().next().value;
+    if (oldest !== undefined) chapterFillCache.delete(oldest);
+  }
+  return found;
+}
+
+async function fillMissingChapters(cards: MergedMangaCard[], ms: number): Promise<void> {
+  const todo = cards.filter((c) => !c.latestChapter && normalizeTitle(c.title));
+  if (todo.length === 0) return;
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < todo.length) {
+      const c = todo[next++];
+      const r = await lookupLatestByTitle(c.title, c.altTitle).catch(() => null);
+      if (r) {
+        c.latestChapter = r.ref;
+        c.latestSource = r.source;
+      }
+    }
+  };
+  await withTimeout(
+    Promise.all(Array.from({ length: Math.min(4, todo.length) }, worker)),
+    ms,
+  ).catch(() => null);
+}
+
 /**
  * completeCards dengan batas waktu + jaminan label: setelah batas waktu,
  * kartu yang belum dinormalisasi disanitasi (sanitizeCardLabels). Kerja
@@ -741,6 +807,7 @@ async function buildLatestPaged(
   // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
   // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
   await completeCardsBounded(items, opts.live ? 3000 : 4000);
+  await fillMissingChapters(items, opts.live ? 2500 : 3500);
   return { items, hasNextPage: hasNext, total };
 }
 
