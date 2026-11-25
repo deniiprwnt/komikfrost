@@ -635,6 +635,8 @@ export interface LatestOpts {
   status?: "ongoing" | "end" | null;
   /** Jumlah kartu yang dikembalikan (default 15 untuk /terbaru; beranda minta 16). */
   limit?: number | null;
+  /** Kartu cadangan di luar `limit` (hanya memperlebar potongan akhir). */
+  spare?: number | null;
   /**
    * Probe live: bypass SEMUA cache (memori latestCache + cache HTTP Next di
    * tiap source) sehingga hasil = kondisi sumber data saat ini. Dipakai
@@ -697,6 +699,7 @@ export async function getLatestPaged(
     opts.genre2 ? (canonicalGenre(opts.genre2)?.slug ?? opts.genre2) : "",
     opts.status ?? "",
     limit,
+    opts.spare ?? 0,
     opts.random ? "r" : "",
   ].join("|");
   // `live` = probe: jangan baca/tulis cache memori, langsung rakit ulang.
@@ -818,7 +821,7 @@ async function buildLatestPaged(
   // Jumlah kartu gabungan sebelum dipotong ke ukuran halaman (dipakai UI
   // untuk label jumlah hasil).
   const total = ordered.length;
-  const items = hasNext ? ordered.slice(0, limit) : ordered;
+  const items = hasNext ? ordered.slice(0, limit + Math.max(0, opts.spare ?? 0)) : ordered;
   // Perkaya kartu komikcast-only yang tampil — termasuk saat probe live.
   // Tanpa ini, halaman 1 yang selalu live=1 tidak pernah mendapat genre/
   // sinopsis untuk kartu Komikcast (hanya dari endpoint series yang kadang

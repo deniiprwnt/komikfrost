@@ -68,6 +68,7 @@ function latestApiPath(sp: URLSearchParams | null, page: number): string {
     page: String(page),
     orderby: parseOrderby(sp?.get("orderby") ?? null),
     limit: "18",
+    ...(page > 1 ? { spare: "4" } : {}),
   });
   const tipe = initParam(sp, "tipe");
   const status = initParam(sp, "status");
@@ -162,7 +163,8 @@ function TerbaruContent() {
         if (k && seen.has(k)) continue;
         out.push(item);
       }
-      setItems(out);
+      // Potong ke 18 setelah dedupe (server mengirim kartu cadangan di p>1).
+      setItems(out.slice(0, 18));
       setHasNext(next);
       setPage(p);
     },
@@ -172,6 +174,7 @@ function TerbaruContent() {
   const buildQs = useCallback(
     (p: number) => {
       const qs = new URLSearchParams({ page: String(p), orderby, limit: "18" });
+      if (p > 1) qs.set("spare", "4");
       if (tipe) qs.set("tipe", tipe);
       if (status) qs.set("status", status);
       if (genre1) qs.set("genre", genre1);

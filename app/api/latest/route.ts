@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
   // live=1 → probe auto-refresh: bypass cache memori + cache HTTP upstream,
   // dan jangan biarkan respons ini di-cache browser/CDN.
   const live = searchParams.get("live") === "1";
+  // spare = kartu cadangan di luar `limit` (untuk klien yang membuang duplikat
+  // antarhalaman lalu memotong sendiri ke `limit`). Tidak mengubah pageSize upstream.
+  const spare = Math.min(8, Math.max(0, parseInt(searchParams.get("spare") || "0", 10) || 0));
   // acak=1 → tampilan dikocok per kelompok sumber (Shinigami tetap di depan).
   // Pengambilan data tetap terurut agar pagination upstream koheren.
   const random = searchParams.get("acak") === "1";
@@ -63,6 +66,7 @@ export async function GET(req: NextRequest) {
         ...(genre2 ? { genre2 } : {}),
         ...(status ? { status } : {}),
         ...(limit !== 15 ? { limit } : {}),
+        ...(spare > 0 ? { spare } : {}),
         ...(live ? { live: true } : {}),
         ...(random ? { random: true } : {}),
       }),
