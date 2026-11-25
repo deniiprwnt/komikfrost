@@ -213,12 +213,12 @@ export function timeAgo(ts: number, now = Date.now()): string {
   // sekarang 15 dtk, jadi label detik tidak akurat lagi.
   if (s < 60) return "baru saja";
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} menit lalu`;
+  if (m < 60) return `${m} menit`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} jam lalu`;
+  if (h < 24) return `${h} jam`;
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d} hari lalu`;
+  if (d < 30) return `${d} hari`;
   const mo = Math.floor(d / 30);
-  if (mo < 12) return `${mo} bulan lalu`;
-  return `${Math.floor(mo / 12)} tahun lalu`;
+  if (mo < 12) return `${mo} bulan`;
+  return `${Math.floor(mo / 12)} tahun`;
 }

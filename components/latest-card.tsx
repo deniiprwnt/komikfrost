@@ -7,15 +7,20 @@ import { chapterAgoLabel, parseDateId } from "@/lib/chapter-date";
 import { useIntentPrefetch } from "@/lib/use-intent-prefetch";
 import { captureCoverMorph } from "@/lib/morph";
 import { useNowTick, useUpdatedLabel } from "@/lib/relative-time";
-import type { ChapterItem, ChapterRef, MangaCard, MangaDetail } from "@/lib/api/types";
+import type { ChapterRef, MangaCard, MangaDetail } from "@/lib/api/types";
 import { CoverImage } from "./cover-image";
 import { chapterPathToRoute, SourceBadge, TypeBadge } from "./cards";
 
-/** Chapter sebelumnya: label, tautan baca, dan waktu rilis (bila diketahui). */
-interface PrevInfo {
+/** Satu chapter di kartu: label, tautan baca, dan waktu rilis (bila diketahui). */
+interface ChapInfo {
   label: string;
   href: string;
-  ts?: number;
+  ts?: number | undefined;
+}
+
+interface Resolved {
+  latest?: ChapInfo | undefined;
+  prev?: ChapInfo | undefined;
 }
 
 /** Nomor chapter dari route baca "/baca/slug/11-2" â†’ 11.2. */
@@ -30,7 +35,7 @@ function routeNumber(route: string): number | undefined {
  * Tebakan sementara sebelum detail komik datang: nomor bulat terbaru âˆ’ 1
  * ("Chapter 317" â†’ "Chapter 316"), tanpa waktu. Nomor desimal tidak ditebak.
  */
-function guessPrevious(latest?: ChapterRef): PrevInfo | undefined {
+function guessPrevious(latest?: ChapterRef): ChapInfo | undefined {
   if (!latest) return undefined;
   const rm = chapterPathToRoute(latest.url).match(/^(\/baca\/[^/]+\/)(\d+)$/);
   const lm = latest.label.match(/^(.*?)(\d+)\s*$/);
@@ -40,25 +45,57 @@ function guessPrevious(latest?: ChapterRef): PrevInfo | undefined {
   return { label: `${lm[1]}${n - 1}`, href: `${rm[1]}${n - 1}` };
 }
 
-/** Chapter asli tepat di bawah chapter terbaru, dari daftar chapter detail. */
-function findPrevious(chapters: ChapterItem[] | undefined, latest: ChapterRef): PrevInfo | undefined {
-  const latestNum = routeNumber(chapterPathToRoute(latest.url));
-  if (latestNum === undefined || !chapters?.length) return undefined;
-  let best: { c: ChapterItem; n: number; href: string } | undefined;
-  for (const c of chapters) {
+/**
+ * Chapter terbaru + sebelumnya dari daftar chapter detail komik.
+ * - Kartu punya chapter terbaru: dipakai apa adanya (waktunya dicari di detail),
+ *   sebelumnya = nomor tertinggi di bawahnya.
+ * - Kartu TIDAK punya chapter terbaru (sumber daftar tidak memberinya): terbaru =
+ *   nomor tertinggi di detail.
+ * Detail tanpa chapter â†’ undefined (kartu tetap memakai tebakan).
+ */
+function resolveFromDetail(d: MangaDetail | undefined, latestRef?: ChapterRef): Resolved | undefined {
+  const list = (d?.chapters ?? []).map((c) => {
     const href = chapterPathToRoute(c.url);
-    const n = routeNumber(href);
-    if (n === undefined || n >= latestNum) continue;
-    if (!best || n > best.n) best = { c, n, href };
+    const ts = c.dateTs ?? parseDateId(c.date);
+    const info: ChapInfo = { label: c.title, href, ...(typeof ts === "number" ? { ts } : {}) };
+    return { n: routeNumber(href), info };
+  });
+  if (list.length === 0) return undefined;
+  const numbered = list.filter((x): x is { n: number; info: ChapInfo } => x.n !== undefined);
+  if (numbered.length === 0) {
+    return latestRef ? undefined : { latest: list[0]?.info, prev: list[1]?.info };
   }
-  if (!best) return undefined;
-  const ts = best.c.dateTs ?? parseDateId(best.c.date);
-  return { label: best.c.title, href: best.href, ...(typeof ts === "number" ? { ts } : {}) };
+
+  let top: number | undefined;
+  let latest: ChapInfo | undefined;
+  if (latestRef) {
+    const href = chapterPathToRoute(latestRef.url);
+    top = routeNumber(href);
+    const match = numbered.find((x) => x.info.href === href);
+    latest = {
+      label: latestRef.label,
+      href,
+      ...(typeof match?.info.ts === "number" ? { ts: match.info.ts } : {}),
+    };
+  } else {
+    let best = numbered[0];
+    for (const x of numbered) if (x.n > best.n) best = x;
+    top = best.n;
+    latest = best.info;
+  }
+
+  let prev: { n: number; info: ChapInfo } | undefined;
+  if (top !== undefined) {
+    for (const x of numbered) {
+      if (x.n < top && (!prev || x.n > prev.n)) prev = x;
+    }
+  }
+  return { latest, prev: prev?.info };
 }
 
 /* Cache modul + antrean: maksimal 3 permintaan detail bersamaan supaya satu
    halaman penuh kartu tidak menembak puluhan scrape sekaligus. */
-const prevCache = new Map<string, PrevInfo | null>();
+const detailCache = new Map<string, Resolved>();
 let active = 0;
 const waiting: Array<() => void> = [];
 
@@ -81,26 +118,30 @@ function release(): void {
   waiting.shift()?.();
 }
 
-/** Chapter sebelumnya + tanggal rilis; detail baru diambil saat kartu terlihat. */
-function usePrevChapter(item: MangaCard, visible: boolean): PrevInfo | undefined {
-  const latest = item.latestChapter;
-  const key = `${item.slug}#${latest?.url ?? ""}`;
-  const [resolved, setResolved] = useState<PrevInfo | null | undefined>(() => prevCache.get(key));
+/**
+ * Chapter terbaru + sebelumnya untuk satu kartu. Detail komik diambil saat
+ * kartu terlihat; sebelum itu (atau bila gagal) dipakai data kartu + tebakan.
+ */
+function useChapters(item: MangaCard, visible: boolean): Resolved {
+  const latestRef = item.latestChapter;
+  const key = `${item.slug}#${latestRef?.url ?? ""}`;
+  const [detail, setDetail] = useState<Resolved | undefined>(() => detailCache.get(key));
 
   useEffect(() => {
-    setResolved(prevCache.get(key));
-    if (!visible || !latest || prevCache.has(key)) return;
+    setDetail(detailCache.get(key));
+    if (!visible || detailCache.has(key)) return;
     let off = false;
     void (async () => {
       await acquire();
       try {
         if (off) return;
         const d = await apiGet<MangaDetail>(`/api/manga/${encodeURIComponent(item.slug)}`);
-        const info = findPrevious(d?.chapters, latest) ?? null;
-        prevCache.set(key, info);
-        if (!off) setResolved(info);
+        const r = resolveFromDetail(d, latestRef);
+        if (!r) return;
+        detailCache.set(key, r);
+        if (!off) setDetail(r);
       } catch {
-        // Gagal = tetap pakai tebakan tanpa waktu.
+        // Gagal = tetap pakai data kartu / tebakan.
       } finally {
         release();
       }
@@ -111,7 +152,13 @@ function usePrevChapter(item: MangaCard, visible: boolean): PrevInfo | undefined
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, visible]);
 
-  return resolved ?? guessPrevious(latest);
+  const base: ChapInfo | undefined = latestRef
+    ? { label: latestRef.label, href: chapterPathToRoute(latestRef.url) }
+    : undefined;
+  return {
+    latest: detail ? (detail.latest ?? base) : base,
+    prev: detail ? detail.prev : guessPrevious(latestRef),
+  };
 }
 
 /**
@@ -128,9 +175,8 @@ export function LatestCard({ item }: { item: MangaCard }) {
   const updated = useUpdatedLabel(item.updatedAt, item.updatedAtTs);
   const now = useNowTick();
   const sources = item.latestSource ? [item.latestSource] : item.sources?.slice(0, 1);
-  const latest = item.latestChapter;
 
-  // Detail (untuk chapter sebelumnya) hanya diambil setelah kartu mendekati layar.
+  // Detail (untuk chapter yang kosong / sebelumnya) hanya diambil setelah kartu mendekati layar.
   const coverRef = useRef<HTMLAnchorElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -153,7 +199,9 @@ export function LatestCard({ item }: { item: MangaCard }) {
     return () => io.disconnect();
   }, []);
 
-  const prev = usePrevChapter(item, visible);
+  const { latest, prev } = useChapters(item, visible);
+  const latestWhen =
+    updated || (latest && typeof latest.ts === "number" && now !== null ? chapterAgoLabel(latest.ts, now) : undefined);
   const prevWhen = prev && typeof prev.ts === "number" && now !== null ? chapterAgoLabel(prev.ts, now) : undefined;
 
   // Animasi cover terbang ke detail tetap jalan walau yang diklik judulnya.
@@ -201,13 +249,13 @@ export function LatestCard({ item }: { item: MangaCard }) {
           <div className="mt-auto flex min-w-0 flex-col gap-1.5 px-2.5 pb-2.5 pt-2.5">
             {latest && (
               <Link
-                href={chapterPathToRoute(latest.url)}
+                href={latest.href}
                 className="relative z-10 flex min-w-0 items-center justify-between gap-2 rounded-[var(--r-ctl)] bg-paper px-2.5 py-1.5 text-xs font-semibold text-fg transition-colors hover:text-accent dark:bg-ink-3 dark:text-fg-dark"
               >
                 <span className="min-w-0 truncate">{latest.label}</span>
-                {updated && (
+                {latestWhen && (
                   <span className="shrink-0 whitespace-nowrap text-[11px] font-medium tabular-nums text-muted dark:text-muted-dark">
-                    {updated.replace(/\s+lalu$/, "")}
+                    {latestWhen}
                   </span>
                 )}
               </Link>

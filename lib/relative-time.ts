@@ -94,16 +94,16 @@ export function formatAgo(ts: number, now: number): string {
   // kartu (puluhan re-render/detik di beranda).
   if (secs < 60) return "baru saja";
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins} menit lalu`;
+  if (mins < 60) return `${mins} menit`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} jam lalu`;
+  if (hours < 24) return `${hours} jam`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} hari lalu`;
+  if (days < 7) return `${days} hari`;
   const weeks = Math.floor(days / 7);
-  if (weeks < 5) return `${weeks} minggu lalu`;
+  if (weeks < 5) return `${weeks} minggu`;
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months} bulan lalu`;
-  return `${Math.floor(days / 365)} tahun lalu`;
+  if (months < 12) return `${months} bulan`;
+  return `${Math.floor(days / 365)} tahun`;
 }
 
 /**
@@ -140,5 +140,6 @@ export function useUpdatedLabel(updatedAt?: string, updatedAtTs?: number): strin
   if (now !== null && typeof updatedAtTs === "number" && Number.isFinite(updatedAtTs)) {
     return formatAgo(updatedAtTs, now);
   }
-  return updatedAt;
+  // Teks dari server (render pertama / respons lama) juga tanpa kata "lalu".
+  return updatedAt?.replace(/\s+lalu$/i, "");
 }
