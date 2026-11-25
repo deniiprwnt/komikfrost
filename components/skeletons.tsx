@@ -14,9 +14,12 @@
 import { SectionHead } from "@/components/states";
 import { LatestCardsSkeleton } from "@/components/latest-card";
 
-/* Panel pembungkus section â€” sama dengan halaman aslinya (kelas `panel` di theme.css). */
-const SURFACE = "panel p-3 sm:p-4";
-const PANEL = "panel p-3 sm:p-4";
+/* Daftar tidak lagi dibungkus panel: konten duduk langsung di atas halaman. */
+const SURFACE =
+  "";
+/** Riwayat & Favorit tetap berupa kartu panel. */
+const PANEL =
+  "";
 
 /* ------------------------------------------------------------------ */
 /* Potongan dasar                                                       */
@@ -117,7 +120,7 @@ function FilterRowSkeleton({ count }: { count: number }) {
 export function HomeSkeleton() {
   return (
     <div className="flex min-w-0 flex-col gap-10 sm:gap-14 lg:gap-16" aria-busy="true">
-      <section className="panel min-w-0 p-3 sm:p-4">
+      <section className="min-w-0">
         <div className="section-head mb-1 flex items-end justify-between gap-3">
           <h1 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
             Peringkat harian
@@ -128,12 +131,12 @@ export function HomeSkeleton() {
         </div>
       </section>
 
-      <section className="panel min-w-0 p-3 sm:p-4">
+      <section className="min-w-0">
         <SectionHead title="Update terbaru" href="/terbaru" />
         <LatestGridSkeleton />
       </section>
 
-      <section className="panel grid min-w-0 gap-4 p-3 sm:p-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)]">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start">
           <h2 className="section-title text-fg dark:text-fg-dark">Rekomendasi</h2>
           <p className="mt-3 hidden text-sm leading-relaxed text-muted lg:block dark:text-muted-dark">
@@ -209,7 +212,7 @@ export function GenreListSkeleton() {
 /** /genre/[slug] — `title` = nama genre yang sudah di-Title-Case. */
 export function GenreDetailSkeleton({ title }: { title: string }) {
   return (
-    <div aria-busy="true" className="panel flex min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <div aria-busy="true" className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title={`Genre: ${title}`} />
       <FilterRowSkeleton count={2} />
       <LatestCardsSkeleton count={10} />
@@ -220,7 +223,7 @@ export function GenreDetailSkeleton({ title }: { title: string }) {
 /** /cari — `withResults` bila URL punya ?q= (daftar hasil akan muncul). */
 export function CariSkeleton({ withResults = false }: { withResults?: boolean }) {
   return (
-    <div aria-busy="true" className="panel flex min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <div aria-busy="true" className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title="Pencarian" />
       <div aria-hidden="true" className="shimmer h-12 w-full rounded-[var(--r-ctl)] sm:h-14" />
       {withResults && (
@@ -295,7 +298,7 @@ export function RiwayatSkeleton({ count = 6 }: { count?: number }) {
 export function DetailSkeleton() {
   return (
     <div aria-hidden="true" className="mx-auto flex w-full min-w-0 flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-      <div className="flex min-w-0 flex-col gap-3 panel p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
+      <div className="flex min-w-0 flex-col gap-3 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
         <div data-cover-slot className="shimmer mx-auto aspect-[3/4] w-32 shrink-0 rounded-[var(--r-cover)] min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52" />
         <div className="min-w-0 flex-1 space-y-2.5">
           <div className="shimmer h-5 w-16 rounded-md" />
@@ -318,7 +321,7 @@ export function DetailSkeleton() {
           </div>
         </div>
       </div>
-      <div className="panel p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
+      <div className="rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
         <div className="shimmer mb-2 h-5 w-28 rounded-md" />
         <div className="space-y-2">
           <div className="shimmer h-3.5 w-full rounded-md" />
@@ -326,7 +329,7 @@ export function DetailSkeleton() {
           <div className="shimmer h-3.5 w-2/3 rounded-md" />
         </div>
       </div>
-      <div className="panel p-3 sm:p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 dark:border-line-dark dark:bg-ink-2">
+      <div className="rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 dark:border-line-dark dark:bg-ink-2">
         <div className="shimmer mb-2 h-5 w-36 rounded-md" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (

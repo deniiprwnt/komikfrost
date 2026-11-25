@@ -246,7 +246,7 @@ function CariContent() {
   }, [draft, q, router]);
 
   return (
-    <div className="panel flex min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title="Pencarian" />
       <form
         role="search"

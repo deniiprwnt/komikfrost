@@ -167,7 +167,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
   return (
     <article className="morph-in mx-auto flex w-full min-w-0 flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_440px]">
       {/* Header: cover + info */}
-      <div className="flex min-w-0 flex-col gap-3 panel p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
+      <div className="flex min-w-0 flex-col gap-3 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 min-[420px]:p-4 sm:flex-row sm:gap-5 lg:col-start-1 lg:p-5 dark:border-line-dark dark:bg-ink-2">
         <div data-cover-slot className="cover-tile relative mx-auto aspect-[3/4] w-32 shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 min-[420px]:w-40 sm:mx-0 sm:w-44 sm:self-start lg:w-52 dark:bg-ink-3">
           <CoverImage src={detail.cover} alt={detail.title} title={detail.title} priority label="Cover tidak tersedia" className="block h-full w-full object-cover" />
         </div>
@@ -279,7 +279,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
 
       {/* Sinopsis — dibungkus kartu seperti section beranda */}
       {detail.synopsis && (
-        <section className="min-w-0 panel p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
+        <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
           <h2 className="display-cond mb-2 truncate text-xl text-fg dark:text-fg-dark">
             Sinopsis
           </h2>
@@ -290,7 +290,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
       )}
 
       {/* Daftar chapter — kolom kanan yang menempel saat scroll di desktop */}
-      <section className="min-w-0 panel p-3 sm:p-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:row-span-3 dark:border-line-dark dark:bg-ink-2">
+      <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:row-span-3 dark:border-line-dark dark:bg-ink-2">
         {/* Judul + tombol urut di baris atas; pencarian penuh selebar kartu di bawahnya. */}
         <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="display-cond order-1 min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
@@ -388,7 +388,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           dibungkus kartu + baris horizontal seperti section beranda.
           Gagal fetch = section hilang diam-diam, detail tetap utuh. */}
       {similar !== null && similar.length > 0 && detail.genres[0] && (
-        <section className="min-w-0 panel p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
+        <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <h2 className="display-cond min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
               Serupa: {detail.genres[0].name}

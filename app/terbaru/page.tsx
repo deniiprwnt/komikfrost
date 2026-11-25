@@ -398,7 +398,7 @@ function TerbaruContent() {
 
   return (
     <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
-      <section className="panel min-w-0 p-3 sm:p-4">
+      <section className="min-w-0">
         <div ref={listTopRef} className="scroll-mt-[calc(var(--header-h)+0.5rem)]">
           <SectionHead title="Komik Terbaru" />
         </div>

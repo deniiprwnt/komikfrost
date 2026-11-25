@@ -318,7 +318,7 @@ export default function HomePage() {
   return (
     <div className="flex min-w-0 flex-col gap-10 sm:gap-14 lg:gap-16">
       {/* Peringkat harian: daftar 1–10, dua kolom di layar lebar (urut ke bawah per kolom) */}
-      <section className="panel min-w-0 p-3 sm:p-4">
+      <section className="min-w-0">
         <div className="section-head mb-1 flex items-center justify-between gap-3">
           <h1 className="section-title min-w-0 flex-1 truncate text-fg dark:text-fg-dark">
             Peringkat harian
@@ -376,7 +376,7 @@ export default function HomePage() {
 
       {/* Terakhir dibaca — hanya tampil bila ada riwayat di perangkat ini */}
       {history.length > 0 && (
-        <section className="panel min-w-0 p-3 sm:p-4">
+        <section className="min-w-0">
           <SectionHead title="Lanjut membaca" href="/riwayat" />
           <div className="rail-scroll rail-snap -mx-3 -mt-2 flex gap-3 overflow-x-auto px-3 pb-1 pt-2 sm:mx-0 sm:px-0">
             {history.slice(0, 10).map((h) => (
@@ -415,7 +415,7 @@ export default function HomePage() {
       )}
 
       {/* Update terbaru — grid seragam: 12 judul (16 di layar sangat lebar) */}
-      <section className="panel min-w-0 p-3 sm:p-4">
+      <section className="min-w-0">
         <SectionHead title="Update terbaru" href="/terbaru" />
         {!latest.data && !latest.error && <LatestGridSkeleton />}
         {latest.error && <ErrorState message={latest.error} onRetry={() => latest.load(true)} />}
@@ -437,7 +437,7 @@ export default function HomePage() {
       </section>
 
       {/* Rekomendasi — judul di kolom kiri (desktop), cover berjajar di rail */}
-      <section className="panel grid min-w-0 gap-4 p-3 sm:p-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)]">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start">
           <h2 className="section-title text-fg dark:text-fg-dark">
             Rekomendasi

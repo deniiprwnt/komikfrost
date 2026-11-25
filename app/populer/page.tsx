@@ -102,7 +102,7 @@ function PopulerContent() {
   useAutoRefresh(silentCheck, 120_000);
 
   return (
-    <section className="panel flex min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <section className="flex min-w-0 flex-col gap-3 sm:gap-4">
       <SectionHead title="Peringkat Komik" />
       <div className="rail-scroll -mx-3 flex gap-1.5 overflow-x-auto px-3 pb-0.5 sm:mx-0 sm:px-0">
         {PERIODS.map((p) => {

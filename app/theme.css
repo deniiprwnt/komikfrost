@@ -277,29 +277,3 @@ html.dark {
     min-height: 0;
   }
 }
-
-/* ---- Panel (kartu pembungkus section) ------------------------------------------- */
-/* Satu definisi untuk semua halaman + skeleton-nya. Garis dan bayangan diturunkan   */
-/* dari warna teks, jadi tetap terlihat di tema terang maupun gelap. Kartu di dalam  */
-/* panel (.lc-card, input) memakai warna latar halaman supaya tidak menyatu.         */
-.panel {
-  background: var(--color-paper-2);
-  border: 1px solid color-mix(in srgb, var(--color-fg) 14%, transparent);
-  border-radius: calc(var(--r-ctl) + 4px);
-  box-shadow: 0 1px 2px rgb(12 20 19 / 0.05);
-}
-html.dark .panel {
-  background: var(--color-ink-2);
-  border-color: color-mix(in srgb, var(--color-fg-dark) 14%, transparent);
-  box-shadow: none;
-}
-.panel .lc-card,
-.panel .search-field {
-  background: var(--color-paper);
-  border-color: color-mix(in srgb, var(--color-fg) 11%, transparent);
-}
-html.dark .panel .lc-card,
-html.dark .panel .search-field {
-  background: var(--color-ink);
-  border-color: color-mix(in srgb, var(--color-fg-dark) 12%, transparent);
-}
