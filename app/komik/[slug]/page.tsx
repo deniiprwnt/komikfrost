@@ -29,6 +29,9 @@ function useSimilar(detail: MangaDetail | null) {
   // sukses (`detail` = objek baru) efek jalan ulang dan memicu 1 request
   // /api/genre walau slug/genre tidak berubah.
   const firstGenre = detail?.genres[0]?.slug;
+  const secondGenre = detail?.genres[1]?.slug;
+  const rawType = detail?.type?.toLowerCase();
+  const tipe = rawType === "manga" || rawType === "manhwa" || rawType === "manhua" ? rawType : undefined;
   const currentSlug = detail?.slug;
   useEffect(() => {
     if (!firstGenre || !currentSlug) {
@@ -36,29 +39,44 @@ function useSimilar(detail: MangaDetail | null) {
       return;
     }
     // Cache memori / snapshot disk tampil seketika; data segar menyusul.
-    const genrePath = `/api/genre/${encodeURIComponent(firstGenre)}`;
-    const warm =
-      peekApiCacheStale<GenrePayload>(genrePath) ?? readApiSnapshot<GenrePayload>(genrePath);
-    setItems(
-      warm?.items?.length
-        ? warm.items.filter((it) => it.slug !== currentSlug).slice(0, 12)
-        : null,
-    );
-    // Pindah slug membatalkan request genre lama (data komik lain).
-    const ctrl = new AbortController();
-    apiGet<GenrePayload>(`/api/genre/${encodeURIComponent(firstGenre)}`, {
-      signal: ctrl.signal,
-    })
-      .then((res) => {
-        if (!ctrl.signal.aborted) {
-          setItems(res.items.filter((it) => it.slug !== currentSlug).slice(0, 12));
-        }
-      })
-      .catch(() => {
-        if (!ctrl.signal.aborted) setItems([]);
+    // Kecocokan ketat: tipe sama + genre 1 + genre 2, urut populer.
+    // Longgar (cadangan): tipe sama + genre 1 saja.
+    const buildPath = (withSecond: boolean): string => {
+      const qs = new URLSearchParams({
+        page: "1",
+        orderby: "popular",
+        limit: "18",
+        genre: firstGenre,
       });
+      if (withSecond && secondGenre) qs.set("genre2", secondGenre);
+      if (tipe) qs.set("tipe", tipe);
+      return `/api/latest?${qs}`;
+    };
+    const strictPath = buildPath(true);
+    const loosePath = buildPath(false);
+    const MIN_STRICT = 6;
+    const pick = (list: MangaCard[] | undefined): MangaCard[] =>
+      (list ?? []).filter((it) => it.slug !== currentSlug);
+    // Cache memori / snapshot disk tampil seketika; data segar menyusul.
+    const warm =
+      peekApiCacheStale<GenrePayload>(strictPath) ?? readApiSnapshot<GenrePayload>(strictPath);
+    setItems(warm?.items?.length ? pick(warm.items).slice(0, 12) : null);
+    // Pindah slug membatalkan request lama (data komik lain).
+    const ctrl = new AbortController();
+    (async () => {
+      const strict = pick((await apiGet<GenrePayload>(strictPath, { signal: ctrl.signal })).items);
+      let result = strict;
+      if (strict.length < MIN_STRICT && secondGenre) {
+        const loose = pick((await apiGet<GenrePayload>(loosePath, { signal: ctrl.signal })).items);
+        const seen = new Set(strict.map((it) => it.slug));
+        result = [...strict, ...loose.filter((it) => !seen.has(it.slug))];
+      }
+      if (!ctrl.signal.aborted) setItems(result.slice(0, 12));
+    })().catch(() => {
+      if (!ctrl.signal.aborted) setItems([]);
+    });
     return () => ctrl.abort();
-  }, [firstGenre, currentSlug]);
+  }, [firstGenre, secondGenre, tipe, currentSlug]);
   return items;
 }
 
