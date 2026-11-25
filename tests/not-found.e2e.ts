@@ -27,6 +27,6 @@ test("404: slug tidak ada dan path tanpa route menampilkan halaman tidak ketemu"
 
   // Path yang benar-benar tidak cocok route mana pun → not-found.tsx.
   await app.open("/route-yang-tidak-ada-xyz-404");
-  await expect(screen.getByText("Halaman tidak ketemu")).toBeVisible({ timeout: 30000 });
+  await expect(screen.getByText("Halaman tidak ditemukan")).toBeVisible({ timeout: 30000 });
   await expect(screen.getByRole("link", "Kembali ke beranda")).toBeVisible({ timeout: 15000 });
 });
