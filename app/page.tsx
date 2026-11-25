@@ -380,12 +380,12 @@ export default function HomePage() {
           <SectionHead title="Lanjut membaca" href="/riwayat" />
           <div className="rail-scroll rail-snap -mx-3 -mt-2 flex gap-3 overflow-x-auto px-3 pb-1 pt-2 sm:mx-0 sm:px-0">
             {history.slice(0, 10).map((h) => (
-              <div key={h.slug} className="flex w-[140px] shrink-0 sm:w-[156px] lg:w-[168px]">
+              <div key={h.slug} className="flex w-[calc((100%-0.75rem)/2)] shrink-0 sm:w-[156px] lg:w-[168px]">
                 <Link
                   href={h.route}
-                  className="cv-auto group flex h-full min-w-0 flex-1 flex-col gap-2"
+                  className="cv-auto group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 transition-colors hover:border-accent/50 dark:border-line-dark dark:bg-ink-2"
                 >
-                  <div className="cover-tile @container relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-[var(--r-cover)] bg-paper-3 dark:bg-ink-3">
+                  <div className="cover-tile @container relative aspect-[3/4] w-full shrink-0 overflow-hidden bg-paper-3 dark:bg-ink-3">
                     <CoverImage
                       src={h.cover}
                       alt={h.title}
@@ -399,12 +399,12 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col px-0.5">
-                    <p className="mb-1.5 line-clamp-2 break-words text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-fg group-hover:text-accent dark:text-fg-dark">
+                  <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2.5 pt-2.5">
+                    <p className="mb-2 line-clamp-2 break-words text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-fg group-hover:text-accent dark:text-fg-dark">
                       {h.title}
                     </p>
-                    <p className="mt-auto truncate text-[11px] leading-tight text-muted dark:text-muted-dark">
-                      {h.chapterLabel} · <HistoryTime ts={h.updatedAt} />
+                    <p className="mt-auto flex min-w-0 items-baseline gap-1.5 border-t border-line pt-2 text-[11px] leading-tight text-muted dark:border-line-dark dark:text-muted-dark">
+                      <span className="min-w-0 flex-1 truncate">{h.chapterLabel}</span><span className="ml-auto shrink-0 whitespace-nowrap tabular-nums"><HistoryTime ts={h.updatedAt} /></span>
                     </p>
                   </div>
                 </Link>
