@@ -388,7 +388,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           dibungkus kartu + baris horizontal seperti section beranda.
           Gagal fetch = section hilang diam-diam, detail tetap utuh. */}
       {similar !== null && similar.length > 0 && detail.genres[0] && (
-        <section className="min-w-0 lg:col-start-1">
+        <section className="min-w-0 rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 p-3 sm:p-4 lg:col-start-1 dark:border-line-dark dark:bg-ink-2">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <h2 className="display-cond min-w-0 flex-1 truncate text-xl text-fg dark:text-fg-dark">
               Serupa: {detail.genres[0].name}
