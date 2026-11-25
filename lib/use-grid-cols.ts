@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-/* Harus sama dengan kolom grid kartu: 2 (default), 3 (min 560px), 4 (lg), 5 (xl). */
+/* Harus sama dengan kolom grid kartu: 2 (default), 3 (min 560px), 4 (lg), 5 (xl), 6 (2xl). */
 const BREAKPOINTS: Array<[string, number]> = [
+  ["(min-width: 1536px)", 6],
   ["(min-width: 1280px)", 5],
   ["(min-width: 1024px)", 4],
   ["(min-width: 560px)", 3],

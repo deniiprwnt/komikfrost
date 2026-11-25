@@ -449,14 +449,31 @@ type FoundChapter = { ref: ChapterRef; source: ComicSourceId };
 const chapterFillCache = new Map<string, { at: number; v: FoundChapter | null }>();
 const CHAPTER_FILL_TTL = 3 * 60_000;
 
-async function lookupLatestByTitle(title: string, altTitle?: string): Promise<FoundChapter | null> {
+async function lookupLatestByTitle(
+  title: string,
+  altTitle?: string,
+  slugs: ReadonlyArray<string | undefined> = [],
+): Promise<FoundChapter | null> {
   const key = aliasId([title, altTitle ?? ""]);
   const hit = chapterFillCache.get(key);
   if (hit && Date.now() - hit.at < CHAPTER_FILL_TTL) return hit.v;
   const want = new Set(aliasKeys(title, altTitle));
   let found: FoundChapter | null = null;
+  // Jalur langsung: slug kartu (Kiryuu) sering sama dengan slug seri di
+  // ManhwaIndo. Pencarian judul ManhwaIndo bisa kosong untuk judul romaji
+  // baru padahal halaman detailnya ada (chapter tampil di halaman detail,
+  // tidak di kartu), jadi detail dicoba lewat slug lebih dulu. Gagal = null
+  // (tidak ada di sana) lalu lanjut ke pencarian judul seperti semula.
+  for (const sl of slugs) {
+    if (!sl || isShiniId(sl)) continue;
+    const d = await komikuDetailSafe(sl);
+    if (d?.latestChapter) {
+      found = { ref: d.latestChapter, source: "komiku" };
+      break;
+    }
+  }
   try {
-    for (const q of [title, altTitle].filter((x): x is string => Boolean(x))) {
+    for (const q of found ? [] : [title, altTitle].filter((x): x is string => Boolean(x))) {
       const { items } = await searchMangaRemote(q, 1);
       const m = items.find(
         (k) => k.latestChapter && aliasKeys(k.title, k.altTitle).some((x) => want.has(x)),
@@ -495,7 +512,7 @@ async function fillMissingChapters(cards: MergedMangaCard[], ms: number): Promis
   const worker = async (): Promise<void> => {
     while (next < todo.length) {
       const c = todo[next++];
-      const r = await lookupLatestByTitle(c.title, c.altTitle).catch(() => null);
+      const r = await lookupLatestByTitle(c.title, c.altTitle, [c.sourceSlug?.komiku, c.slug]).catch(() => null);
       if (r) {
         c.latestChapter = r.ref;
         c.latestSource = r.source;

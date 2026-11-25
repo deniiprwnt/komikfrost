@@ -170,7 +170,51 @@ function writeApiSnapshot(path: string, data: unknown): void {
   }
 }
 
+/**
+ * Antrian untuk request ringkasan (`?ringkas=1`). Tiap kartu tanpa genre/tipe
+ * meminta ringkasannya sendiri; di beranda itu bisa puluhan request sekaligus
+ * yang berebut koneksi dan scrape upstream dengan daftar utama. Dibatasi 3
+ * paralel agar daftar + gambar cover menang lebih dulu.
+ */
+const LIGHT_MAX = 3;
+let lightActive = 0;
+const lightQueue: Array<() => void> = [];
+
+function acquireLight(): Promise<void> {
+  if (lightActive < LIGHT_MAX) {
+    lightActive += 1;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    lightQueue.push(() => {
+      lightActive += 1;
+      resolve();
+    });
+  });
+}
+
+function releaseLight(): void {
+  lightActive = Math.max(0, lightActive - 1);
+  const next = lightQueue.shift();
+  if (next) next();
+}
+
 async function fetchJson<T>(path: string, signal?: AbortSignal, noStore = false): Promise<T> {
+  const light = path.includes("ringkas=1");
+  if (!light) return fetchJsonNow<T>(path, signal, noStore);
+  await acquireLight();
+  if (signal?.aborted) {
+    releaseLight();
+    throw abortedError(signal);
+  }
+  try {
+    return await fetchJsonNow<T>(path, signal, noStore);
+  } finally {
+    releaseLight();
+  }
+}
+
+async function fetchJsonNow<T>(path: string, signal?: AbortSignal, noStore = false): Promise<T> {
   const res = await fetch(path, {
     headers: { Accept: "application/json" },
     signal,

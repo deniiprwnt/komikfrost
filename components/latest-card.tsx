@@ -322,7 +322,7 @@ export function LatestGrid({
   const shown = fitToRows(items, cols, hasNext);
   return (
     <div
-      className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 ${className}`}
+      className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 ${className}`}
     >
       {shown.map((item, idx) => (
         <Fragment key={`${item.slug}#${item.latestChapter?.url ?? ""}`}>
@@ -345,7 +345,7 @@ export function LatestCardsSkeleton({ count = 10 }: { count?: number }) {
   return (
     <div
       aria-hidden="true"
-      className="grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5"
+      className="grid grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
     >
       {Array.from({ length: count }, (_, i) => (
         <div

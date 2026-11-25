@@ -5,13 +5,13 @@ import { BootSplash } from "@/components/boot-splash";
 import { RouteMemory } from "@/components/route-memory";
 import { NavMemory } from "@/components/nav-memory";
 import { Pwa } from "@/components/pwa";
-import { NoZoom } from "@/components/no-zoom";
 import { BackToTop, Footer, Header, Main, MobileTabBar, Sidebar } from "@/components/layout";
 import "./globals.css";
 import "./design.css";
 import "./theme.css";
 import "./radius.css";
 import "./mobile-ui.css";
+import "./refine.css";
 
 // Halaman bersifat statis (shell dari CDN) — data komik tetap live karena
 // semua halaman fetch client-side via apiGet/apiGetSWR setelah mount.
@@ -135,7 +135,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               supaya penanda back/forward sudah terbaca saat halaman dipasang. */}
           <NavMemory />
           <Pwa />
-          <NoZoom />
           <Sidebar />
           <div className="app-shell flex min-w-0 flex-1 flex-col">
             <Header />

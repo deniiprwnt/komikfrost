@@ -423,11 +423,11 @@ export default function HomePage() {
           <EmptyState message="Belum ada update dari sumber data." />
         )}
         {latest.data && latest.data.length > 0 && (
-          <div className="stagger grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 lg:gap-y-6 xl:grid-cols-8">
+          <div className="stagger grid grid-cols-2 gap-x-3 gap-y-5 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 lg:gap-y-6 2xl:grid-cols-8">
             {latest.data.slice(0, 16).map((item, i) => (
               <div
                 key={item.slug + (item.latestChapter?.url || "")}
-                className={`min-w-0 ${i >= 12 ? "hidden xl:flex" : "flex"}`}
+                className={`min-w-0 ${i >= 12 ? "hidden 2xl:flex" : "flex"}`}
               >
                 <MangaGridCard item={item} />
               </div>

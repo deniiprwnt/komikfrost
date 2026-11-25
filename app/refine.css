@@ -1,0 +1,123 @@
+/* ========================================================================== */
+/* refine.css: lapisan penyempurnaan terakhir.                                */
+/* Dimuat PALING AKHIR (setelah mobile-ui.css). Hanya menyasar class semantik  */
+/* (bukan utilitas Tailwind) supaya tidak menimpa outline-none, hover:border-  */
+/* accent, dsb. Datar: tanpa gradasi, glow, atau blur. Maskot tidak disentuh.  */
+/* ========================================================================== */
+
+/* ---- Seleksi teks & fokus keyboard ----------------------------------------- */
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 26%, transparent);
+  color: inherit;
+}
+/* Hanya elemen interaktif; input punya gaya fokusnya sendiri (outline-none). */
+:where(a, button, summary, [role="tab"], [role="option"]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.dark :where(a, button, summary, [role="tab"], [role="option"]):focus-visible {
+  outline-color: var(--color-accent-strong);
+}
+
+/* ---- Tipografi: ritme judul ------------------------------------------------- */
+.section-title {
+  letter-spacing: -0.035em;
+}
+.section-link {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+}
+
+/* ---- Cover ------------------------------------------------------------------ */
+/* Placeholder cover mengikuti permukaan tema, bukan abu-abu mentah. */
+.cover-tile {
+  background-color: var(--color-paper-3);
+}
+.dark .cover-tile {
+  background-color: var(--color-ink-3);
+}
+.cover-tile img {
+  transition: transform 520ms var(--ease-out);
+}
+
+/* ---- Kartu list (/terbaru, /genre/[slug]) ----------------------------------- */
+/* Baris diberi ruang napas ke samping dan sorotan tipis saat di-hover; margin  */
+/* negatif menjaga cover tetap sejajar dengan judul section di atasnya.         */
+.list-card {
+  margin-inline: -0.25rem;
+  padding-inline: 0.25rem;
+  transition: background-color 200ms var(--ease-out);
+}
+@media (min-width: 640px) {
+  .list-card {
+    margin-inline: -0.5rem;
+    padding-inline: 0.5rem;
+  }
+}
+@media (hover: hover) {
+  .list-card:hover {
+    background: color-mix(in srgb, var(--color-paper-3) 45%, transparent);
+  }
+  .dark .list-card:hover {
+    background: var(--color-ink-2);
+  }
+}
+
+/* ---- Pagination -------------------------------------------------------------- */
+nav[aria-label="Navigasi halaman"] {
+  gap: 0.375rem;
+}
+nav[aria-label="Navigasi halaman"] button {
+  min-width: 2.25rem;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+nav[aria-label="Navigasi halaman"] button[aria-current="page"] {
+  font-weight: 700;
+}
+
+/* ---- Popover filter (Select) -------------------------------------------------- */
+/* Sudut konsentris dengan kontrol (radius kontrol + padding daftar) dan satu    */
+/* bayangan rapat saja, karena popover memang melayang di atas halaman.          */
+.select-pop {
+  border-radius: calc(var(--r-ctl) + 4px);
+  box-shadow:
+    0 1px 2px rgb(8 28 32 / 0.08),
+    0 14px 28px -18px rgb(8 28 32 / 0.45);
+}
+.dark .select-pop {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 14px 28px -18px rgb(0 0 0 / 0.9);
+}
+
+/* ---- Footer -------------------------------------------------------------------- */
+footer .display-cond {
+  letter-spacing: -0.04em;
+}
+
+/* ---- Peringkat: baris terakhir tanpa garis pemisah ------------------------------ */
+.rank-row:last-child::after {
+  display: none;
+}
+
+/* ---- Daftar chapter (detail): scrollbar tipis, senada dengan garis tema ----------- */
+.chapter-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+.dark .chapter-scroll {
+  scrollbar-color: var(--color-line-dark) transparent;
+}
+
+/* ---- Gerak: hormati preferensi pengguna ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .page-in,
+  .stagger > *,
+  .grid-cards > * {
+    animation: none !important;
+  }
+  .cover-tile img,
+  .section-link::after {
+    transition: none !important;
+  }
+}
