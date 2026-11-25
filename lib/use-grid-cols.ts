@@ -40,8 +40,6 @@ export function useGridCols(compact = false): number {
  */
 export function fitToRows<T>(items: T[], cols: number, hasNext: boolean): T[] {
   if (!hasNext || cols <= 0) return items;
-  // HP (2 kolom) tampil 16; 3 dan 6 kolom habis membagi 18 sehingga semua tampil.
-  if (cols <= 2) return items.slice(0, 16);
   const n = Math.floor(items.length / cols) * cols;
   return n > 0 ? items.slice(0, n) : items;
 }

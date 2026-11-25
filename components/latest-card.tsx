@@ -322,7 +322,9 @@ export function LatestGrid({
   compact?: boolean;
 }) {
   const cols = useGridCols(compact);
-  const shown = fitToRows(items, cols, hasNext);
+  // Grid utama menampilkan semua kartu (18 per halaman). Pemangkasan ke
+  // kelipatan kolom hanya untuk grid sempit di halaman detail.
+  const shown = compact ? fitToRows(items, cols, hasNext) : items;
   return (
     <div
       className={`stagger lc-grid grid min-w-0 grid-cols-2 gap-3 min-[560px]:grid-cols-3 sm:gap-4 ${compact ? "2xl:grid-cols-4" : "xl:grid-cols-6"} ${className}`}
@@ -344,7 +346,7 @@ export function LatestGrid({
 }
 
 /** Skeleton kartu grid. Kolom grid harus sama dengan di app/terbaru/page.tsx. */
-/** Jumlah kartu mengikuti data asli: 18 (16 di HP 2 kolom), compact 12. Prop count diabaikan. */
+/** Jumlah kartu mengikuti data asli: 18 (semua layar), compact 12. Prop count diabaikan. */
 export function LatestCardsSkeleton({
   compact = false,
 }: {
@@ -361,9 +363,7 @@ export function LatestCardsSkeleton({
       {Array.from({ length: compact ? 12 : 18 }, (_, i) => (
         <div
           key={i}
-          className={`lc-card flex min-w-0 flex-col overflow-hidden border border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2 ${
-            !compact && i >= 16 ? "max-[559px]:hidden" : ""
-          }`}
+          className="lc-card flex min-w-0 flex-col overflow-hidden border border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2"
         >
           <div className="shimmer aspect-[3/4] w-full" />
           <div className="space-y-1.5 p-2.5">
