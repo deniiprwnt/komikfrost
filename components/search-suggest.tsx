@@ -66,7 +66,7 @@ export function SearchSuggest({
     // tidak ada respons basi yang sempat masuk.
     const ctrl = new AbortController();
     const t = window.setTimeout(() => {
-      apiGet<SuggestPayload>(`/api/search?q=${encodeURIComponent(kw)}`, {
+      apiGet<SuggestPayload>(`/api/search?q=${encodeURIComponent(kw)}&cepat=1`, {
         signal: ctrl.signal,
       })
         .then((res) => {

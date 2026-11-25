@@ -5,7 +5,7 @@
 import { searchMangaRemote } from "./manhwaindo";
 import { searchKomikcastRemote } from "./komikcast";
 import { searchKiryuuRemote } from "./kiryuu";
-import { fetchAllSettled, normalizeTitle } from "./aggregator";
+import { fetchAllSettled, mergeCards, normalizeTitle } from "./aggregator";
 import { mergeCardsDeep } from "./cover-hash";
 import { completeCardsBounded } from "./manga";
 import type { MangaCard, PagedResult } from "./types";
@@ -72,6 +72,7 @@ function rankByRelevance(cards: MergedMangaCard[], keyword: string): MergedManga
 export async function searchManga(
   keyword: string,
   page = 1,
+  opts: { fast?: boolean } = {},
 ): Promise<PagedResult<MangaCard>> {
   const kw = keyword.trim();
   if (!kw) return { items: [], hasNextPage: false };
@@ -80,19 +81,32 @@ export async function searchManga(
   // paginator dan terbukti mengulang item yang sama di page>1 (page 1 = page 2
   // untuk query sempit) — fetch lanjutan cuma menambah duplikat lintas-halaman
   // + 1 upstream sia-sia. Shinigami + Komiku (pagination nyata) tetap jalan.
+  // Mode cepat (dropdown saran): tiap sumber dibatasi 3 dtk â€” sumber lambat
+  // dianggap kosong, tidak menahan sumber lain.
+  const guardMs = <T,>(fn: () => Promise<T>, fallback: T): (() => Promise<T>) =>
+    opts.fast
+      ? () =>
+          Promise.race([
+            fn(),
+            new Promise<T>((res) => setTimeout(() => res(fallback), 3000)),
+          ])
+      : fn;
+  const empty: PagedResult<MangaCard> = { items: [], hasNextPage: false };
   const { data } = await fetchAllSettled(
     {
-      komiku: () => searchMangaRemote(kw, p),
-      shinigami: () => searchKiryuuRemote(kw, p, SHINI_PAGE_SIZE),
-      ...(p === 1 ? { komikcast: () => searchKomikcastRemote(kw, p) } : {}),
+      komiku: guardMs(() => searchMangaRemote(kw, p), empty),
+      shinigami: guardMs(() => searchKiryuuRemote(kw, p, SHINI_PAGE_SIZE), empty),
+      ...(p === 1 ? { komikcast: guardMs(() => searchKomikcastRemote(kw, p), empty) } : {}),
     },
     "search",
   );
-  const merged = await mergeCardsDeep({
+  const lists = {
     komiku: data.komiku?.items ?? [],
     shinigami: data.shinigami?.items ?? [],
     komikcast: data.komikcast?.items ?? [],
-  });
+  };
+  // Mode cepat: tanpa hash sampul (bisa makan sampai 3,5 dtk).
+  const merged = opts.fast ? mergeCards(lists) : await mergeCardsDeep(lists);
   // Relevansi: judul yang memuat SEMUA token kata kunci naik ke atas;
   // yang cuma cocok sebagian tenggelam. Tanpa membuang hasil.
   const ranked = rankByRelevance(merged, kw);
@@ -114,6 +128,7 @@ export async function searchManga(
   // Tema), sinopsis dipilih berdasarkan kualitas dengan fallback lintas
   // sumber lewat normalizeTitle. Dibatasi waktunya agar satu detail yang
   // lambat tidak menahan respons; kartu tetap tampil dengan data daftar.
-  await completeCardsBounded(items, 2500);
+  // Mode cepat: dropdown tidak memakai genre/sinopsis â€” lewati enrich.
+  if (!opts.fast) await completeCardsBounded(items, 2500);
   return { items, hasNextPage: more, total };
 }
