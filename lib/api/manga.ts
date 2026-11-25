@@ -648,7 +648,10 @@ export interface LatestOpts {
 // terpengaruh. Kunjungan non-live (pagination halaman 2+, prefetch) jadi
 // instan dari cache server, bukan scrape 3 source berulang.
 //
-// Daftar "terbaru" = halaman yang paling terasa kalau basi, jadi TTL 60 dtk
+// Daftar "terbaru" = halaman yang paling terasa kalau basi, jadi TTL 20 dtk tanpa
+// jendela stale (staleMs: 0): data basi tidak pernah disajikan (keluhan "komik lama muncul dulu").
+// Dijaga oleh lib/api/http-cache.test.ts. Probe live tetap bypass cache.
+// Catatan lama (sebelum TTL 20 dtk): TTL 60 dtk
 // (sama dengan cache HTTP upstream Kiryuu) + jendela stale hanya 30 dtk:
 // respons paling tua ~90 dtk, bukan 4 menit seperti sebelumnya.
 const latestCache = createKeyedCache<PagedResult<MangaCard>>(20_000, 50, { staleMs: 0 });
@@ -806,8 +809,8 @@ async function buildLatestPaged(
   // Batas waktu enrich diturunkan (3000/4000 -> 1500/2500). Untuk probe live
   // (auto-refresh klien) respons cepat lebih penting daripada kartu Komikcast
   // lengkap â€” kartu tetap tampil tanpa genre/sinopsis bila lewat batas.
-  await completeCardsBounded(items, opts.live ? 3000 : 4000);
-  await fillMissingChapters(items, opts.live ? 2500 : 3500);
+  await completeCardsBounded(items, opts.live ? 3000 : 2500);
+  await fillMissingChapters(items, opts.live ? 2500 : 2000);
   return { items, hasNextPage: hasNext, total };
 }
 
