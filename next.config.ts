@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
+  // `next dev` dan `next build` memakai `.next` yang sama secara default.
+  // Menjalankan build saat dev masih aktif membuat artefak saling menimpa:
+  // build gagal di "Collecting page data" dengan PageNotFoundError untuk
+  // route yang sebenarnya ada. Pisahkan folder dev agar keduanya bisa jalan
+  // bersamaan; build/start tetap memakai `.next` seperti biasa.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   // Jangan bocorkan "X-Powered-By: Next.js" ke browser.
   poweredByHeader: false,
   compress: true,
