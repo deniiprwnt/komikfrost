@@ -347,7 +347,7 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
           </div>
         )}
         {ordered.length > 0 && (
-        <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] lg:min-h-48 divide-y divide-line overflow-y-auto rounded-[var(--r-ctl)] border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
+        <div className="chapter-scroll max-h-[480px] min-w-0 lg:max-h-[calc(100dvh-var(--header-h)-11rem)] divide-y divide-line overflow-y-auto rounded-[var(--r-ctl)] border border-line bg-paper dark:divide-line-dark dark:border-line-dark dark:bg-ink">
           {ordered.map((c) => {
             const route = chapterPathToRoute(c.url);
             const isRead = readSet.has(readKey(route.split("/").pop() ?? ""));
