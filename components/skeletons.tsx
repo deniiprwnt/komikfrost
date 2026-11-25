@@ -28,9 +28,9 @@ const PANEL =
 /** Cermin <MangaGridCard>: cover 3:4 + judul 2 baris + baris genre/waktu. */
 export function GridCardSkeleton() {
   return (
-    <div className="flex h-full w-full min-w-0 flex-col gap-2">
-      <div className="shimmer aspect-[3/4] w-full shrink-0 rounded-[var(--r-cover)]" />
-      <div className="flex min-w-0 flex-1 flex-col px-0.5">
+    <div className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[calc(var(--r-ctl)+4px)] border border-line bg-paper-2 dark:border-line-dark dark:bg-ink-2">
+      <div className="shimmer aspect-[3/4] w-full shrink-0" />
+      <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2.5 pt-2.5">
         <div className="mb-1.5 space-y-1.5">
           <div className="shimmer h-3 w-full rounded-md" />
           <div className="shimmer h-3 w-2/3 rounded-md" />
