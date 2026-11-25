@@ -16,6 +16,33 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Lewati gerbang kata sandi (/masuk) bila aktif. Kata sandi dibaca dari
+ * variabel lingkungan E2E_PASSWORD (atau SITE_PASSWORD) â€” tidak pernah
+ * ditulis di kode. Bila situs terbuka (tanpa SITE_PASSWORD), /masuk langsung
+ * mengalihkan ke beranda dan fungsi ini tidak melakukan apa pun.
+ * Panggil di awal setiap tes: konteks browser tiap tes bisa baru.
+ */
+export async function signIn(app: AnyScreen, browser: AnyScreen): Promise<void> {
+  await app.open("/masuk");
+  const field = browser.locator("#pw");
+  if ((await field.count()) === 0) return;
+  const password = process.env.E2E_PASSWORD || process.env.SITE_PASSWORD;
+  if (!password) {
+    throw new Error(
+      "Situs meminta kata sandi tetapi E2E_PASSWORD tidak diatur. Setel E2E_PASSWORD, atau jalankan dev server tanpa SITE_PASSWORD.",
+    );
+  }
+  await field.fill(password);
+  await field.press("Enter");
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    if ((await browser.locator("#pw").count()) === 0) return;
+    await sleep(500);
+  }
+  throw new Error("Login e2e gagal: form kata sandi masih tampil setelah 20 dtk (kata sandi salah?)");
+}
+
 /** Baca semua href link yang sedang ter-render di halaman. */
 export async function collectHrefs(screen: AnyScreen): Promise<(string | null)[]> {
   const hrefs: (string | null)[] = [];

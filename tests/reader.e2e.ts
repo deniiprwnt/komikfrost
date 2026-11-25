@@ -1,6 +1,6 @@
 import { test } from "@e2e-dev/web";
 import { expect } from "e2e";
-import { findHref } from "./helpers";
+import { findHref, signIn } from "./helpers";
 
 /**
  * Reader: pemeriksaan ringan pada halaman reader yang dibuka —
@@ -12,6 +12,7 @@ import { findHref } from "./helpers";
  * di sini yang diperiksa adalah properti gambar + absennya error.
  */
 test("reader: gambar halaman ber-alt dan tanpa error boundary", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   await app.open("/");
   const komik = await findHref(screen, "/komik/", 90000);
   if (!komik) throw new Error("Beranda: tidak ada link /komik/ untuk membuka reader");

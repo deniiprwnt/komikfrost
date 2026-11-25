@@ -1,6 +1,6 @@
 import { test } from "@e2e-dev/web";
 import { expect } from "e2e";
-import { collectHrefs, findHref } from "./helpers";
+import { collectHrefs, findHref, signIn } from "./helpers";
 
 /**
  * Favorit (disimpan di localStorage, kunci `bk-bookmarks-v1` di
@@ -12,6 +12,7 @@ import { collectHrefs, findHref } from "./helpers";
  * agar tahan terhadap perubahan data live.
  */
 test("favorit: simpan dari detail, muncul di /favorit, lalu hapus", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   // localStorage favorit bersih dari awal: tutup tombol favorit yang
   // mungkin tersisa dari run sebelumnya, baca persis seperti halaman
   // Favorit membacanya (kunci `bk-bookmarks-v1`).

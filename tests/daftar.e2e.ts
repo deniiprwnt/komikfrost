@@ -1,6 +1,6 @@
 import { test } from "@e2e-dev/web";
 import { expect } from "e2e";
-import { findHref, textVisible, waitForText } from "./helpers";
+import { findHref, signIn, textVisible, waitForText } from "./helpers";
 
 /**
  * Halaman daftar: kontrol stabil tampil + minimal satu link komik
@@ -13,7 +13,8 @@ import { findHref, textVisible, waitForText } from "./helpers";
  * komik (/komik/) benar-benar tampil.
  */
 
-test("daftar: /terbaru memuat kontrol filter dan daftar komik", async ({ app, screen }) => {
+test("daftar: /terbaru memuat kontrol filter dan daftar komik", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   await app.open("/terbaru");  // Kontrol stabil: judul section + tombol filter "Urutkan daftar"
   // (aria-label dari komponen Select di components/select.tsx).
   await expect(screen.getByText("Komik Terbaru")).toBeVisible({ timeout: 30000 });
@@ -30,7 +31,8 @@ test("daftar: /terbaru memuat kontrol filter dan daftar komik", async ({ app, sc
   }
 });
 
-test("daftar: /populer memuat tab periode dan daftar komik", async ({ app, screen }) => {
+test("daftar: /populer memuat tab periode dan daftar komik", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   await app.open("/populer");
   // Kontrol stabil: judul section + tab periode (link pill).
   await expect(screen.getByText("Peringkat Komik")).toBeVisible({ timeout: 30000 });
@@ -47,7 +49,8 @@ test("daftar: /populer memuat tab periode dan daftar komik", async ({ app, scree
   }
 });
 
-test("daftar: /genre memuat daftar genre dan tautan ke komik", async ({ app, screen }) => {
+test("daftar: /genre memuat daftar genre dan tautan ke komik", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   await app.open("/genre");
   // Kontrol stabil: judul section + kolom saring genre.
   await expect(screen.getByText("Daftar Genre")).toBeVisible({ timeout: 30000 });
@@ -80,6 +83,7 @@ test("daftar: /genre memuat daftar genre dan tautan ke komik", async ({ app, scr
 });
 
 test("daftar: /cari memuat formulir pencarian dan hasil untuk kata kunci", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   await app.open("/cari");
   // Kontrol stabil: form pencarian di `<main>` (header juga punya form
   // pencarian, jadi selektor harus di-scope ke main agar tidak ambigu)

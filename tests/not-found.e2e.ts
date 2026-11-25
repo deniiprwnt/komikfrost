@@ -1,6 +1,6 @@
 import { test } from "@e2e-dev/web";
 import { expect } from "e2e";
-import { waitForText } from "./helpers";
+import { signIn, waitForText } from "./helpers";
 
 /**
  * 404: penanganan halaman tidak ditemukan.
@@ -12,7 +12,8 @@ import { waitForText } from "./helpers";
  * global (app/not-found.tsx) tampil saat path tidak cocok route mana
  * pun. Test ini memeriksa keduanya.
  */
-test("404: slug tidak ada dan path tanpa route menampilkan halaman tidak ketemu", async ({ app, screen }) => {
+test("404: slug tidak ada dan path tanpa route menampilkan halaman tidak ketemu", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
   // Slug fiktif: data 404 → state "Gagal memuat data" (polling — data
   // live butuh waktu sampai semua sumber mengembalikan 404).
   await app.open("/komik/slug-yang-tidak-ada-xyz");

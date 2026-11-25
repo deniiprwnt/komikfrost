@@ -1,5 +1,6 @@
 import { test } from "@e2e-dev/web";
 import { expect } from "e2e";
+import { signIn } from "./helpers";
 
 /**
  * Alur utama KomikFrost:
@@ -11,6 +12,8 @@ import { expect } from "e2e";
  * dirender (bukan slug hardcode) agar tahan terhadap perubahan data.
  */
 test("alur utama: beranda → cari → detail → reader", async ({ app, screen, browser }) => {
+  await signIn(app, browser);
+
   // 1. Beranda terbuka: brand + daftar komik tampil.
   await app.open("/");
   // aria-label logo di components/layout.tsx: "KomikFrost, ke beranda".
