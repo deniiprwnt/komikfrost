@@ -7,7 +7,8 @@ import { timeAgo, useHistory } from "@/lib/history";
 import type { ComicSourceId, MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { RankListSkeleton, LatestGridSkeleton, RailSkeleton } from "@/components/skeletons";
-import { MangaGridCard, RankRow, SourceBadge, TypeBadge } from "@/components/cards";
+import { MangaGridCard, SourceBadge, TypeBadge } from "@/components/cards";
+import { RankList } from "@/components/rank-list";
 import { CoverImage } from "@/components/cover-image";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { cardSig, useNowTick } from "@/lib/relative-time";
@@ -362,14 +363,8 @@ export default function HomePage() {
           <EmptyState message="Belum ada data peringkat dari sumber data." />
         )}
         {popular.data && popular.data.length > 0 && (
-          <div className="mt-3 grid gap-2.5 lg:grid-cols-2 lg:gap-3">
-            {[popular.data.slice(0, 5), popular.data.slice(5, 10)].map((col, ci) => (
-              <div key={ci} className="flex min-w-0 flex-col gap-2.5 lg:gap-3">
-                {col.map((item) => (
-                  <RankRow key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
-                ))}
-              </div>
-            ))}
+          <div className="mt-3">
+            <RankList items={popular.data.slice(0, 10)} />
           </div>
         )}
       </section>

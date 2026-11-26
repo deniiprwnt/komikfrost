@@ -9,7 +9,7 @@ import { usePageTitle } from "@/lib/page-title";
 import type { MangaCard } from "@/lib/api/types";
 import { SectionHead, ErrorState, EmptyState } from "@/components/states";
 import { RankListSkeleton, PopulerSkeleton } from "@/components/skeletons";
-import { RankRow } from "@/components/cards";
+import { RankList } from "@/components/rank-list";
 
 const PERIODS = [
   { v: "harian", label: "Harian" },
@@ -130,11 +130,7 @@ function PopulerContent() {
         <EmptyState message="Belum ada data peringkat dari sumber data." />
       )}
       {items && items.length > 0 && (
-        <div className="grid min-w-0 gap-2.5 lg:grid-cols-2 lg:gap-3">
-          {items.map((item) => (
-            <RankRow key={`${item.slug}#${item.latestChapter?.url ?? ""}`} item={item} />
-          ))}
-        </div>
+        <RankList items={items} />
       )}
     </section>
   );

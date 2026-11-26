@@ -399,7 +399,7 @@ function useResolvedType(item: MangaCard): string | undefined {
 
 
 /** Baris ranking: lencana nomor, cover + tipe, judul, genre, views, chapter terbaru. */
-export function RankRow({ item }: { item: MangaCard }) {
+export function RankRow({ item, colEnd = false }: { item: MangaCard; colEnd?: boolean }) {
   const detailPath = `/api/manga/${encodeURIComponent(item.slug)}`;
   const warm = useIntentPrefetch(detailPath);
   const hasRank = typeof item.rank === "number";
@@ -407,6 +407,7 @@ export function RankRow({ item }: { item: MangaCard }) {
   return (
     <article
       {...warm}
+      data-col-end={colEnd ? "" : undefined}
       className="cv-row rank-row group relative flex min-w-0 items-center gap-3 py-3 sm:gap-4"
     >
       {hasRank && (

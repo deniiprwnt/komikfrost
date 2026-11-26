@@ -45,9 +45,12 @@ export function GridCardSkeleton() {
 }
 
 /** Cermin <RankRow>: nomor + cover 60×80 (72×96) + judul/genre/chip chapter. */
-export function RankRowSkeleton() {
+export function RankRowSkeleton({ colEnd = false }: { colEnd?: boolean }) {
   return (
-    <div className="rank-row relative flex min-w-0 items-center gap-3 py-3 sm:gap-4">
+    <div
+      data-col-end={colEnd ? "" : undefined}
+      className="rank-row relative flex min-w-0 items-center gap-3 py-3 sm:gap-4"
+    >
       <div className="shimmer h-5 w-8 shrink-0 rounded-md" />
       <div className="shimmer h-[80px] w-[60px] shrink-0 rounded-[var(--r-cover)] sm:h-[96px] sm:w-[72px]" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -61,9 +64,13 @@ export function RankRowSkeleton() {
 
 export function RankListSkeleton({ count = 10 }: { count?: number }) {
   return (
-    <div aria-hidden="true" className="grid min-w-0 gap-2.5 lg:grid-cols-2 lg:gap-3">
+    <div
+      aria-hidden="true"
+      className="rank-list grid min-w-0 grid-cols-1"
+      style={{ "--rank-rows": Math.max(1, Math.ceil(count / 2)) } as import("react").CSSProperties}
+    >
       {Array.from({ length: count }, (_, i) => (
-        <RankRowSkeleton key={i} />
+        <RankRowSkeleton key={i} colEnd={(i + 1) % Math.max(1, Math.ceil(count / 2)) === 0} />
       ))}
     </div>
   );

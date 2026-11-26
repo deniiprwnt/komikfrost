@@ -107,6 +107,32 @@ footer .display-cond {
   display: none;
 }
 
+/* ---- Peringkat: daftar responsif (RankList + skeleton) ---------------------------- */
+/* HP: 1 kolom, tanpa celah antar baris: garis pemisah + padding baris sudah memberi  */
+/* ritme seimbang (dulu celah 10px membuat garis terasa menjauh dari baris bawahnya). */
+.rank-list {
+  row-gap: 0;
+}
+/* Tablet ke atas: 2 kolom, urut ke bawah per kolom (1-5 kiri, 6-10 kanan). Jumlah    */
+/* baris dari --rank-rows (diisi komponen) agar pembagian kolom selalu seimbang.       */
+@media (min-width: 768px) {
+  .rank-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--rank-rows, 5), auto);
+    grid-auto-flow: column;
+    column-gap: 1.5rem;
+  }
+  /* Baris terbawah tiap kolom tanpa garis pemisah (konsisten kiri & kanan). */
+  .rank-list > .rank-row[data-col-end]::after {
+    display: none;
+  }
+}
+@media (min-width: 1280px) {
+  .rank-list {
+    column-gap: 2.5rem;
+  }
+}
+
 /* ---- Daftar chapter (detail): scrollbar tipis, senada dengan garis tema ----------- */
 .chapter-scroll {
   scrollbar-width: thin;
