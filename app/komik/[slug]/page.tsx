@@ -22,23 +22,6 @@ interface GenrePayload {
   hasNextPage: boolean;
 }
 
-/** Seling kartu antar sumber (round-robin) agar satu sumber tidak mendominasi. */
-function mixSources(list: MangaCard[]): MangaCard[] {
-  const groups = new Map<string, MangaCard[]>();
-  for (const it of list) {
-    const k = it.latestSource ?? it.sources?.[0] ?? "?";
-    const g = groups.get(k);
-    if (g) g.push(it);
-    else groups.set(k, [it]);
-  }
-  const queues = [...groups.values()];
-  const out: MangaCard[] = [];
-  for (let i = 0; out.length < list.length; i++) {
-    for (const q of queues) if (q[i]) out.push(q[i]);
-  }
-  return out;
-}
-
 /** Komik Serupa (se-genre): 1 request ringan, gagal diam-diam tanpa merusak detail. */
 function useSimilar(detail: MangaDetail | null) {
   const [items, setItems] = useState<MangaCard[] | null>(null);
@@ -81,7 +64,9 @@ function useSimilar(detail: MangaDetail | null) {
     };
     const paths = combos.map(buildPath);
     const MIN_RESULTS = 6;
-    const rank = (lists: MangaCard[][]): MangaCard[] => mixSources(rankRaw(lists));
+    // Urutan murni berdasarkan skor kecocokan genre (jumlah pasangan genre yang memuat judul);
+    // tidak diseling antar sumber agar yang paling mirip tetap di depan.
+    const rank = (lists: MangaCard[][]): MangaCard[] => rankRaw(lists);
     const rankRaw = (lists: MangaCard[][]): MangaCard[] => {
       const board = new Map<string, { item: MangaCard; score: number; pos: number }>();
       for (const list of lists) {

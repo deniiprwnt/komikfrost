@@ -106,7 +106,12 @@ export async function fetchShiniLatest(
   const pageSize = opts.pageSize ?? 24;
   if (opts.genre) {
     try {
-      return await fetchKiryuuByGenre(opts.genre, page, pageSize);
+      const g = await fetchKiryuuByGenre(opts.genre, page, pageSize);
+      // Filter tipe juga berlaku di jalur genre (dulu hanya di jalur tanpa genre,
+      // sehingga Manhua/Manhwa ikut muncul saat tipe=manga diminta).
+      if (!opts.format) return g;
+      const wantType = opts.format === "manga" ? "Manga" : opts.format === "manhwa" ? "Manhwa" : "Manhua";
+      return { items: g.items.filter((c) => c.type === wantType), hasNextPage: g.hasNextPage };
     } catch {
       return { items: [], hasNextPage: false };
     }

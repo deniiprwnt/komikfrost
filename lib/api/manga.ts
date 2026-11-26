@@ -745,6 +745,11 @@ async function buildLatestPaged(
           fresh: true,
           ...(opts.tipe ? { format: opts.tipe } : {}),
         };
+        // Kiryuu hanya bisa memfilter SATU genre. Untuk filter dua genre (genre2)
+        // hasilnya hanya cocok di genre pertama, jadi sumber ini dilewati agar
+        // daftar (mis. "Serupa" di detail, /terbaru?genre=..&genre2=..) hanya
+        // berisi judul yang memang memuat KEDUA genre.
+        if (opts.genre2) return { items: [] as MangaCard[], hasNextPage: false };
         if (genreVars.length === 0) return fetchShiniLatest(p, base);
         const hit = await firstWithItems(genreVars, (g) => fetchShiniLatest(p, { ...base, genre: g }));
         return hit ?? { items: [] as MangaCard[], hasNextPage: false };
