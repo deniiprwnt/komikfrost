@@ -41,6 +41,8 @@ export function withDataVersion(raw: string): string {
   }
 }
 
+import { count } from "./metrics.ts";
+
 interface Entry<T> {
   at: number;
   /** Versi data saat entri dibuat â€” entri versi lain dianggap tidak ada. */
@@ -85,7 +87,7 @@ export function createKeyedCache<T>(
    * "terbaru" jendela ini dipersempit: respons 2–4 menit lama membuat halaman
    * terbaru tampak tidak pernah berubah.
    */
-  opts?: { staleMs?: number },
+  opts?: { staleMs?: number; name?: string },
 ) {
   const staleMs = opts?.staleMs ?? ttlMs;
   const entries = new Map<string, Entry<T>>();
@@ -106,7 +108,10 @@ export function createKeyedCache<T>(
       const k = vkey(key);
       const hit = entries.get(k);
       const now = Date.now();
-      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs) return hit.data;
+      if (hit && hit.v === DATA_VERSION && now - hit.at < ttlMs) {
+        count(`cache.${opts?.name ?? "anon"}.hit`);
+        return hit.data;
+      }
       // Stale-while-revalidate (server): entri basi < TTL + jendela stale
       // langsung dikembalikan agar request tidak memblokir scrape 3 sumber,
       // sambil 1 refresh background memperbarui cache. Di luar jendela itu
@@ -132,7 +137,11 @@ export function createKeyedCache<T>(
       // scrape kedua yang berbarengan dengan refresh tersebut.
       if (hit && hit.v === DATA_VERSION && refreshing.has(k)) return hit.data;
       const pending = inflight.get(k);
-      if (pending) return pending;
+      if (pending) {
+        count(`cache.${opts?.name ?? "anon"}.dedupe`);
+        return pending;
+      }
+      count(`cache.${opts?.name ?? "anon"}.miss`);
       const next = fn()
         .then((data) => {
           if (keep && !keep(data)) return data;
@@ -149,6 +158,11 @@ export function createKeyedCache<T>(
         });
       inflight.set(k, next);
       return next;
+    },
+    /** Intip entri segar tanpa memicu kerja apa pun (null bila tidak ada/basi). */
+    peek(key: string): T | null {
+      const hit = entries.get(vkey(key));
+      return hit && hit.v === DATA_VERSION && Date.now() - hit.at < ttlMs ? hit.data : null;
     },
     clear(): void {
       entries.clear();

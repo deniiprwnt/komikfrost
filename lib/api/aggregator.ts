@@ -5,6 +5,7 @@ export type { ComicSourceId } from "./types";
 import { canonicalGenre, themeDisplayName } from "./genre-canonical.ts";
 import { pickBestSynopsis, splitAltTitles } from "./text.ts";
 import { splitRating } from "./rating.ts";
+import { count, logMetric } from "./metrics.ts";
 
 /**
  * Aggregator multi-source: Shinigami + Komiku → satu bentuk data gabungan.
@@ -1609,6 +1610,8 @@ export async function fetchAllSettled<T>(
   label: string,
 ): Promise<{ data: Partial<Record<ComicSourceId, T>>; errors: Partial<Record<ComicSourceId, string>> }> {
   const entries = Object.entries(jobs) as [ComicSourceId, () => Promise<T>][];
+  const t0 = Date.now();
+  count("upstream.requests", entries.length);
   // Promise.allSettled: TIDAK ada "siapa cepat dia menang". Semua sumber
   // diselesaikan dulu (sukses maupun gagal), baru pemenang ditentukan oleh
   // SOURCE_PRIORITY yang tetap di bawah â€” bukan oleh urutan selesainya.
@@ -1629,6 +1632,12 @@ export async function fetchAllSettled<T>(
     if (value !== null) data[source] = value;
     else errors[source] = msg ?? "unknown";
   }
+  logMetric("aggregate", {
+    label,
+    sources: entries.map(([s]) => s).join(","),
+    failed: Object.keys(errors).join(","),
+    ms: Date.now() - t0,
+  });
   if (Object.keys(data).length === 0) {
     // Semua gagal — lempar error asli source pertama (mis. KomikuError
     // + status HTTP) agar route mengembalikan status yang sama seperti
