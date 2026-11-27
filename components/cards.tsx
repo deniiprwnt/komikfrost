@@ -37,6 +37,29 @@ export function chapterPathToRoute(komikuPath: string): string {
 /* (Dulu: gradien tonal halus, warna tipe â†’ versi lebih gelap) + kilau tipis di tepi atas.
    Kini badge datar; lihat .bdg di theme.css.) */
 
+/** Normalisasi teks status sumber â†’ ongoing | tamat | hiatus | lainnya. */
+function statusKind(raw?: string): "ongoing" | "tamat" | "hiatus" | "other" {
+  const v = (raw ?? "").toLowerCase();
+  if (/ongoing|berjalan|on going|publishing/.test(v)) return "ongoing";
+  if (/tamat|end|complete|finish|selesai/.test(v)) return "tamat";
+  if (/hiatus|pause|drop|cancel/.test(v)) return "hiatus";
+  return "other";
+}
+
+/** Badge status komik di sebelah badge tipe: hijau = ongoing, ungu = tamat. */
+export function StatusBadge({ status, className = "" }: { status?: string | undefined; className?: string }) {
+  if (!status || !status.trim()) return null;
+  const kind = statusKind(status);
+  const label = kind === "ongoing" ? "Ongoing" : kind === "tamat" ? "Tamat" : kind === "hiatus" ? "Hiatus" : status;
+  return (
+    <span
+      className={`bdg bdg-s-${kind} inline-block max-w-full shrink-0 truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-tight tracking-[0.01em] ${className}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 const TYPE_STYLE: Record<string, string> = {
   manga: "bdg bdg-t-manga",
   manhwa: "bdg bdg-t-manhwa",

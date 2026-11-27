@@ -225,6 +225,14 @@ html.dark {
 .bdg-t-manga { --b-tone: var(--tone-manga); --b-dot: var(--dot-manga); }
 .bdg-t-manhwa { --b-tone: var(--tone-manhwa); --b-dot: var(--dot-manhwa); }
 .bdg-t-manhua { --b-tone: var(--tone-manhua); --b-dot: var(--dot-manhua); }
+/* Status: hijau = ongoing, ungu = tamat, amber = hiatus, netral = lainnya. */
+.bdg-s-ongoing { --b-tone: #1f7a45; }
+.bdg-s-tamat { --b-tone: #6a45b8; }
+.bdg-s-hiatus { --b-tone: #9a6a10; }
+.bdg-s-other { --b-tone: var(--tone-other); }
+html.dark .bdg-s-ongoing { --b-tone: #5fd391; }
+html.dark .bdg-s-tamat { --b-tone: #b79cf2; }
+html.dark .bdg-s-hiatus { --b-tone: #e3b54f; }
 .bdg-src {
   background: color-mix(in srgb, var(--color-fg) 7%, transparent);
   color: var(--tone-other);

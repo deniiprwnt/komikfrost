@@ -387,7 +387,9 @@ export function dedupeKey(raw: string): string {
   // di sini agar varian ejaan jatuh ke grup yang sama.
   const stripped = stripPossessive(fixTitle(raw))
     .replace(/\s*[(\[]\s*\d+\s*[-\u2010-\u2015]\s*\d+\s*[)\]]\s*$/, "")
-    .replace(/\s*[(\[]\s*(?:id|indo(?:nesia)?)\s*\d*\s*[)\]]\s*$/i, "");
+    .replace(/\s*[(\[]\s*(?:id|indo(?:nesia)?)\s*\d*\s*[)\]]\s*$/i, "")
+    // Keterangan judul panjang di kurung akhir (tanpa angka) = subjudul/alias, bukan judul lain.
+    .replace(/\s*\([^()\d]{8,}\)\s*$/, "");
   const t = normalizeTitle(stripped);
   if (!t) return "";
   // Token "s" tunggal (sisa possessive yang lolos, mis. dari slug "san-s-...")
@@ -588,7 +590,7 @@ export function mergeCards(
       // Satu source satu slot — duplikat dalam source yang sama: entri
       // dengan chapter TERBANYAK menang (seri → yang muncul lebih dulu).
       const cur = g.cards[s];
-      if (!cur || weight(c) > weight(cur)) g.cards[s] = c;
+      if (!cur || weight(c) > weight(cur) || (weight(c) === weight(cur) && c.title.length > cur.title.length)) g.cards[s] = c;
     }
   }
   // Pass 2: satukan grup-grup yang berbagi altKey SAMA PERSIS.

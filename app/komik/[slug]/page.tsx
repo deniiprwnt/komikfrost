@@ -7,7 +7,7 @@ import { consumeCoverMorph, flyCover, prefersReducedMotion } from "@/lib/morph";
 import { usePageTitle } from "@/lib/page-title";
 import { readKey, useReadChapters } from "@/lib/history";
 import type { MangaCard, MangaDetail } from "@/lib/api/types";
-import { chapterPathToRoute, TypeBadge } from "@/components/cards";
+import { chapterPathToRoute, StatusBadge, TypeBadge } from "@/components/cards";
 import { LatestCardsSkeleton, LatestGrid } from "@/components/latest-card";
 import { ChapterDate } from "@/components/chapter-date";
 import { ErrorState, EmptyState } from "@/components/states";
@@ -243,7 +243,10 @@ export default function MangaDetailPage({ params }: { params: Promise<{ slug: st
               di samping H1 besar; bookmark menempel di kanan judul. */}
           <div className="flex min-w-0 items-start gap-2">
             <div className="min-w-0 flex-1">
-              <TypeBadge type={detail.type} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <TypeBadge type={detail.type} />
+                <StatusBadge status={detail.status} />
+              </div>
               <h1 className="mt-1.5 min-w-0 break-words font-display text-lg font-extrabold leading-[1.15] tracking-[-0.02em] text-fg min-[420px]:text-xl sm:text-2xl lg:text-3xl dark:text-fg-dark">
                 {detail.title}
               </h1>
