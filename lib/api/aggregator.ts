@@ -1623,7 +1623,7 @@ export async function fetchAllSettled<T>(
     }
     const e: unknown = r.reason;
     const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[aggregator:${label}] source=${source} gagal: ${msg}`);
+    console.error(`[aggregator:${label}] source=${source} gagal: ${JSON.stringify(msg)}`);
     return { source, value: null as T | null, err: e, msg };
   });
   const data: Partial<Record<ComicSourceId, T>> = {};

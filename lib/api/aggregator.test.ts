@@ -157,3 +157,39 @@ console.log("aggregator.test (audit fallback): OK");
   assert.equal(same.length, 2);
 }
 console.log("aggregator.test (judul terjemahan lintas sumber): OK");
+
+/* ---- Log injection: pesan error di fetchAllSettled tidak boleh bikin baris log baru ---- */
+import { fetchAllSettled } from "./aggregator.ts";
+{
+  const captured: string[] = [];
+  const origError = console.error;
+  console.error = (...args: unknown[]) => { captured.push(args.map(String).join(" ")); };
+  try {
+    const malicious = "gagal\r\n[FAKE] baris palsu\n\u001b[31mmerah palsu";
+    const { data, errors } = await fetchAllSettled(
+      { komiku: async () => { throw new Error(malicious); }, shinigami: async () => "ok" } as never,
+      "cari",
+    );
+    assert.equal(data.shinigami, "ok");
+    assert.equal(errors.komiku, malicious);
+    assert.equal(captured.length, 1, "satu kegagalan = satu baris log");
+    const line = captured[0];
+    assert.ok(!line.includes("\n") && !line.includes("\r"), "CR/LF harus ter-escape, bukan baris baru");
+    assert.ok(!line.includes("\u001b"), "ANSI escape harus ter-escape, bukan kode escape mentah");
+    assert.ok(line.includes("[aggregator:cari]"), "label dipertahankan");
+    assert.ok(line.includes("source=komiku"), "source dipertahankan");
+    assert.ok(line.includes(JSON.stringify(malicious)), "pesan tetap utuh dalam bentuk JSON-escaped");
+    // Pesan biasa tetap dapat dibaca.
+    captured.length = 0;
+    const normal = await fetchAllSettled(
+      { komiku: async () => { throw new Error("upstream timeout"); }, shinigami: async () => "ok" } as never,
+      "cari",
+    );
+    assert.equal(normal.data.shinigami, "ok");
+    assert.ok(captured[0].includes("upstream timeout"), "pesan biasa tetap terbaca");
+    assert.ok(!captured[0].includes("\n"), "pesan biasa satu baris");
+  } finally {
+    console.error = origError;
+  }
+}
+console.log("aggregator.test (log injection): OK");
