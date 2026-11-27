@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // ini `next build` gagal dengan "ESLint must be installed in order to run
   // during builds" — build produksi jadi mustahil tanpa `--no-lint`.
   eslint: { ignoreDuringBuilds: true },
-  compiler: { removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false },
+  compiler: { removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn", "info"] } : false },
   experimental: {
     optimizePackageImports: ["cheerio"],
     // Router Cache klien — shell halaman ini semuanya komponen client yang
