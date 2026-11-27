@@ -62,7 +62,6 @@ export const IMG_HOST_SUFFIXES = [
   "kiryuu.to",
   "kiryuu.id",
   "bacamanga.io",
-  "voratoon.id",
 ];
 
 /** Apakah host ini host gambar upstream yang boleh diproksikan? */
