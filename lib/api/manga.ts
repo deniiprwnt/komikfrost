@@ -1073,13 +1073,25 @@ export async function getLatestUpdate(): Promise<MangaCard[]> {
 // TTL dinaikkan 30 dtk -> 60 dtk: klik chapter -> back -> klik chapter lain
 // sering terjadi dalam <1 menit; tanpa cache ini setiap back = scrape tiga
 // source ulang. 1 menit cukup untuk navigasi bolak-balik tanpa basi lama.
-const detailCache = createKeyedCache<MangaDetail>(120_000, 60);
+const detailCache = createKeyedCache<MangaDetail>(120_000, 60, { name: "detail" });
+
+/** Detail gabungan yang SUDAH ada di cache (deep dulu, lalu fast), tanpa scrape. */
+export function peekMangaDetail(slug: string): MangaDetail | null {
+  return detailCache.peek(`deep:${slug}`) ?? detailCache.peek(`fast:${slug}`);
+}
 
 export async function getMangaDetail(
   slug: string,
   opts: { deep?: boolean } = {},
 ): Promise<MangaDetail> {
   const deep = opts.deep !== false;
+  // Detail "deep" adalah superset "fast" (hanya menambah tahap resolve
+  // sekunder). Bila sudah ada di cache, permintaan fast memakainya: tidak ada
+  // scrape tiga sumber kedua untuk komik yang sama (halaman detail -> reader).
+  if (!deep) {
+    const full = detailCache.peek(`deep:${slug}`);
+    if (full) return full;
+  }
   return detailCache.load(`${deep ? "deep" : "fast"}:${slug}`, () =>
     buildMangaDetail(slug, deep),
   );

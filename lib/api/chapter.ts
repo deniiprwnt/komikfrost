@@ -1,15 +1,15 @@
 /**
- * lib/api/chapter.ts — service reader chapter (multi-source).
- * SHINIGAMI UTAMA; Komiku fallback kedua, Komikcast fallback ketiga
- * per chapter yang tidak ada di source prioritas lebih tinggi.
+ * lib/api/chapter.ts - service reader chapter (multi-source).
+ * Urutan prioritas: komiku (Mahwaindo) -> shinigami (Kiryuu) -> komikcast.
+ * Sumber dicoba BERURUTAN dan berhenti di yang pertama berhasil.
  */
 import { KomikuError } from "./komiku";
 import { fetchChapter } from "./manhwaindo";
 import { fetchKomikcastChapter } from "./komikcast";
-// Slot "shinigami" di kode sekarang mengarah ke Kiryuu â€” semua fungsi
-// `fetchShini*` di lib/api/shinigami.ts adalah shim tipis ke lib/api/kiryuu.ts.
-// Nama source di SOURCE_PRIORITY & field sourceSlug tetap "shinigami" agar
-// tidak perlu refactor besar di seluruh pemanggil.
+// Slot "shinigami" di kode mengarah ke Kiryuu - semua fungsi `fetchShini*`
+// di lib/api/shinigami.ts adalah shim tipis ke lib/api/kiryuu.ts. Nama source
+// di SOURCE_PRIORITY & field sourceSlug tetap "shinigami" agar tidak perlu
+// refactor besar di seluruh pemanggil.
 import {
   fetchShiniChapter,
   fetchShiniChapterById,
@@ -17,18 +17,20 @@ import {
   parseNumToken,
   resolveShiniDetailForSlug,
 } from "./shinigami";
-import { getMangaDetail } from "./manga";
+import { getMangaDetail, peekMangaDetail } from "./manga";
 import { normalizeChapterKey, type ComicSourceId, type MergedMangaDetail } from "./aggregator";
 import { createKeyedCache } from "./cache";
+import { runChapterFallback, type ChapterAttempt } from "./chapter-fallback";
+import { count, timed } from "./metrics.ts";
 import type { ChapterData } from "./types";
 
-/** Chapter tidak berubah setelah terbit — cache 5 menit cukup; klik
+/** Chapter tidak berubah setelah terbit - cache 5 menit cukup; klik
  *  Prev/Next berulang tidak perlu menyentuh upstream sama sekali. */
-const chapterCache = createKeyedCache<ChapterData>(5 * 60_000, 80);
+const chapterCache = createKeyedCache<ChapterData>(5 * 60_000, 80, { name: "chapter" });
 
 /**
  * Kunci pencocokan chapter dari token URL ("88-10", "88-10-bahasa-indonesia",
- * "Chapter 88-10") → "88-10". String, bukan angka: token bersufiks kelipatan
+ * "Chapter 88-10") -> "88-10". String, bukan angka: token bersufiks kelipatan
  * sepuluh ("-10") dulu bertabrakan dengan "-1" saat diubah ke desimal.
  */
 function tokenChapterKey(tok: string): string {
@@ -41,8 +43,8 @@ function tokenChapterKey(tok: string): string {
 /**
  * Token "bersih" untuk merakit URL sumber: buang sufiks "-bahasa-indonesia"
  * dan prefiks slug/chapter yang terbawa bila token ternyata slug chapter
- * penuh ("<slug>-chapter-18", "chapter-18"). Tanpa ini URL dirakit ganda —
- * "/<slug>-chapter-<slug>-chapter-18-bahasa-indonesia/" → 404 upstream.
+ * penuh ("<slug>-chapter-18", "chapter-18"). Tanpa ini URL dirakit ganda -
+ * "/<slug>-chapter-<slug>-chapter-18-bahasa-indonesia/" -> 404 upstream.
  */
 function bareChapterToken(tok: string): string {
   const out = tok
@@ -55,8 +57,7 @@ function bareChapterToken(tok: string): string {
  * Ambil satu chapter.
  * @param slug    slug Komiku ("blue-lock") atau UUID Shinigami
  * @param chapter nomor chapter, mis. "360" atau "11-2" untuk 11.2
- * @param source  override manual ("shinigami"/"komiku"); default otomatis
- *                per daftar chapter gabungan (Shinigami bila nomor ada di sana)
+ * @param source  override manual; default otomatis (sequential fallback)
  */
 export async function getChapter(
   slug: string,
@@ -66,8 +67,40 @@ export async function getChapter(
   const s = slug.replace(/^\/+|\/+$/g, "");
   const c = chapter.replace(/^\/+|\/+$/g, "");
   return chapterCache.load(`${s}/${c}/${source ?? "auto"}`, () =>
-    loadChapter(s, c, source),
+    timed("chapter", { source: source ?? "auto" }, () => loadChapter(s, c, source)),
   );
+}
+
+/**
+ * Jalur otomatis. Data chapter (gambar) dipisah dari metadata navigasi:
+ *  - detail gabungan sudah di cache -> jalur gabungan (prev/next lintas
+ *    sumber utuh, tanpa scrape tambahan);
+ *  - belum ada -> coba Mahwaindo langsung (1 request, tanpa scrape tiga
+ *    sumber); prev/next memakai navigasi sumber itu sendiri. Gagal/kosong ->
+ *    jalur gabungan. Mahwaindo dilewati di sana HANYA bila URL dari daftar
+ *    chapter (entrySources) sama dengan URL tebakan yang sudah dicoba; bila
+ *    beda atau belum diketahui, Mahwaindo tetap dicoba dengan URL yang benar.
+ */
+async function getChapterAuto(s: string, c: string): Promise<ChapterData> {
+  if (peekMangaDetail(s)) return getChapterMerged(s, c);
+  const guessedUrl = `/${s}-chapter-${bareChapterToken(c)}/`;
+  const attempts: ChapterAttempt[] = [
+    {
+      source: "komiku",
+      run: async () => ({
+        ...(await fetchChapter(guessedUrl, { nav: false })),
+        source: "komiku" as ComicSourceId,
+      }),
+    },
+  ];
+  try {
+    const r = await runChapterFallback(attempts);
+    count("chapter.fastpath.ok");
+    return r.data;
+  } catch (e) {
+    count("chapter.fastpath.fallback");
+    return getChapterMerged(s, c, undefined, [], e, guessedUrl);
+  }
 }
 
 async function loadChapter(
@@ -80,13 +113,13 @@ async function loadChapter(
   // Override eksplisit (dipakai ?source=... saat satu sisi gagal total).
   if (source === "komiku") return fetchChapter(`/${s}-chapter-${bareChapterToken(c)}/`);
   // Komikcast: slug detail bisa beda dari slug chapter (mis. typo "shitaa"
-  // di detail vs "shita" di chapter) → resolve via daftar gabungan dulu,
+  // di detail vs "shita" di chapter) -> resolve via daftar gabungan dulu,
   // fallback rakit URL hanya bila daftar tidak punya entri Komikcast.
   if (source === "komikcast") {
     try {
       return await getChapterMerged(s, c, "komikcast");
     } catch {
-      // Token dari riwayat/URL bisa sudah membawa slug chapter penuh —
+      // Token dari riwayat/URL bisa sudah membawa slug chapter penuh -
       // jangan digandakan ("-bahasa-indonesia-bahasa-indonesia").
       return fetchKomikcastChapter(`/${s}-chapter-${bareChapterToken(c)}-bahasa-indonesia/`);
     }
@@ -99,24 +132,31 @@ async function loadChapter(
     return getChapterMerged(s, c, "shinigami");
   }
 
-  // Slug UUID murni → langsung Shinigami (tanpa Komiku).
+  // Slug UUID murni -> langsung Shinigami (tanpa Komiku).
   if (isShiniId(s)) {
     if (!Number.isFinite(num)) throw new KomikuError("Nomor chapter tidak valid.", s);
     return fetchShiniChapter(s, num, s, "");
   }
 
-  return getChapterMerged(s, c);
+  return getChapterAuto(s, c);
 }
 
 /**
- * Jalur gabungan: daftar chapter merge → source per nomor chapter →
- * fetch sisi pemenang → prev/next ditulis ulang dari daftar gabungan
- * (navigasi lintas source) → gagal → coba sisi lain bila tersedia.
+ * Jalur gabungan: daftar chapter merge -> source per nomor chapter ->
+ * fetch sisi pemenang -> prev/next ditulis ulang dari daftar gabungan
+ * (navigasi lintas source) -> gagal -> coba sisi lain bila tersedia.
+ * `skip` = sumber yang sudah dicoba dan gagal (tidak diulang);
+ * `priorError` = error terakhir dari percobaan sebelumnya;
+ * `triedKomikuUrl` = URL Mahwaindo yang sudah dicoba jalur cepat. Mahwaindo
+ * dilewati hanya bila URL dari entrySources sama dengan URL ini.
  */
 async function getChapterMerged(
   slug: string,
   token: string,
   prefer?: ComicSourceId,
+  skip: ComicSourceId[] = [],
+  priorError?: unknown,
+  triedKomikuUrl?: string,
 ): Promise<ChapterData> {
   const merged = (await getMangaDetail(slug, { deep: false })) as MergedMangaDetail;
   const shinigamiId = merged.sourceSlug?.shinigami;
@@ -128,14 +168,18 @@ async function getChapterMerged(
   const item = key ? merged.chapters.find((ch) => tokenChapterKey(ch.title) === key) : undefined;
   const entrySources = item?.sources ?? [];
   const hasShini = shinigamiId && entrySources.some((r) => r.source === "shinigami");
-  const komikuUrl =
-    entrySources.find((r) => r.source === "komiku")?.url ??
-    `/${slug}-chapter-${bareChapterToken(token)}/`;
+  const listedKomikuUrl = entrySources.find((r) => r.source === "komiku")?.url;
+  const komikuUrl = listedKomikuUrl ?? `/${slug}-chapter-${bareChapterToken(token)}/`;
+  // Skip Mahwaindo hanya bila URL resmi dari daftar terbukti sama dengan yang
+  // sudah gagal di jalur cepat. Beda/belum diketahui -> tetap dicoba.
+  const komikuAlreadyTried =
+    !!triedKomikuUrl && !!listedKomikuUrl && sameChapterUrl(listedKomikuUrl, triedKomikuUrl);
+  const effectiveSkip: ComicSourceId[] = komikuAlreadyTried ? [...skip, "komiku"] : skip;
   const komikcastUrl =
     entrySources.find((r) => r.source === "komikcast")?.url ??
     `/${slug}-chapter-${bareChapterToken(token)}-bahasa-indonesia/`;
 
-  // Urutan coba: prefer → pemenang merge → sisi lain (prioritas turun).
+  // Urutan coba: prefer -> pemenang merge -> sisi lain (prioritas turun).
   const entryHas = (s: ComicSourceId) => entrySources.some((r) => r.source === s);
   const order: ComicSourceId[] = [];
   if (prefer) order.push(prefer);
@@ -158,28 +202,37 @@ async function getChapterMerged(
     }
   }
 
-  let lastErr: unknown = null;
-  for (const src of order) {
-    try {
-      // chapter_id sudah dibawa daftar gabungan → langsung chapter/detail,
-      // TANPA chapter-list kedua. Absen (tak terduga) → cari via nomor.
-      const shiniChapterId = entrySources.find((r) => r.source === "shinigami")?.chapterId;
-      const data: ChapterData =
-        src === "shinigami"
-          ? shinigamiId
-            ? shiniChapterId
-              ? await fetchShiniChapterById(shiniChapterId, merged.slug, merged.title)
-              : await fetchShiniChapter(shinigamiId, num, merged.slug, merged.title)
-            : await Promise.reject(new KomikuError("Tidak tersedia di Shinigami.", slug))
-          : src === "komikcast"
-            ? await fetchKomikcastChapter(komikcastUrl)
-            : await fetchChapter(komikuUrl, { nav: false });
-      return withMergedNav({ ...data, source: src }, merged, token);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error("Gagal memuat chapter.");
+  // chapter_id sudah dibawa daftar gabungan -> langsung chapter/detail,
+  // TANPA chapter-list kedua. Absen (tak terduga) -> cari via nomor.
+  const shiniChapterId = entrySources.find((r) => r.source === "shinigami")?.chapterId;
+  const attempts: ChapterAttempt[] = order
+    .filter((src) => !effectiveSkip.includes(src))
+    .map((src) => ({
+      source: src,
+      run: async () => {
+        const data: ChapterData =
+          src === "shinigami"
+            ? shinigamiId
+              ? shiniChapterId
+                ? await fetchShiniChapterById(shiniChapterId, merged.slug, merged.title)
+                : await fetchShiniChapter(shinigamiId, num, merged.slug, merged.title)
+              : await Promise.reject(new KomikuError("Tidak tersedia di Shinigami.", slug))
+            : src === "komikcast"
+              ? await fetchKomikcastChapter(komikcastUrl)
+              : await fetchChapter(komikuUrl, { nav: false });
+        return withMergedNav({ ...data, source: src }, merged, token);
+      },
+    }));
+  const r = await runChapterFallback(attempts, priorError);
+  count(`chapter.source.${r.source}`);
+  if (r.fallbacks > 0) count("chapter.fallbacks", r.fallbacks);
+  return r.data;
+}
+
+/** Bandingkan dua URL chapter; perbedaan garis miring akhir diabaikan. */
+function sameChapterUrl(a: string, b: string): boolean {
+  const norm = (u: string) => u.trim().replace(/\/+$/, "");
+  return norm(a) === norm(b);
 }
 
 /**
