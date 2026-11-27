@@ -72,12 +72,8 @@ async function fetchSeriesCover(slug: string): Promise<string | null> {
       signal: ctrl.signal,
       cache: "no-store",
     });
-    // 403/429/5xx = diblokir atau gagal (bukan "komik tidak ada"): lempar agar tidak di-cache lama.
-    if (!res.ok) throw new Error(`http-${res.status}`);
-    const html = await res.text();
-    const cover = extractCover(html, slug);
-    if (!cover && /Just a moment|cf-chl|challenge-platform/i.test(html)) throw new Error("cloudflare-challenge");
-    return cover;
+    if (!res.ok) return null;
+    return extractCover(await res.text(), slug);
   } finally {
     clearTimeout(timer);
   }
@@ -94,23 +90,6 @@ async function resolve(title: string): Promise<{ url: string | null; ok: boolean
     }
   }
   return { url: null, ok: !failed };
-}
-
-/** Diagnosa tanpa cache: hasil tiap kandidat slug (ok | notfound | http-403 | cloudflare-challenge | ...). */
-export async function diagnoseVora(
-  title: string,
-): Promise<{ title: string; results: Array<{ slug: string; result: string }> }> {
-  const results: Array<{ slug: string; result: string }> = [];
-  for (const slug of slugCandidates(title.trim())) {
-    try {
-      const u = await fetchSeriesCover(slug);
-      results.push({ slug, result: u ? "ok" : "notfound" });
-      if (u) break;
-    } catch (e) {
-      results.push({ slug, result: e instanceof Error ? e.message : "error" });
-    }
-  }
-  return { title, results };
 }
 
 /** URL cover VoraToon (mentah, belum diproksikan) untuk satu judul, atau null. */
