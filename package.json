@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node lib/chapter-date.test.ts && node lib/api/http-cache.test.ts && node lib/api/aggregator.test.ts"
+    "test": "node lib/chapter-date.test.ts && node lib/api/http-cache.test.ts && node lib/api/aggregator.test.ts && node lib/refresh-gate.test.ts && node lib/api/chapter-fallback.test.ts && node lib/api/chapter-auto.test.ts"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
