@@ -5,6 +5,7 @@ import { UzumakiMark } from "@/components/uzumaki-mark";
 import { alternateImageUrls } from "@/lib/api/img-proxy";
 import { EMPTY_KEY, markCoverSettled, reportBrokenCover, useCoverHealing } from "@/components/cover-heal";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVoraCover } from "@/lib/vora-cover";
 
 /**
  * Gambar cover dengan placeholder modern — pengganti <img> polos.
@@ -185,6 +186,7 @@ export function CoverImage({
   priority = false,
   label = "Cover tidak tersedia",
   fallbackSrcs,
+  title,
 }: {
   src?: string | null;
   alt: string;
@@ -207,13 +209,16 @@ export function CoverImage({
   // membuat slot cover menjadi placeholder PERMANEN walau host lain yang
   // menyajikan file sama masih hidup â€” inilah sebab sampul seperti
   // Limit Breaker hilang di Lanjut Membaca dan Riwayat.
+  // Cover VoraToon dicari lewat judul: ada = jadi kandidat PERTAMA, tidak ada = cover 3 sumber.
+  const vora = useVoraCover(title ?? alt);
+  const waiting = vora === undefined;
   const candidates: string[] = [];
   const pushCand = (u: string | undefined | null) => {
     const v = (u ?? "").trim();
     if (v && !candidates.includes(v)) candidates.push(v);
   };
   const primarySrcs: string[] = [];
-  for (const u of [src ?? "", ...(fallbackSrcs ?? [])]) {
+  for (const u of [vora ?? "", src ?? "", ...(fallbackSrcs ?? [])]) {
     const v = (u ?? "").trim();
     if (v && !primarySrcs.includes(v)) primarySrcs.push(v);
   }
@@ -312,9 +317,9 @@ export function CoverImage({
   const healing = useCoverHealing(healKey, status === "error");
   const restarted = candidates.length === 0 || restartedFor.current === key;
   useEffect(() => {
-    if (status !== "error" || candidates.length === 0 || !restarted) return;
+    if (waiting || status !== "error" || candidates.length === 0 || !restarted) return;
     reportBrokenCover(healKey);
-  }, [status, candidates.length, restarted, healKey]);
+  }, [waiting, status, candidates.length, restarted, healKey]);
   // Pengaman: skeleton tanpa pemulih terpasang tidak boleh menggantung.
   useEffect(() => {
     if (!healing || candidates.length > 0) return;
@@ -323,7 +328,7 @@ export function CoverImage({
   }, [healing, candidates.length]);
   // Selama masih ada upaya (mulai ulang rantai / pemulihan), tahan skeleton.
   const hold = healing || (candidates.length > 0 && !restarted);
-  const showSkeleton = status === "loading" || (status === "error" && hold);
+  const showSkeleton = waiting || status === "loading" || (status === "error" && hold);
 
   return (
     <span className="cover-frame" data-status={showSkeleton ? "loading" : status}>
@@ -333,7 +338,7 @@ export function CoverImage({
         </span>
       )}
 
-      {status === "error" ? (
+      {waiting ? null : status === "error" ? (
         hold ? null : (
         <span className="cover-ph cover-ph--err" role="img" aria-label={label}>
           <AnimeError label={label} />
